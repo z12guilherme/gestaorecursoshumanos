@@ -12,7 +12,8 @@
   Moon,
   Sun,
   Workflow,
-  FileText
+  FileText,
+  Clock
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -41,7 +42,8 @@ const mainNavItems = [
   { title: 'Colaboradores', url: '/employees', icon: Users },
   { title: 'Recrutamento', url: '/recruitment', icon: Briefcase },
   { title: 'Avaliações', url: '/performance', icon: Star },
-  { title: 'Férias & Ponto', url: '/absences', icon: Calendar },
+  { title: 'Férias & Ausências', url: '/absences', icon: Calendar },
+  { title: 'Controle de Ponto', url: '/timesheet', icon: Clock },
   { title: 'Relatórios', url: '/reports', icon: FileText },
   { title: 'Comunicação', url: '/communication', icon: MessageSquare },
 ];

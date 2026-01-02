@@ -46,11 +46,21 @@ Ferramentas para atrair e selecionar talentos.
 - **Gestão de Vagas**: Criação e edição de descrições de vagas.
 - **Movimentação**: Arrastar e soltar candidatos entre as fases do processo.
 
-### 📅 Controle de Férias e Ponto
-Gestão eficiente de ausências.
+### 📅 Férias & Ausências
+Gestão eficiente de ausências e licenças.
 - **Solicitações**: Visualização de pedidos de férias e licenças.
 - **Aprovação**: Fluxo de aprovação ou rejeição de solicitações.
 - **Visão Geral**: Calendário e lista de quem está ausente.
+
+### 🕒 Ponto Eletrônico
+Interface pública para que os colaboradores registrem suas horas.
+- **Registro Simplificado**: O colaborador seleciona seu perfil, insere sua senha e o sistema captura a hora automaticamente.
+- **Controle de Entrada e Saída**: Lógica para alternar entre registro de entrada e saída.
+
+### 📋 Controle de Ponto
+Acompanhamento detalhado dos registros de ponto.
+- **Relatório Completo**: Lista com todos os eventos de entrada e saída dos funcionários.
+- **Visualização Rápida**: Badges para identificar o tipo de registro.
 
 ### 📢 Comunicação Interna
 Canal direto com a equipe.
@@ -78,6 +88,10 @@ src/
 ├── hooks/           # Hooks personalizados (use-toast, etc.)
 ├── lib/             # Utilitários e configurações de bibliotecas
 ├── pages/           # Páginas principais da aplicação (rotas)
+│   ├── ClockIn.tsx      # (Terminal de Ponto - /time-off)
+│   ├── TimeOff.tsx      # (Férias & Ausências - /absences)
+│   ├── Timesheet.tsx    # (Relatório de Ponto - /timesheet)
+│   └── ...
 ├── types/           # Definições de tipos TypeScript
 └── App.tsx          # Componente raiz e configuração de rotas
 ```
@@ -128,7 +142,7 @@ Como o projeto utiliza dados mockados e `localStorage` para persistência tempor
 - [ ] **Backend Real**: Integração com Supabase/PostgreSQL para persistência de dados.
 - [ ] **Autenticação**: Implementação de login seguro com JWT/OAuth.
 - [ ] **Perfis de Acesso**: Diferenciação entre Admin, Gestor e Colaborador.
-- [ ] **Ponto Eletrônico**: Módulo para registro e espelho de ponto.
+- [x] **Ponto Eletrônico**: Módulo para registro e espelho de ponto.
 - [ ] **App Mobile**: Versão responsiva otimizada ou app nativo.
 
 ## 📄 Licença

@@ -112,7 +112,7 @@ export default function TimeOff() {
   };
 
   return (
-    <AppLayout title="Férias & Ponto" subtitle="Gerencie solicitações e controle de ponto">
+    <AppLayout title="Férias & Ausências" subtitle="Gerencie solicitações de férias e ausências">
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

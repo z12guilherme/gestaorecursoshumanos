@@ -18,6 +18,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/Login";
 import ClockInPage from "./pages/ClockIn";
+import TimesheetPage from "./pages/Timesheet";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => {
               <Route path="/recruitment" element={<Recruitment />} />
               <Route path="/performance" element={<Performance />} />
               <Route path="/absences" element={<TimeOff />} />
+              <Route path="/timesheet" element={<TimesheetPage />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/communication" element={<Communication />} />
               <Route path="/ai-assistant" element={<AIAssistant />} />
