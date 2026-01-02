@@ -22,7 +22,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, Edit, Trash2, Mail, Users, Palmtree, Undo2 } from 'lucide-react';
+import { MoreHorizontal, Eye, Edit, Trash2, Mail, Users, Palmtree, Undo2, KeyRound } from 'lucide-react';
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -31,6 +31,7 @@ interface EmployeeTableProps {
   onDelete: (employee: Employee) => void;
   onGrantVacation: (employee: Employee) => void;
   onEndVacation: (employee: Employee) => void;
+  onChangePassword: (employee: Employee) => void;
 }
 
 const statusConfig = {
@@ -40,7 +41,7 @@ const statusConfig = {
   terminated: { label: 'Desligado', variant: 'destructive' as const, className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
 };
 
-export function EmployeeTable({ employees, onView, onEdit, onDelete, onGrantVacation, onEndVacation }: EmployeeTableProps) {
+export function EmployeeTable({ employees, onView, onEdit, onDelete, onGrantVacation, onEndVacation, onChangePassword }: EmployeeTableProps) {
   return (
     <div className="rounded-lg border border-border bg-card">
       <Table>
@@ -110,6 +111,10 @@ export function EmployeeTable({ employees, onView, onEdit, onDelete, onGrantVaca
                         </DropdownMenuPortal>
                       </DropdownMenuSub>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onChangePassword(employee)}>
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        Alterar Senha
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onView(employee)}>
                         <Eye className="mr-2 h-4 w-4" />
                         Ver detalhes

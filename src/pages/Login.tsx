@@ -4,31 +4,49 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from '@/components/ui/label';
 import { LayoutDashboard, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { session } = useAuth();
 
   useEffect(() => {
     // Se já estiver logado, redireciona para o dashboard
-    if (localStorage.getItem("user")) {
+    if (session) {
       navigate("/");
     }
-  }, [navigate]);
+  }, [session, navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simula delay de rede
-    setTimeout(() => {
-      if (email && password) {
-        localStorage.setItem("user", JSON.stringify({ email }));
-        navigate("/");
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
       }
+
+      // O AuthProvider no App.tsx detectará a sessão e o redirecionamento acontecerá
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Erro ao entrar",
+        description: "Email ou senha incorretos. Verifique suas credenciais.",
+        variant: "destructive"
+      });
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (

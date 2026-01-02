@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Employee } from '@/types/hr';
-import { employees as mockEmployees } from '@/data/mockData';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,29 +17,12 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { LogIn, LogOut, User, ArrowLeft } from 'lucide-react';
-
-interface ClockEvent {
-  id: string;
-  employeeId: string;
-  timestamp: string;
-  type: 'in' | 'out';
-}
+import { useEmployees } from '@/hooks/useEmployees';
+import { useTimeEntries } from '@/hooks/useTimeEntries';
 
 export default function ClockInPage() {
-  const [employees] = useState<Employee[]>(() => {
-    const saved = localStorage.getItem('hr_employees');
-    const initial = saved ? JSON.parse(saved) : mockEmployees;
-    return initial.map((e: any) => ({ ...e, pin: e.pin || '1234' })); // Garante PIN padrão para teste
-  });
-
-  const [clockEvents, setClockEvents] = useState<ClockEvent[]>(() => {
-    const saved = localStorage.getItem('hr_clock_events');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('hr_clock_events', JSON.stringify(clockEvents));
-  }, [clockEvents]);
+  const { employees, validateEmployeeLogin } = useEmployees();
+  const { entries: clockEvents, addEntry } = useTimeEntries();
 
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
@@ -56,26 +38,24 @@ export default function ClockInPage() {
     setPin('');
   };
 
-  const handleClockAction = (type: 'in' | 'out') => {
-    if (!selectedEmployee || !selectedEmployee.pin) {
-      setError('Senha não configurada para este colaborador.');
-      return;
-    }
+  const handleClockAction = async (type: 'in' | 'out') => {
+    if (!selectedEmployee) return;
 
-    if (pin !== selectedEmployee.pin) {
+    // Valida a senha diretamente no banco de dados
+    const isValid = await validateEmployeeLogin(selectedEmployee.id, pin);
+
+    if (!isValid) {
       setError('Senha incorreta. Tente novamente.');
       setPin('');
       return;
     }
 
-    const newEvent: ClockEvent = {
-      id: Date.now().toString(),
-      employeeId: selectedEmployee.id,
+    const { error } = await addEntry({
+      employee_id: selectedEmployee.id,
       timestamp: new Date().toISOString(),
       type,
-    };
+    });
 
-    setClockEvents(prev => [...prev, newEvent]);
     toast({
       title: `Ponto registrado com sucesso!`,
       description: `${selectedEmployee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} às ${format(new Date(), 'HH:mm')}.`,
@@ -87,7 +67,7 @@ export default function ClockInPage() {
   };
 
   const lastEventForSelected = selectedEmployee
-    ? clockEvents.filter(e => e.employeeId === selectedEmployee.id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
+    ? clockEvents.filter(e => e.employee_id === selectedEmployee.id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
     : null;
 
   return (

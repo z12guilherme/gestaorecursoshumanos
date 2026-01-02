@@ -4,7 +4,6 @@ import { EmployeeTable } from '@/components/employees/EmployeeTable';
 import { EmployeeFilters } from '@/components/employees/EmployeeFilters';
 import { EmployeeFormDialog } from '@/components/employees/EmployeeFormDialog';
 import { EmployeeDetailSheet } from '@/components/employees/EmployeeDetailSheet';
-import { employees as initialEmployees } from '@/data/mockData';
 import { Employee, TimeOffRequest } from '@/types/hr';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,28 +20,39 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Users, UserCheck, UserX, Calendar } from 'lucide-react';
+import { Users, UserCheck, UserX, Calendar, LogOut, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
+import { useEmployees } from '@/hooks/useEmployees';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function Employees() {
-  const [employees, setEmployees] = useState<Employee[]>(() => {
-    const saved = localStorage.getItem('hr_employees');
-    return saved ? JSON.parse(saved) : initialEmployees;
-  });
+  const { 
+    employees: dbEmployees, 
+    loading, 
+    addEmployee, 
+    updateEmployee, 
+    deleteEmployee,
+    refetch 
+  } = useEmployees();
+  const { signOut } = useAuth();
 
-  useEffect(() => {
-    localStorage.setItem('hr_employees', JSON.stringify(employees));
-  }, [employees]);
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const saved = localStorage.getItem('hr_employees');
-      setEmployees(saved ? JSON.parse(saved) : initialEmployees);
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  // Mapeia os dados do Supabase (DB) para o formato da UI (Employee)
+  const employees: Employee[] = dbEmployees.map(dbEmp => ({
+    id: dbEmp.id,
+    name: dbEmp.name,
+    email: dbEmp.email,
+    position: dbEmp.role, // Mapeia role -> position
+    department: dbEmp.department,
+    status: dbEmp.status as any, // Cast simples para o status da UI
+    hireDate: dbEmp.admission_date, // Mapeia admission_date -> hireDate
+    // Campos que não estão no banco simplificado (preenchidos com padrão)
+    phone: '',
+    contractType: 'CLT',
+    birthDate: '',
+    salary: 0,
+    manager: '',
+  }));
 
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
@@ -51,6 +61,8 @@ export default function Employees() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isVacationDialogOpen, setIsVacationDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passwordToUpdate, setPasswordToUpdate] = useState('');
   const [employeeToTerminate, setEmployeeToTerminate] = useState<Employee | null>(null);
   const [vacationDays, setVacationDays] = useState(30);
   const { toast } = useToast();
@@ -82,24 +94,46 @@ export default function Employees() {
     setIsFormOpen(true);
   };
 
-  const handleSave = (employeeData: Partial<Employee>) => {
-    if (selectedEmployee) {
-      setEmployees(prev => 
-        prev.map(e => e.id === selectedEmployee.id ? { ...e, ...employeeData } : e)
-      );
-    } else {
-      const newEmployee: Employee = {
-        ...employeeData as Employee,
-        id: Date.now().toString(),
+  const handleSave = async (employeeData: Partial<Employee>) => {
+    try {
+      // Prepara o objeto para o formato do Banco de Dados
+      const dbPayload = {
+        name: employeeData.name!,
+        email: employeeData.email!,
+        role: employeeData.position!, // UI (position) -> DB (role)
+        department: employeeData.department!,
+        status: employeeData.status || 'Ativo',
+        admission_date: employeeData.hireDate || new Date().toISOString(),
+        password: '1234', // Senha padrão para novos colaboradores
       };
-      setEmployees(prev => [...prev, newEmployee]);
+
+      let result;
+      if (selectedEmployee) {
+        result = await updateEmployee(selectedEmployee.id, dbPayload);
+      } else {
+        result = await addEmployee(dbPayload);
+      }
+
+      if (result.error) throw result.error;
+
+      toast({ 
+        title: "Sucesso", 
+        description: selectedEmployee ? "Colaborador atualizado." : "Colaborador criado." 
+      });
+      setIsFormOpen(false);
+    } catch (error: any) {
+      console.error("Erro ao salvar:", error);
+      toast({ 
+        title: "Erro", 
+        description: error.message || "Falha ao salvar colaborador.", 
+        variant: "destructive" 
+      });
     }
   };
 
-  const handleEndVacation = (employeeId: string) => {
-    setEmployees(prev =>
-      prev.map(e => (e.id === employeeId ? { ...e, status: 'active' } : e))
-    );
+  const handleEndVacation = async (employeeId: string) => {
+    await updateEmployee(employeeId, { status: 'Ativo' });
+    
     toast({
       title: "Férias encerradas",
       description: "O colaborador foi marcado como ativo.",
@@ -116,18 +150,37 @@ export default function Employees() {
     handleGrantVacationClick(employee.id);
   };
 
+  const handlePasswordClick = (employee: Employee) => {
+    const dbEmp = dbEmployees.find(d => d.id === employee.id);
+    setSelectedEmployee(employee);
+    setPasswordToUpdate(dbEmp?.password || '');
+    setIsPasswordDialogOpen(true);
+  };
+
+  const handleSavePassword = async () => {
+    if (!selectedEmployee) return;
+    
+    await updateEmployee(selectedEmployee.id, { password: passwordToUpdate });
+
+    toast({
+      title: "Senha atualizada",
+      description: `A senha de ponto de ${selectedEmployee.name} foi alterada com sucesso.`,
+    });
+    setIsPasswordDialogOpen(false);
+  };
+
   const handleTerminateClick = (employee: Employee) => {
     setEmployeeToTerminate(employee);
   };
 
-  const confirmTerminate = () => {
+  const confirmTerminate = async () => {
     if (!employeeToTerminate) return;
-    setEmployees(prev =>
-      prev.map(e => e.id === employeeToTerminate.id ? { ...e, status: 'terminated' } : e)
-    );
+    
+    await deleteEmployee(employeeToTerminate.id);
+
     toast({
-      title: "Colaborador Desligado",
-      description: `O status de ${employeeToTerminate.name} foi alterado para "Desligado".`,
+      title: "Colaborador Removido",
+      description: `O colaborador ${employeeToTerminate.name} foi removido do banco de dados.`,
       variant: "destructive"
     });
     setEmployeeToTerminate(null);
@@ -139,7 +192,7 @@ export default function Employees() {
     setIsVacationDialogOpen(true);
   };
 
-  const confirmGrantVacation = () => {
+  const confirmGrantVacation = async () => {
     if (!selectedEmployee) return;
 
     const days = vacationDays;
@@ -165,7 +218,7 @@ export default function Employees() {
     localStorage.setItem('hr_timeoff_requests', JSON.stringify([...currentRequests, newRequest]));
 
     // Update employee status
-    setEmployees(prev => prev.map(e => e.id === selectedEmployee.id ? { ...e, status: 'vacation' } : e));
+    await updateEmployee(selectedEmployee.id, { status: 'Férias' });
 
     toast({
       title: "Férias concedidas",
@@ -209,23 +262,26 @@ export default function Employees() {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      const newEmployees: Employee[] = jsonData.map((row: any) => ({
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-        name: row['Nome'] || row['Nome Completo'] || '',
-        email: row['Email'] || '',
-        position: row['Cargo'] || 'Novo Colaborador',
-        department: row['Departamento'] || 'Geral',
-        phone: row['Telefone'] || '',
-        status: 'active',
-        contractType: 'CLT',
-        hireDate: row['Data de Admissão'] || new Date().toISOString().split('T')[0],
-      })).filter((e: any) => e.name); // Filtra linhas vazias
+      let count = 0;
+      for (const row of jsonData as any[]) {
+        if (!row['Nome'] && !row['Nome Completo']) continue;
+        
+        await addEmployee({
+          name: row['Nome'] || row['Nome Completo'],
+          email: row['Email'] || '',
+          role: row['Cargo'] || 'Novo Colaborador',
+          department: row['Departamento'] || 'Geral',
+          status: 'active',
+          admission_date: row['Data de Admissão'] || new Date().toISOString(),
+          password: '1234',
+        });
+        count++;
+      }
 
-      if (newEmployees.length > 0) {
-        setEmployees(prev => [...prev, ...newEmployees]);
+      if (count > 0) {
         toast({
           title: "Importação realizada",
-          description: `${newEmployees.length} colaboradores foram importados com sucesso.`,
+          description: `${count} colaboradores foram importados com sucesso.`,
         });
       } else {
         toast({
@@ -246,15 +302,17 @@ export default function Employees() {
 
   const stats = {
     total: employees.length,
-    active: employees.filter(e => e.status === 'active').length,
-    vacation: employees.filter(e => e.status === 'vacation').length,
-    leave: employees.filter(e => e.status === 'leave').length,
-    terminated: employees.filter(e => e.status === 'terminated').length,
+    active: employees.filter(e => e.status === 'active' || e.status === 'Ativo').length,
+    vacation: employees.filter(e => e.status === 'vacation' || e.status === 'Férias').length,
+    leave: employees.filter(e => e.status === 'leave' || e.status === 'Afastado').length,
+    terminated: employees.filter(e => e.status === 'terminated' || e.status === 'Desligado').length,
   };
 
   return (
     <AppLayout title="Colaboradores" subtitle="Gerencie todos os colaboradores da empresa">
       <div className="space-y-6">
+        {loading && <div className="text-sm text-muted-foreground">Carregando dados do servidor...</div>}
+        
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <Card>
@@ -335,6 +393,7 @@ export default function Employees() {
           onDelete={handleTerminateClick}
           onGrantVacation={handleGrantVacationFromTable}
           onEndVacation={handleEndVacationFromTable}
+          onChangePassword={handlePasswordClick}
         />
 
         {/* Dialogs */}
@@ -355,6 +414,7 @@ export default function Employees() {
           }}
           onEndVacation={handleEndVacation}
           onGrantVacation={handleGrantVacationClick}
+          onChangePassword={() => selectedEmployee && handlePasswordClick(selectedEmployee)}
         />
 
         <Dialog open={isVacationDialogOpen} onOpenChange={setIsVacationDialogOpen}>
@@ -386,17 +446,49 @@ export default function Employees() {
           </DialogContent>
         </Dialog>
 
+        <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Gerenciar Senha de Ponto</DialogTitle>
+              <DialogDescription>
+                Visualize ou altere a senha (PIN) usada para o registro de ponto de {selectedEmployee?.name}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="pin" className="text-right">
+                  Senha (PIN)
+                </Label>
+                <Input
+                  id="pin"
+                  value={passwordToUpdate}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (/^\d*$/.test(value)) setPasswordToUpdate(value);
+                  }}
+                  className="col-span-3"
+                  maxLength={4}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleSavePassword}>Salvar Senha</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <AlertDialog open={!!employeeToTerminate} onOpenChange={(open) => !open && setEmployeeToTerminate(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar desligamento</AlertDialogTitle>
               <AlertDialogDescription>
-                Você tem certeza que deseja desligar o colaborador <strong>{employeeToTerminate?.name}</strong>? Esta ação mudará o status para "Desligado".
+                Você tem certeza que deseja remover o colaborador <strong>{employeeToTerminate?.name}</strong>? Esta ação apagará os dados permanentemente do banco de dados.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setEmployeeToTerminate(null)}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmTerminate} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Desligar</AlertDialogAction>
+              <AlertDialogAction onClick={confirmTerminate} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User, Undo2, Palmtree } from "lucide-react";
+import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User, Undo2, Palmtree, KeyRound } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -21,9 +21,10 @@ interface EmployeeDetailSheetProps {
   onEdit: () => void;
   onEndVacation: (employeeId: string) => void;
   onGrantVacation: (employeeId: string) => void;
+  onChangePassword: () => void;
 }
 
-export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onEndVacation, onGrantVacation }: EmployeeDetailSheetProps) {
+export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onEndVacation, onGrantVacation, onChangePassword }: EmployeeDetailSheetProps) {
   if (!employee) return null;
 
   const statusConfig: Record<string, { label: string; className: string }> = {
@@ -125,10 +126,16 @@ export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onEn
                   <Calendar className="h-4 w-4" />
                   <span>Ações Rápidas</span>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => onGrantVacation(employee.id)} className="bg-white dark:bg-slate-950">
-                  <Palmtree className="h-4 w-4 mr-2" />
-                  Conceder Férias
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={onChangePassword} className="bg-white dark:bg-slate-950">
+                    <KeyRound className="h-4 w-4 mr-2" />
+                    Senha
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => onGrantVacation(employee.id)} className="bg-white dark:bg-slate-950">
+                    <Palmtree className="h-4 w-4 mr-2" />
+                    Férias
+                  </Button>
+                </div>
               </div>
             </div>
           )}

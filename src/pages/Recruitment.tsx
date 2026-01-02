@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { JobPostingCard } from '@/components/recruitment/JobPostingCard';
-import { jobPostings as initialJobs, candidates as initialCandidates } from '@/data/mockData';
 import { Candidate } from '@/types/hr';
 import { Tabs, TabsContent, TabsList, TabsTrigger, TabsProps } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Plus, Briefcase, Users, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Briefcase, Users, Edit, Trash2, MoreHorizontal, Copy } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useRecruitment } from '@/hooks/useRecruitment';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,36 +40,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Recruitment() {
-  const [candidates, setCandidates] = useState<Candidate[]>(() => {
-    const saved = localStorage.getItem('hr_candidates');
-    return saved ? JSON.parse(saved) : initialCandidates;
-  });
-
-  const [jobs, setJobs] = useState<any[]>(() => {
-    const saved = localStorage.getItem('hr_jobs');
-    return saved ? JSON.parse(saved) : initialJobs;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('hr_candidates', JSON.stringify(candidates));
-  }, [candidates]);
-
-  useEffect(() => {
-    localStorage.setItem('hr_jobs', JSON.stringify(jobs));
-  }, [jobs]);
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedCandidates = localStorage.getItem('hr_candidates');
-      setCandidates(savedCandidates ? JSON.parse(savedCandidates) : initialCandidates);
-
-      const savedJobs = localStorage.getItem('hr_jobs');
-      setJobs(savedJobs ? JSON.parse(savedJobs) : initialJobs);
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  const { 
+    jobs, 
+    candidates, 
+    loading, 
+    addJob, 
+    updateJob, 
+    deleteJob, 
+    updateCandidate 
+  } = useRecruitment();
 
   const [isJobDialogOpen, setIsJobDialogOpen] = useState(false);
   const [jobToEdit, setJobToEdit] = useState<any | null>(null);
@@ -78,10 +57,8 @@ export default function Recruitment() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleMoveCandidate = (candidateId: string, newStatus: Candidate['status']) => {
-    setCandidates(prev => 
-      prev.map(c => c.id === candidateId ? { ...c, status: newStatus } : c)
-    );
+  const handleMoveCandidate = async (candidateId: string, newStatus: Candidate['status']) => {
+    await updateCandidate(candidateId, { status: newStatus });
     
     const candidate = candidates.find(c => c.id === candidateId);
     const statusLabels = {
@@ -120,27 +97,25 @@ export default function Recruitment() {
     setIsJobDialogOpen(true);
   };
 
-  const handleSaveJob = () => {
+  const handleSaveJob = async () => {
     if (jobToEdit) {
-      setJobs(jobs.map(j => j.id === jobToEdit.id ? { ...jobToEdit, ...jobForm } : j));
+      await updateJob(jobToEdit.id, jobForm);
       toast({ title: 'Vaga atualizada', description: 'A vaga foi atualizada com sucesso.' });
     } else {
-      const newJob = {
-        id: Date.now().toString(),
+      await addJob({
         ...jobForm,
-        applicants: 0,
-        postedAt: new Date().toISOString(),
-        status: 'open',
+        status: 'Aberta',
         requirements: ['Experiência relevante', 'Boa comunicação'], // Mock default
-      };
-      setJobs([newJob, ...jobs]);
+      });
       toast({ title: 'Vaga criada', description: 'A nova vaga foi publicada com sucesso.' });
     }
     setIsJobDialogOpen(false);
   };
 
-  const handleDeleteJob = (id: string) => {
-    setJobs(jobs.filter(j => j.id !== id));
+  const handleDeleteJob = async (id: string) => {
+    const { error } = await deleteJob(id);
+    if (error) return;
+    
     setJobToDelete(null);
     toast({ title: 'Vaga excluída', description: 'A vaga foi removida com sucesso.', variant: 'destructive' });
   };
@@ -148,15 +123,17 @@ export default function Recruitment() {
   const [activeTab, setActiveTab] = useState('pipeline');
 
   const stats = {
-    openJobs: jobs.filter(j => j.status === 'open').length,
+    openJobs: jobs.filter(j => j.status === 'Aberta' || j.status === 'open').length,
     totalCandidates: candidates.length,
-    inProcess: candidates.filter(c => ['screening', 'interview'].includes(c.status)).length,
-    approved: candidates.filter(c => c.status === 'approved').length,
+    inProcess: candidates.filter(c => ['Triagem', 'Entrevista', 'screening', 'interview'].includes(c.status)).length,
+    approved: candidates.filter(c => c.status === 'Aprovado' || c.status === 'approved').length,
   };
 
   return (
     <AppLayout title="Recrutamento & Seleção" subtitle="Gerencie vagas e candidatos">
       <div className="space-y-6">
+        {loading && <div className="text-sm text-muted-foreground">Carregando dados do servidor...</div>}
+
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card>
@@ -259,6 +236,24 @@ export default function Recruitment() {
                     <Label htmlFor="description">Descrição</Label>
                     <Textarea id="description" value={jobForm.description} onChange={e => setJobForm({...jobForm, description: e.target.value})} placeholder="Breve descrição da vaga..." />
                   </div>
+                  {jobToEdit && (
+                    <div className="grid gap-2">
+                      <Label>Link da Vaga</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          readOnly 
+                          value={`${window.location.origin}/jobs/${jobToEdit.id}`} 
+                          className="bg-muted text-muted-foreground"
+                        />
+                        <Button size="icon" variant="outline" onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/jobs/${jobToEdit.id}`);
+                          toast({ title: "Link copiado", description: "Link copiado para a área de transferência." });
+                        }}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsJobDialogOpen(false)}>Cancelar</Button>
@@ -280,7 +275,7 @@ export default function Recruitment() {
               {jobs.map((job) => (
                 <JobPostingCard
                   key={job.id}
-                  job={job}
+                  job={{...job, applicants: candidates.filter(c => c.position === job.title).length, postedAt: job.created_at}}
                   onSelect={() => {
                     setSelectedJobId(job.id);
                     setActiveTab('pipeline');
