@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,24 @@ const statusConfig = {
 };
 
 export default function TimeOff() {
-  const [requests, setRequests] = useState<TimeOffRequest[]>(initialRequests);
+  const [requests, setRequests] = useState<TimeOffRequest[]>(() => {
+    const saved = localStorage.getItem('hr_timeoff_requests');
+    return saved ? JSON.parse(saved) : initialRequests;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('hr_timeoff_requests', JSON.stringify(requests));
+  }, [requests]);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('hr_timeoff_requests');
+      setRequests(saved ? JSON.parse(saved) : initialRequests);
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const { toast } = useToast();
 
   const handleApprove = (id: string) => {

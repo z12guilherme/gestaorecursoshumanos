@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Plus, Megaphone, MessageSquare, Bell, Send, Pin } from 'lucide-react';
-import { announcements } from '@/data/mockData';
+import { announcements as initialAnnouncements } from '@/data/mockData';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -36,10 +36,35 @@ const priorityConfig = {
 
 export default function Communication() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [announcements, setAnnouncements] = useState<any[]>(() => {
+    const saved = localStorage.getItem('hr_announcements');
+    return saved ? JSON.parse(saved) : initialAnnouncements;
+  });
+
+  // Form states
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [priority, setPriority] = useState('medium');
+
+  useEffect(() => {
+    localStorage.setItem('hr_announcements', JSON.stringify(announcements));
+  }, [announcements]);
+
   const { toast } = useToast();
 
   const handlePublish = () => {
+    const newAnnouncement = {
+      id: Date.now().toString(),
+      title,
+      content,
+      priority,
+      author: "Admin", // Usuário atual mockado
+      createdAt: new Date().toISOString(),
+    };
+
+    setAnnouncements([newAnnouncement, ...announcements]);
     setIsDialogOpen(false);
+    setTitle(''); setContent(''); setPriority('medium');
     toast({
       title: 'Aviso publicado',
       description: 'O aviso foi publicado no mural com sucesso.',
@@ -105,7 +130,12 @@ export default function Communication() {
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
                       <Label htmlFor="title">Título</Label>
-                      <Input id="title" placeholder="Digite o título do aviso" />
+                      <Input 
+                        id="title" 
+                        placeholder="Digite o título do aviso" 
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="content">Conteúdo</Label>
@@ -113,11 +143,13 @@ export default function Communication() {
                         id="content" 
                         placeholder="Digite o conteúdo do aviso..." 
                         rows={4}
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="priority">Prioridade</Label>
-                      <Select defaultValue="medium">
+                      <Select value={priority} onValueChange={setPriority}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>

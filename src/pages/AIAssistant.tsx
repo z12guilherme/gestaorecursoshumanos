@@ -3,9 +3,11 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Bot, Send, Sparkles, Users, TrendingUp, FileText, Lightbulb } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Bot, Send, Sparkles, Users, TrendingUp, FileText, Lightbulb, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Employee, TimeOffRequest } from '@/types/hr';
+import { employees as mockEmployees, timeOffRequests as mockRequests } from '@/data/mockData';
 
 interface Message {
   id: string;
@@ -17,8 +19,8 @@ interface Message {
 const suggestedQuestions = [
   { icon: Users, text: 'Quais colaboradores têm risco de turnover?' },
   { icon: TrendingUp, text: 'Quem está apto para promoção?' },
-  { icon: FileText, text: 'Gere um relatório de desempenho do time de TI' },
-  { icon: Lightbulb, text: 'Sugira melhorias para o clima organizacional' },
+  { icon: Calendar, text: 'Agende 15 dias de férias para Carlos Santos' },
+  { icon: FileText, text: 'Gere um resumo de desempenho' },
 ];
 
 export default function AIAssistant() {
@@ -63,39 +65,102 @@ export default function AIAssistant() {
   const getAIResponse = (question: string): string => {
     const lowerQuestion = question.toLowerCase();
     
-    if (lowerQuestion.includes('turnover') || lowerQuestion.includes('risco')) {
-      return `Baseado na análise dos dados de RH, identifiquei 3 colaboradores com potencial risco de turnover:
+    const employees: Employee[] = JSON.parse(localStorage.getItem('hr_employees') || 'null') || mockEmployees;
+    const candidates = JSON.parse(localStorage.getItem('hr_candidates') || '[]');
+    const jobs = JSON.parse(localStorage.getItem('hr_jobs') || '[]');
+    const timeOffRequests: TimeOffRequest[] = JSON.parse(localStorage.getItem('hr_timeoff_requests') || 'null') || mockRequests;
 
-1. **Pedro Costa** (Designer) - Sem aumento há 18 meses, baixo engajamento nas últimas avaliações
-2. **Roberto Ferreira** (Gerente de Projetos) - Afastado por motivos pessoais, histórico de insatisfação
-3. **Juliana Lima** (Estagiária) - Contrato próximo do vencimento, sem perspectiva de efetivação
+    // --- Ação: Agendar Férias ---
+    const vacationRegex = /(?:dê|agende|conceda)\s+(\d+)\s+dias\s+de\s+férias\s+(?:para|a|ao)\s+(.+)/i;
+    const vacationMatch = question.match(vacationRegex);
+
+    if (vacationMatch) {
+      const days = parseInt(vacationMatch[1], 10);
+      const employeeName = vacationMatch[2].trim();
+
+      const employee = employees.find(e => e.name.toLowerCase() === employeeName.toLowerCase());
+
+      if (!employee) {
+        const employeeNames = employees.map(e => e.name).slice(0, 3).join(', ');
+        return `Não encontrei o colaborador "${employeeName}". Por favor, verifique o nome.\n\nColaboradores disponíveis: ${employeeNames}...`;
+      }
+
+      const today = new Date();
+      const startDate = new Date();
+      startDate.setDate(today.getDate() + 1); // Começa amanhã
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + days);
+
+      const newRequest: TimeOffRequest = {
+        id: Date.now().toString(),
+        employeeId: employee.id,
+        employeeName: employee.name,
+        type: 'vacation',
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        status: 'approved',
+        reason: 'Solicitado via Assistente IA',
+      };
+
+      const updatedRequests = [...timeOffRequests, newRequest];
+      localStorage.setItem('hr_timeoff_requests', JSON.stringify(updatedRequests));
+
+      const updatedEmployees = employees.map(e => e.id === employee.id ? { ...e, status: 'vacation' } : e);
+      localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
+      window.dispatchEvent(new Event('storage'));
+
+      return `✅ Férias de ${days} dias agendadas para **${employee.name}** com sucesso!\n\nO status do colaborador foi atualizado para "Em Férias". Os dados do sistema foram atualizados.`;
+    }
+
+    // Lógica de Respostas Dinâmicas
+    if (lowerQuestion.includes('quantos') || lowerQuestion.includes('total')) {
+      if (lowerQuestion.includes('funcionário') || lowerQuestion.includes('colaborador')) {
+        const active = employees.filter((e: any) => e.status === 'active').length;
+        return `Atualmente, a empresa conta com **${employees.length} colaboradores** registrados. Desses, **${active}** estão ativos e ${employees.length - active} estão afastados ou em férias.`;
+      }
+      if (lowerQuestion.includes('candidato')) {
+        return `Temos um total de **${candidates.length} candidatos** participando de processos seletivos no momento.`;
+      }
+      if (lowerQuestion.includes('vaga')) {
+        const openJobs = jobs.filter((j: any) => j.status === 'open');
+        return `Existem **${openJobs.length} vagas em aberto** no painel de recrutamento.`;
+      }
+    }
+
+    if (lowerQuestion.includes('turnover') || lowerQuestion.includes('risco') || lowerQuestion.includes('sair')) {
+      // Simula uma análise pegando alguns funcionários aleatórios como exemplo
+      const riskyEmployees = employees.slice(0, 2).map((e: any) => e.name);
+      
+      return `Baseado na análise preditiva de engajamento e tempo sem férias, identifiquei riscos potenciais:
+
+${riskyEmployees.map((name: string) => `• **${name}** - Baixo engajamento recente`).join('\n')}
+• **Juliana Lima** (Estagiária) - Contrato próximo do vencimento
 
 **Recomendações:**
-- Agendar reunião 1:1 com Pedro para entender expectativas
-- Acompanhar retorno de Roberto com suporte adequado
-- Avaliar possibilidade de efetivação de Juliana`;
+- Agendar reuniões 1:1 para entender expectativas
+- Revisar pacote de benefícios
+- Avaliar possibilidade de efetivação`;
     }
     
-    if (lowerQuestion.includes('promoção') || lowerQuestion.includes('apto')) {
+    if (lowerQuestion.includes('promoção') || lowerQuestion.includes('apto') || lowerQuestion.includes('carreira')) {
       return `Analisando as avaliações de desempenho e tempo de casa, os seguintes colaboradores estão aptos para promoção:
 
 1. **Carlos Santos** (Dev Senior) - Score 4.5/5, 3 anos de casa, liderança natural
 2. **Maria Oliveira** (Analista Financeiro) - Score 4.2/5, 4 anos de casa, metas superadas
 
 **Próximos passos sugeridos:**
-- Avaliar budget para promoções
+- Validar budget com o financeiro
 - Preparar PDI para próximo cargo
 - Comunicar gestores diretos`;
     }
     
-    if (lowerQuestion.includes('relatório') || lowerQuestion.includes('desempenho')) {
-      return `Aqui está um resumo do desempenho do time de Tecnologia:
+    if (lowerQuestion.includes('relatório') || lowerQuestion.includes('desempenho') || lowerQuestion.includes('resumo')) {
+      return `### Resumo Executivo de RH
 
 **Métricas Gerais:**
-- Total de colaboradores: 45
-- Média de avaliação: 4.1/5
-- Metas atingidas: 82%
-- Turnover: 3.2%
+- **Colaboradores:** ${employees.length} (Ativos: ${employees.filter((e: any) => e.status === 'active').length})
+- **Recrutamento:** ${jobs.filter((j: any) => j.status === 'open').length} vagas abertas com ${candidates.length} candidatos.
+- **Turnover:** 3.2% (Abaixo da média do mercado)
 
 **Destaques positivos:**
 - Entregas dentro do prazo aumentaram 15%
@@ -108,16 +173,15 @@ export default function AIAssistant() {
 Posso gerar um relatório PDF detalhado se necessário.`;
     }
     
-    return `Entendi sua pergunta sobre "${question}". Para fornecer uma análise completa, preciso acessar os dados do sistema. 
+    return `Entendi sua pergunta sobre "${question}". Como sou uma IA integrada ao seu sistema, tenho acesso aos dados em tempo real e posso executar ações.
 
-Algumas informações que posso ajudar:
-- Análise de turnover e retenção
-- Identificação de talentos para promoção
-- Relatórios de desempenho
-- Sugestões de desenvolvimento
-- Análise de clima organizacional
+Tente me perguntar coisas como:
+- "Quantos funcionários temos?"
+- "Agende 15 dias de férias para Carlos Santos"
+- "Quem tem risco de turnover?"
+- "Gere um resumo geral"
 
-Por favor, seja mais específico sobre o que gostaria de saber.`;
+Estou analisando ${employees.length} colaboradores e ${candidates.length} candidatos agora mesmo.`;
   };
 
   const handleSuggestedQuestion = (question: string) => {

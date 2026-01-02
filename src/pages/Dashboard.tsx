@@ -1,14 +1,38 @@
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { DepartmentChart } from '@/components/dashboard/DepartmentChart';
 import { HiringTrendChart } from '@/components/dashboard/HiringTrendChart';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { BirthdaysList } from '@/components/dashboard/BirthdaysList';
-import { dashboardStats } from '@/data/mockData';
+import { dashboardStats as initialStats, employees as mockEmployees, timeOffRequests as mockRequests } from '@/data/mockData';
 import { Users, TrendingDown, Calendar, Briefcase, AlertCircle, Cake } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Dashboard() {
+  const [stats, setStats] = useState(initialStats);
+
+  useEffect(() => {
+    const updateStats = () => {
+      const employees = JSON.parse(localStorage.getItem('hr_employees') || 'null') || mockEmployees;
+      const requests = JSON.parse(localStorage.getItem('hr_timeoff_requests') || 'null') || mockRequests;
+      
+      setStats(prev => ({
+        ...prev,
+        totalEmployees: employees.length,
+        activeEmployees: employees.filter((e: any) => e.status === 'active').length,
+        onVacation: employees.filter((e: any) => e.status === 'vacation').length,
+        onLeave: employees.filter((e: any) => e.status === 'leave').length,
+        pendingRequests: requests.filter((r: any) => r.status === 'pending').length,
+      }));
+    };
+
+    updateStats();
+    window.addEventListener('storage', updateStats);
+
+    return () => window.removeEventListener('storage', updateStats);
+  }, []);
+
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral do departamento de RH">
       <div className="space-y-6">
@@ -16,25 +40,25 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total de Colaboradores"
-            value={dashboardStats.totalEmployees}
+            value={stats.totalEmployees}
             icon={<Users className="h-6 w-6" />}
             trend={{ value: 3.2, label: 'vs mês anterior' }}
           />
           <StatCard
             title="Taxa de Turnover"
-            value={`${dashboardStats.turnoverRate}%`}
+            value={`${stats.turnoverRate}%`}
             icon={<TrendingDown className="h-6 w-6" />}
             trend={{ value: -1.5, label: 'vs mês anterior' }}
           />
           <StatCard
             title="Vagas Abertas"
-            value={dashboardStats.openPositions}
+            value={stats.openPositions}
             icon={<Briefcase className="h-6 w-6" />}
             trend={{ value: 2, label: 'novas esta semana' }}
           />
           <StatCard
             title="Solicitações Pendentes"
-            value={dashboardStats.pendingRequests}
+            value={stats.pendingRequests}
             icon={<AlertCircle className="h-6 w-6" />}
           />
         </div>
@@ -47,7 +71,7 @@ export default function Dashboard() {
                 <Users className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{dashboardStats.activeEmployees}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.activeEmployees}</p>
                 <p className="text-sm text-muted-foreground">Ativos</p>
               </div>
             </CardContent>
@@ -58,7 +82,7 @@ export default function Dashboard() {
                 <Calendar className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{dashboardStats.onVacation}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.onVacation}</p>
                 <p className="text-sm text-muted-foreground">Em férias</p>
               </div>
             </CardContent>
@@ -69,7 +93,7 @@ export default function Dashboard() {
                 <AlertCircle className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{dashboardStats.onLeave}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.onLeave}</p>
                 <p className="text-sm text-muted-foreground">Afastados</p>
               </div>
             </CardContent>
@@ -80,7 +104,7 @@ export default function Dashboard() {
                 <Cake className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{dashboardStats.birthdaysThisMonth}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.birthdaysThisMonth}</p>
                 <p className="text-sm text-muted-foreground">Aniversariantes</p>
               </div>
             </CardContent>

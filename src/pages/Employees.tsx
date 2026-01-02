@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { EmployeeTable } from '@/components/employees/EmployeeTable';
 import { EmployeeFilters } from '@/components/employees/EmployeeFilters';
@@ -8,15 +8,34 @@ import { employees as initialEmployees } from '@/data/mockData';
 import { Employee } from '@/types/hr';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, UserCheck, UserX, Calendar } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Employees() {
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+  const [employees, setEmployees] = useState<Employee[]>(() => {
+    const saved = localStorage.getItem('hr_employees');
+    return saved ? JSON.parse(saved) : initialEmployees;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('hr_employees', JSON.stringify(employees));
+  }, [employees]);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('hr_employees');
+      setEmployees(saved ? JSON.parse(saved) : initialEmployees);
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const { toast } = useToast();
 
   const filteredEmployees = employees.filter((employee) => {
     const matchesSearch = 
@@ -57,6 +76,14 @@ export default function Employees() {
       };
       setEmployees(prev => [...prev, newEmployee]);
     }
+  };
+
+  const handleDelete = (id: string) => {
+    setEmployees(prev => prev.filter(e => e.id !== id));
+    toast({
+      title: "Colaborador excluído",
+      description: "O colaborador foi removido com sucesso.",
+    });
   };
 
   const stats = {
@@ -133,6 +160,7 @@ export default function Employees() {
           employees={filteredEmployees}
           onView={handleView}
           onEdit={handleEdit}
+          onDelete={handleDelete}
         />
 
         {/* Dialogs */}

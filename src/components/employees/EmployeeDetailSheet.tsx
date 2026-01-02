@@ -2,16 +2,17 @@ import { Employee } from '@/types/hr';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
-import { Mail, Phone, Building2, Calendar, FileText, Edit } from 'lucide-react';
-import { format, parseISO, differenceInYears } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+} from "@/components/ui/sheet";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User } from "lucide-react";
+import { format, parseISO, differenceInDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface EmployeeDetailSheetProps {
   employee: Employee | null;
@@ -20,110 +21,160 @@ interface EmployeeDetailSheetProps {
   onEdit: () => void;
 }
 
-const statusConfig = {
-  active: { label: 'Ativo', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
-  vacation: { label: 'Férias', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  leave: { label: 'Afastado', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-  terminated: { label: 'Desligado', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-};
-
 export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit }: EmployeeDetailSheetProps) {
   if (!employee) return null;
 
-  const status = statusConfig[employee.status];
-  const yearsAtCompany = differenceInYears(new Date(), parseISO(employee.hireDate));
-  const age = differenceInYears(new Date(), parseISO(employee.birthDate));
+  const statusConfig: Record<string, { label: string; className: string }> = {
+    active: { label: 'Ativo', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    inactive: { label: 'Inativo', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+    vacation: { label: 'Em Férias', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+    leave: { label: 'Afastado', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+  };
+
+  // Mock calculation for vacation balance
+  const vacationBalance = 22; 
+
+  // Logic to find return date if on vacation
+  let returnDate: Date | null = null;
+  let daysLeft = 0;
+
+  if (employee.status === 'vacation') {
+    try {
+      const requests = JSON.parse(localStorage.getItem('hr_timeoff_requests') || '[]');
+      // Find the latest approved vacation request for this employee
+      const activeRequest = requests
+        .filter((r: any) => r.employeeId === employee.id && r.status === 'approved' && r.type === 'vacation')
+        .sort((a: any, b: any) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime())[0];
+
+      if (activeRequest) {
+        const end = parseISO(activeRequest.endDate);
+        if (end >= new Date()) {
+            returnDate = end;
+            daysLeft = differenceInDays(end, new Date());
+        }
+      }
+    } catch (error) {
+      console.error("Error loading vacation info", error);
+    }
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[400px] sm:w-[540px]">
-        <SheetHeader>
-          <SheetTitle>Detalhes do Colaborador</SheetTitle>
-        </SheetHeader>
-        
-        <div className="mt-6 space-y-6">
-          {/* Header */}
-          <div className="flex items-start gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-                {employee.name.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <h3 className="text-xl font-semibold text-foreground">{employee.name}</h3>
-              <p className="text-muted-foreground">{employee.position}</p>
-              <Badge className={`mt-2 ${status.className}`}>{status.label}</Badge>
+      <SheetContent className="sm:max-w-md overflow-y-auto">
+        <SheetHeader className="pb-6">
+          <div className="flex items-start justify-between">
+            <div className="flex gap-4">
+              <Avatar className="h-16 w-16 border-2 border-background shadow-sm">
+                <AvatarImage src={employee.avatar} />
+                <AvatarFallback className="text-lg bg-primary/10 text-primary">
+                  {employee.name.split(' ').map(n => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-1">
+                <SheetTitle className="text-xl">{employee.name}</SheetTitle>
+                <SheetDescription className="text-foreground font-medium">
+                  {employee.position}
+                </SheetDescription>
+                <Badge variant="secondary" className={statusConfig[employee.status]?.className || ''}>
+                  {statusConfig[employee.status]?.label || employee.status}
+                </Badge>
+              </div>
             </div>
             <Button variant="outline" size="icon" onClick={onEdit}>
               <Edit className="h-4 w-4" />
             </Button>
           </div>
+        </SheetHeader>
+
+        <div className="space-y-6">
+          {/* Vacation Status Card */}
+          {employee.status === 'vacation' && returnDate && (
+            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 space-y-3">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold">
+                <Calendar className="h-4 w-4" />
+                <span>Status de Férias</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Retorno</p>
+                  <p className="font-medium text-lg">{format(returnDate, "dd 'de' MMM", { locale: ptBR })}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Restante</p>
+                  <p className="font-medium text-lg">{daysLeft} dias</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Vacation Balance Card */}
+          <div className="p-4 rounded-lg bg-secondary/30 border border-border space-y-3">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>Saldo de Férias</span>
+                </div>
+                <Badge variant="outline" className="bg-background">2024</Badge>
+             </div>
+             <div className="flex items-end gap-2">
+                <span className="text-3xl font-bold">{vacationBalance}</span>
+                <span className="text-sm text-muted-foreground mb-1">dias disponíveis</span>
+             </div>
+             <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+                <div className="bg-primary h-full rounded-full" style={{ width: '70%' }} />
+             </div>
+             <p className="text-xs text-muted-foreground">
+                Período aquisitivo: 12/05/2023 - 11/05/2024
+             </p>
+          </div>
 
           <Separator />
 
-          {/* Contact Info */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-foreground">Contato</h4>
-            <div className="space-y-2">
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Informações de Contato</h4>
+            
+            <div className="grid gap-3">
               <div className="flex items-center gap-3 text-sm">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-foreground">{employee.email}</span>
+                <span>{employee.email}</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-foreground">{employee.phone}</span>
+                <span>(11) 99999-9999</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <span>São Paulo, SP</span>
               </div>
             </div>
           </div>
 
           <Separator />
 
-          {/* Work Info */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-foreground">Informações Profissionais</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Departamento</p>
-                <p className="text-sm font-medium text-foreground">{employee.department}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Tipo de Contrato</p>
-                <p className="text-sm font-medium text-foreground">{employee.contractType}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Data de Admissão</p>
-                <p className="text-sm font-medium text-foreground">
-                  {format(parseISO(employee.hireDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Tempo de Casa</p>
-                <p className="text-sm font-medium text-foreground">{yearsAtCompany} ano(s)</p>
-              </div>
-              {employee.manager && (
-                <div className="col-span-2">
-                  <p className="text-xs text-muted-foreground">Gestor</p>
-                  <p className="text-sm font-medium text-foreground">{employee.manager}</p>
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dados Corporativos</h4>
+            
+            <div className="grid gap-3">
+              <div className="flex items-center gap-3 text-sm">
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Departamento</span>
+                    <span>{employee.department}</span>
                 </div>
-              )}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Personal Info */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-foreground">Informações Pessoais</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Data de Nascimento</p>
-                <p className="text-sm font-medium text-foreground">
-                  {format(parseISO(employee.birthDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                </p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Idade</p>
-                <p className="text-sm font-medium text-foreground">{age} anos</p>
+              <div className="flex items-center gap-3 text-sm">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Gestor</span>
+                    <span>Carlos Silva</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                    <span className="text-muted-foreground text-xs">Data de Admissão</span>
+                    <span>{employee.admissionDate ? format(parseISO(employee.admissionDate), 'dd/MM/yyyy') : '01/01/2023'}</span>
+                </div>
               </div>
             </div>
           </div>

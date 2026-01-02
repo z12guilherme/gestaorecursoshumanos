@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,63 +20,140 @@ export default function LoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simula login com qualquer dado
-    if (email && password) {
-      localStorage.setItem("user", JSON.stringify({ email }));
-      navigate("/");
-    }
+    setIsLoading(true);
+    // Simula delay de rede
+    setTimeout(() => {
+      if (email && password) {
+        localStorage.setItem("user", JSON.stringify({ email }));
+        navigate("/");
+      }
+      setIsLoading(false);
+    }, 1000);
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-950 dark:to-slate-900 p-4">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-white/20 bg-white/80 dark:bg-slate-900/80 p-10 shadow-2xl backdrop-blur-xl">
-        <div className="flex flex-col space-y-2 text-center">
-          <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg">
-            <LayoutDashboard className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">GestaoRH</h1>
-          <p className="text-sm text-muted-foreground">
-            Bem-vindo! Acesse sua conta para continuar.
-          </p>
+    <div className="min-h-screen w-full lg:grid lg:grid-cols-2">
+      {/* Left Side - Hero/Branding */}
+      <div className="hidden lg:flex flex-col justify-between bg-zinc-900 p-10 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-zinc-900">
+           {/* Abstract Pattern */}
+           <div className="absolute top-0 left-0 w-full h-full opacity-20">
+              <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary blur-[100px]" />
+              <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600 blur-[100px]" />
+           </div>
         </div>
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              placeholder="nome@exemplo.com"
-              type="email"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect="off"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="h-11 bg-background/50"
-            />
+        
+        <div className="relative z-10 flex items-center gap-2 text-lg font-medium">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <LayoutDashboard className="h-5 w-5" />
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Senha</Label>
-              <a href="#" className="text-xs font-medium text-primary hover:underline">
-                Esqueceu a senha?
-              </a>
+          GestaoRH
+        </div>
+
+        <div className="relative z-10 space-y-6 max-w-lg">
+          <h1 className="text-4xl font-bold tracking-tight">
+            Transforme a gestão de pessoas da sua empresa.
+          </h1>
+          <div className="space-y-4 text-zinc-300">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <span>Controle completo de colaboradores e férias</span>
             </div>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="h-11 bg-background/50"
-            />
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <span>Processos de recrutamento simplificados</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <span>Análises inteligentes com IA</span>
+            </div>
           </div>
-          <Button type="submit" className="w-full h-11 text-base shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5">
-            Entrar no Sistema
-          </Button>
-        </form>
-        <div className="text-center text-xs text-muted-foreground mt-6">
-          &copy; 2024 GestaoRH. Todos os direitos reservados.
+        </div>
+
+        <div className="relative z-10 text-sm text-zinc-400">
+          &copy; 2024 GestaoRH Inc.
+        </div>
+      </div>
+
+      {/* Right Side - Form */}
+      <div className="flex items-center justify-center p-8 bg-background">
+        <div className="mx-auto w-full max-w-sm space-y-8">
+          <div className="flex flex-col space-y-2 text-center lg:text-left">
+            <div className="lg:hidden flex justify-center mb-4">
+               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <LayoutDashboard className="h-6 w-6" />
+              </div>
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Acesse sua conta
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Entre com suas credenciais para acessar o painel.
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail corporativo</Label>
+                <Input
+                  id="email"
+                  placeholder="nome@empresa.com"
+                  type="email"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoCorrect="off"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Senha</Label>
+                  <a href="#" className="text-xs font-medium text-primary hover:underline">
+                    Esqueceu a senha?
+                  </a>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-11"
+                />
+              </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full h-11 group" 
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                "Entrando..."
+              ) : (
+                <>
+                  Entrar no Sistema
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          <p className="px-8 text-center text-sm text-muted-foreground">
+            Ao clicar em continuar, você concorda com nossos{" "}
+            <a href="#" className="underline underline-offset-4 hover:text-primary">
+              Termos de Serviço
+            </a>{" "}
+            e{" "}
+            <a href="#" className="underline underline-offset-4 hover:text-primary">
+              Política de Privacidade
+            </a>
+            .
+          </p>
         </div>
       </div>
     </div>
