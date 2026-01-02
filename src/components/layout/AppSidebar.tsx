@@ -11,7 +11,8 @@
   LogOut,
   Moon,
   Sun,
-  Workflow
+  Workflow,
+  FileText
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,7 @@ const mainNavItems = [
   { title: 'Recrutamento', url: '/recruitment', icon: Briefcase },
   { title: 'Avaliações', url: '/performance', icon: Star },
   { title: 'Férias & Ponto', url: '/time-off', icon: Calendar },
+  { title: 'Relatórios', url: '/reports', icon: FileText },
   { title: 'Comunicação', url: '/communication', icon: MessageSquare },
 ];
 

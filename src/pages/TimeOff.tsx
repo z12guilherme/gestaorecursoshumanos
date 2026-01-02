@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Calendar, Check, X, Clock, Plus, Palmtree, Thermometer, User } from 'lucide-react';
-import { timeOffRequests as initialRequests } from '@/data/mockData';
-import { TimeOffRequest } from '@/types/hr';
+import { timeOffRequests as initialRequests, employees as mockEmployees } from '@/data/mockData';
+import { TimeOffRequest, Employee } from '@/types/hr';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +31,11 @@ export default function TimeOff() {
     return saved ? JSON.parse(saved) : initialRequests;
   });
 
+  const [employees, setEmployees] = useState<Employee[]>(() => {
+    const saved = localStorage.getItem('hr_employees');
+    return saved ? JSON.parse(saved) : mockEmployees;
+  });
+
   useEffect(() => {
     localStorage.setItem('hr_timeoff_requests', JSON.stringify(requests));
   }, [requests]);
@@ -39,6 +44,9 @@ export default function TimeOff() {
     const handleStorageChange = () => {
       const saved = localStorage.getItem('hr_timeoff_requests');
       setRequests(saved ? JSON.parse(saved) : initialRequests);
+
+      const savedEmployees = localStorage.getItem('hr_employees');
+      setEmployees(savedEmployees ? JSON.parse(savedEmployees) : mockEmployees);
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -66,6 +74,12 @@ export default function TimeOff() {
   const pendingRequests = requests.filter(r => r.status === 'pending');
   const processedRequests = requests.filter(r => r.status !== 'pending');
 
+  const employeesOnVacation = employees.filter(e => e.status === 'vacation');
+
+  const getRemainingInDept = (department: string) => {
+    return employees.filter(e => e.department === department && e.status === 'active').length;
+  };
+
   return (
     <AppLayout title="Férias & Ponto" subtitle="Gerencie solicitações e controle de ponto">
       <div className="space-y-6">
@@ -88,7 +102,7 @@ export default function TimeOff() {
                 <Palmtree className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">8</p>
+                <p className="text-2xl font-bold text-foreground">{employeesOnVacation.length}</p>
                 <p className="text-xs text-muted-foreground">Em férias</p>
               </div>
             </CardContent>
@@ -116,6 +130,50 @@ export default function TimeOff() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Relatório de Férias Ativas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Palmtree className="h-5 w-5 text-blue-500" />
+              Relatório de Férias Ativas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {employeesOnVacation.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Nenhum colaborador está de férias no momento.
+              </p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {employeesOnVacation.map((employee) => {
+                  const remaining = getRemainingInDept(employee.department);
+                  return (
+                    <div key={employee.id} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 border border-border">
+                          <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                            {employee.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm text-foreground">{employee.name}</p>
+                          <p className="text-xs text-muted-foreground">{employee.department}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Restam no setor</p>
+                        <p className={`text-xl font-bold ${remaining < 2 ? 'text-red-500' : 'text-emerald-600'}`}>
+                          {remaining}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Pending Requests */}
         <Card>

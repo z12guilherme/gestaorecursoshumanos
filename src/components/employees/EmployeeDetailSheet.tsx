@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User } from "lucide-react";
+import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User, Undo2, Palmtree } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -19,9 +19,11 @@ interface EmployeeDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
+  onEndVacation: (employeeId: string) => void;
+  onGrantVacation: (employeeId: string) => void;
 }
 
-export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit }: EmployeeDetailSheetProps) {
+export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onEndVacation, onGrantVacation }: EmployeeDetailSheetProps) {
   if (!employee) return null;
 
   const statusConfig: Record<string, { label: string; className: string }> = {
@@ -88,21 +90,45 @@ export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit }: Em
 
         <div className="space-y-6">
           {/* Vacation Status Card */}
-          {employee.status === 'vacation' && returnDate && (
-            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 space-y-3">
-              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold">
-                <Calendar className="h-4 w-4" />
-                <span>Status de Férias</span>
+          {employee.status === 'vacation' && (
+            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold">
+                  <Calendar className="h-4 w-4" />
+                  <span>Status de Férias</span>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => onEndVacation(employee.id)}>
+                  <Undo2 className="h-4 w-4 mr-2" />
+                  Encerrar Férias
+                </Button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Retorno</p>
-                  <p className="font-medium text-lg">{format(returnDate, "dd 'de' MMM", { locale: ptBR })}</p>
+              {returnDate && (
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Retorno</p>
+                    <p className="font-medium text-lg">{format(returnDate, "dd 'de' MMM", { locale: ptBR })}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Restante</p>
+                    <p className="font-medium text-lg">{daysLeft} dias</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Restante</p>
-                  <p className="font-medium text-lg">{daysLeft} dias</p>
+              )}
+            </div>
+          )}
+
+          {/* Grant Vacation Action */}
+          {employee.status === 'active' && (
+            <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold">
+                  <Calendar className="h-4 w-4" />
+                  <span>Ações Rápidas</span>
                 </div>
+                <Button size="sm" variant="outline" onClick={() => onGrantVacation(employee.id)} className="bg-white dark:bg-slate-950">
+                  <Palmtree className="h-4 w-4 mr-2" />
+                  Conceder Férias
+                </Button>
               </div>
             </div>
           )}

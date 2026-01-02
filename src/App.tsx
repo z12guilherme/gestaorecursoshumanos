@@ -10,6 +10,7 @@ import Employees from "./pages/Employees";
 import Recruitment from "./pages/Recruitment";
 import Performance from "./pages/Performance";
 import TimeOff from "./pages/TimeOff";
+import Reports from "./pages/Reports";
 import Communication from "./pages/Communication";
 import AIAssistant from "./pages/AIAssistant";
 import Automations from "./pages/Automations";
@@ -44,6 +45,7 @@ const App = () => {
               <Route path="/recruitment" element={<Recruitment />} />
               <Route path="/performance" element={<Performance />} />
               <Route path="/time-off" element={<TimeOff />} />
+              <Route path="/reports" element={<Reports />} />
               <Route path="/communication" element={<Communication />} />
               <Route path="/ai-assistant" element={<AIAssistant />} />
               <Route path="/automations" element={<Automations />} />

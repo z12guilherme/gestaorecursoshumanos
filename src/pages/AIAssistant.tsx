@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bot, Send, Sparkles, Users, TrendingUp, FileText, Lightbulb, Calendar } from 'lucide-react';
+import { Bot, Send, Sparkles, Users, TrendingUp, FileText, Lightbulb, Calendar, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Employee, TimeOffRequest } from '@/types/hr';
 import { employees as mockEmployees, timeOffRequests as mockRequests } from '@/data/mockData';
@@ -20,7 +20,7 @@ const suggestedQuestions = [
   { icon: Users, text: 'Quais colaboradores têm risco de turnover?' },
   { icon: TrendingUp, text: 'Quem está apto para promoção?' },
   { icon: Calendar, text: 'Agende 15 dias de férias para Carlos Santos' },
-  { icon: FileText, text: 'Gere um resumo de desempenho' },
+  { icon: UserX, text: 'Desligar o colaborador Pedro Costa' },
 ];
 
 export default function AIAssistant() {
@@ -34,6 +34,10 @@ export default function AIAssistant() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'vacation';
+    data: { days: number; employeeName: string };
+  } | null>(null);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -70,6 +74,53 @@ export default function AIAssistant() {
     const jobs = JSON.parse(localStorage.getItem('hr_jobs') || '[]');
     const timeOffRequests: TimeOffRequest[] = JSON.parse(localStorage.getItem('hr_timeoff_requests') || 'null') || mockRequests;
 
+    // --- Tratamento de Confirmação Pendente ---
+    if (pendingAction) {
+      if (['sim', 's', 'yes', 'confirmar', 'ok', 'pode'].some(w => lowerQuestion.includes(w))) {
+        const { days, employeeName } = pendingAction.data;
+        const employee = employees.find(e => e.name.toLowerCase() === employeeName.toLowerCase());
+
+        if (!employee) {
+          setPendingAction(null);
+          return "Erro: Colaborador não encontrado ao tentar confirmar a ação.";
+        }
+
+        // Executa a ação confirmada
+        const today = new Date();
+        const startDate = new Date();
+        startDate.setDate(today.getDate() + 1);
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + days);
+
+        const newRequest: TimeOffRequest = {
+          id: Date.now().toString(),
+          employeeId: employee.id,
+          employeeName: employee.name,
+          type: 'vacation',
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          status: 'approved',
+          reason: 'Solicitado via Assistente IA (Recesso/Exceção)',
+        };
+
+        const updatedRequests = [...timeOffRequests, newRequest];
+        localStorage.setItem('hr_timeoff_requests', JSON.stringify(updatedRequests));
+
+        const updatedEmployees = employees.map(e => e.id === employee.id ? { ...e, status: 'vacation' } : e);
+        localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
+        window.dispatchEvent(new Event('storage'));
+
+        setPendingAction(null);
+        return `✅ **Confirmado.** Férias de ${days} dias agendadas para **${employee.name}**. \n\nO status do setor foi considerado como recesso temporário devido à ausência de colaboradores ativos.`;
+
+      } else if (['não', 'nao', 'n', 'no', 'cancelar'].some(w => lowerQuestion.includes(w))) {
+        setPendingAction(null);
+        return "❌ Solicitação cancelada. O colaborador permanece ativo e nenhuma alteração foi feita.";
+      } else {
+        return "⚠️ **Aguardando confirmação.** \n\nO setor ficará sem funcionários ativos. Responda **SIM** para confirmar o recesso ou **NÃO** para cancelar.";
+      }
+    }
+
     // --- Ação: Agendar Férias ---
     const vacationRegex = /(?:dê|agende|conceda)\s+(\d+)\s+dias\s+de\s+férias\s+(?:para|a|ao)\s+(.+)/i;
     const vacationMatch = question.match(vacationRegex);
@@ -83,6 +134,33 @@ export default function AIAssistant() {
       if (!employee) {
         const employeeNames = employees.map(e => e.name).slice(0, 3).join(', ');
         return `Não encontrei o colaborador "${employeeName}". Por favor, verifique o nome.\n\nColaboradores disponíveis: ${employeeNames}...`;
+      }
+
+      if (employee.status !== 'active') {
+        return `O colaborador **${employee.name}** não está ativo no momento (Status atual: ${employee.status}).`;
+      }
+
+      // Verificação de Restrições do Departamento
+      const deptEmployees = employees.filter(e => e.department === employee.department);
+      const activeDeptEmployees = deptEmployees.filter(e => e.status === 'active');
+      const remainingActive = activeDeptEmployees.length - 1;
+
+      // Restrição 1: Setor vazio (Recesso)
+      if (remainingActive <= 0) {
+        setPendingAction({ type: 'vacation', data: { days, employeeName } });
+        return `⚠️ **Alerta Crítico de Capacidade**
+        
+O departamento **${employee.department}** possui ${deptEmployees.length} colaboradores. Ao conceder férias para **${employee.name}**, o setor ficará **sem funcionários ativos**.
+
+Isso implica que o setor entrará em recesso?
+
+Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
+      }
+
+      // Restrição 2: Alerta de equipe mínima (mas permite execução)
+      let warningMessage = "";
+      if (remainingActive < 2) {
+        warningMessage = `\n\n⚠️ **Nota de Atenção:** O departamento **${employee.department}** operará com equipe reduzida (${remainingActive} funcionário(s)).`;
       }
 
       const today = new Date();
@@ -109,7 +187,83 @@ export default function AIAssistant() {
       localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
       window.dispatchEvent(new Event('storage'));
 
-      return `✅ Férias de ${days} dias agendadas para **${employee.name}** com sucesso!\n\nO status do colaborador foi atualizado para "Em Férias". Os dados do sistema foram atualizados.`;
+      return `✅ Férias de ${days} dias agendadas para **${employee.name}** com sucesso!${warningMessage}\n\nO status do colaborador foi atualizado para "Em Férias".`;
+    }
+
+    // --- Ação: Encerrar Férias ---
+    const endVacationRegex = /(?:(?:tire|remova|encerre)\s+(?:as\s+)?férias\s+de\s+(.+))|(?:(.+?)\s+(?:já\s+)?voltou\s+de\s+férias)/i;
+    const endVacationMatch = question.match(endVacationRegex);
+
+    if (endVacationMatch) {
+      const employeeName = (endVacationMatch[1] || endVacationMatch[2] || '').trim().replace(/[.,!?]$/, '');
+
+      const employee = employees.find(e => e.name.toLowerCase() === employeeName.toLowerCase());
+
+      if (!employee) {
+        return `Não encontrei o colaborador "${employeeName}". Por favor, verifique o nome.`;
+      }
+
+      if (employee.status !== 'vacation') {
+        return `O colaborador **${employee.name}** não está de férias no momento.`;
+      }
+
+      const updatedEmployees = employees.map(e => e.id === employee.id ? { ...e, status: 'active' } : e);
+      localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
+      window.dispatchEvent(new Event('storage'));
+
+      return `✅ As férias de **${employee.name}** foram encerradas e o status atualizado para "Ativo".`;
+    }
+
+    // --- Ação: Desligar Funcionário ---
+    // Ex: "Desligar o funcionário Pedro Costa"
+    const terminateEmployeeRegex = /(?:desligar|demita|encerrar o contrato d(?:o|a))\s+(?:o\s+)?(?:funcionário|colaborador|colaboradora)\s+(.+)/i;
+    const terminateEmployeeMatch = question.match(terminateEmployeeRegex);
+
+    if (terminateEmployeeMatch) {
+      const employeeName = terminateEmployeeMatch[1].trim().replace(/[.,!?]$/, '');
+      const employee = employees.find(e => e.name.toLowerCase() === employeeName.toLowerCase());
+
+      if (!employee) {
+        return `Não encontrei o colaborador "${employeeName}". Por favor, verifique o nome.`;
+      }
+
+      if (employee.status === 'terminated') {
+        return `O colaborador **${employee.name}** já está com o status "Desligado".`;
+      }
+
+      const updatedEmployees = employees.map(e => e.id === employee.id ? { ...e, status: 'terminated' } : e);
+      localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
+      window.dispatchEvent(new Event('storage'));
+
+      return `✅ O status do colaborador **${employee.name}** foi alterado para "Desligado".`;
+    }
+
+    // --- Ação: Cadastrar Funcionário ---
+    // Ex: "Cadastre o funcionário João Silva, cargo Desenvolvedor, departamento TI"
+    const addEmployeeRegex = /(?:adicione|cadastre|registre|contrate)\s+(?:o\s+)?(?:funcionário|colaborador)\s+([^,]+)(?:,\s*(?:cargo\s*)?([^,]+))?(?:,\s*(?:departamento\s*|setor\s*)?([^,]+))?/i;
+    const addEmployeeMatch = question.match(addEmployeeRegex);
+
+    if (addEmployeeMatch) {
+      const name = addEmployeeMatch[1].trim();
+      const position = addEmployeeMatch[2]?.trim() || 'Não informado';
+      const department = addEmployeeMatch[3]?.trim() || 'Geral';
+
+      const newEmployee: Employee = {
+        id: Date.now().toString(),
+        name,
+        email: `${name.toLowerCase().replace(/\s+/g, '.')}@empresa.com`,
+        position,
+        department,
+        status: 'active',
+        contractType: 'CLT',
+        hireDate: new Date().toISOString().split('T')[0],
+      } as Employee;
+
+      const updatedEmployees = [...employees, newEmployee];
+      localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
+      window.dispatchEvent(new Event('storage'));
+
+      return `✅ Colaborador **${name}** cadastrado com sucesso!\n\n📋 **Detalhes:**\n- Cargo: ${position}\n- Departamento: ${department}\n- Email: ${newEmployee.email}`;
     }
 
     // Lógica de Respostas Dinâmicas
@@ -177,7 +331,7 @@ Posso gerar um relatório PDF detalhado se necessário.`;
 
 Tente me perguntar coisas como:
 - "Quantos funcionários temos?"
-- "Agende 15 dias de férias para Carlos Santos"
+- "Tire as férias de Carlos Santos"
 - "Quem tem risco de turnover?"
 - "Gere um resumo geral"
 

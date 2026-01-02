@@ -71,7 +71,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 text-sm text-zinc-400">
-          &copy; 2024 GestaoRH Inc.
+          &copy; 2026 GestaoRH Inc.
         </div>
       </div>
 

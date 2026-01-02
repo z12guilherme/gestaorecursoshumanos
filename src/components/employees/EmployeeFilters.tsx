@@ -1,4 +1,4 @@
-import { Search, Filter, Plus } from 'lucide-react';
+import { Search, Filter, Plus, Upload, FileSpreadsheet } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,8 @@ interface EmployeeFiltersProps {
   statusFilter: string;
   onStatusChange: (value: string) => void;
   onAddEmployee: () => void;
+  onImport?: (file: File) => void;
+  onDownloadTemplate?: () => void;
 }
 
 export function EmployeeFilters({
@@ -28,6 +30,8 @@ export function EmployeeFilters({
   statusFilter,
   onStatusChange,
   onAddEmployee,
+  onImport,
+  onDownloadTemplate,
 }: EmployeeFiltersProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-4 justify-between">
@@ -68,10 +72,32 @@ export function EmployeeFilters({
         </Select>
       </div>
 
-      <Button onClick={onAddEmployee} className="gap-2">
-        <Plus className="h-4 w-4" />
-        Novo Colaborador
-      </Button>
+      <div className="flex gap-2">
+        {onDownloadTemplate && (
+          <Button variant="outline" onClick={onDownloadTemplate} className="gap-2 w-full sm:w-auto">
+            <FileSpreadsheet className="h-4 w-4" />
+            Baixar Modelo
+          </Button>
+        )}
+        {onImport && (
+          <div className="relative">
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])}
+            />
+            <Button variant="outline" className="gap-2 w-full sm:w-auto">
+              <Upload className="h-4 w-4" />
+              Importar
+            </Button>
+          </div>
+        )}
+        <Button onClick={onAddEmployee} className="gap-2 w-full sm:w-auto">
+          <Plus className="h-4 w-4" />
+          Novo Colaborador
+        </Button>
+      </div>
     </div>
   );
 }

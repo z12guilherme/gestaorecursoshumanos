@@ -17,13 +17,20 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, Edit, Trash2, Mail } from 'lucide-react';
+import { MoreHorizontal, Eye, Edit, Trash2, Mail, Users, Palmtree, Undo2 } from 'lucide-react';
 
 interface EmployeeTableProps {
   employees: Employee[];
   onView: (employee: Employee) => void;
   onEdit: (employee: Employee) => void;
+  onDelete: (employee: Employee) => void;
+  onGrantVacation: (employee: Employee) => void;
+  onEndVacation: (employee: Employee) => void;
 }
 
 const statusConfig = {
@@ -33,7 +40,7 @@ const statusConfig = {
   terminated: { label: 'Desligado', variant: 'destructive' as const, className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
 };
 
-export function EmployeeTable({ employees, onView, onEdit }: EmployeeTableProps) {
+export function EmployeeTable({ employees, onView, onEdit, onDelete, onGrantVacation, onEndVacation }: EmployeeTableProps) {
   return (
     <div className="rounded-lg border border-border bg-card">
       <Table>
@@ -79,6 +86,30 @@ export function EmployeeTable({ employees, onView, onEdit }: EmployeeTableProps)
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <Users className="mr-2 h-4 w-4" />
+                          Atualizar Status
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem onClick={() => onGrantVacation(employee)} disabled={employee.status !== 'active'}>
+                              <Palmtree className="mr-2 h-4 w-4" />
+                              Conceder Férias
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onEndVacation(employee)} disabled={employee.status !== 'vacation'}>
+                              <Undo2 className="mr-2 h-4 w-4" />
+                              Encerrar Férias
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => onDelete(employee)} disabled={employee.status === 'terminated'}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Desligar
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                      </DropdownMenuSub>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => onView(employee)}>
                         <Eye className="mr-2 h-4 w-4" />
                         Ver detalhes
@@ -86,15 +117,6 @@ export function EmployeeTable({ employees, onView, onEdit }: EmployeeTableProps)
                       <DropdownMenuItem onClick={() => onEdit(employee)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Enviar email
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
