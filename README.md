@@ -1,75 +1,136 @@
-# 🚀 Sistema de Gestão de Recursos Humanos
+# 🚀 Sistema de Gestão de Recursos Humanos (GestaoRH)
 
-Um sistema moderno e intuitivo para a gestão de recursos humanos, construído com as mais recentes tecnologias web.
+Um sistema moderno, intuitivo e completo para a gestão de recursos humanos, projetado para otimizar processos administrativos e estratégicos. Construído com as mais recentes tecnologias web, oferecendo uma experiência de usuário fluida e responsiva.
 
 ## ✨ Tecnologias Utilizadas
 
-Este projeto foi construído com:
+Este projeto foi desenvolvido utilizando uma stack moderna e robusta:
 
-- ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-- ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-- ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-- ![shadcn/ui](https://img.shields.io/badge/shadcn/ui-000000?style=for-the-badge&logo=shadcnui&logoColor=white)
-- ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+- **Core:**
+  - ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB) **React 18**
+  - ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white) **TypeScript**
+  - ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white) **Vite**
 
-## 🛠️ Funcionalidades
+- **UI & Estilização:**
+  - ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white) **Tailwind CSS**
+  - **shadcn/ui** (Componentes reutilizáveis)
+  - **Lucide React** (Ícones)
 
-O sistema conta atualmente com os seguintes módulos:
+- **Funcionalidades & Utilitários:**
+  - **Recharts** (Gráficos e visualização de dados)
+  - **React Router DOM** (Navegação)
+  - **jsPDF & jspdf-autotable** (Geração de relatórios PDF)
+  - **XLSX** (Manipulação de planilhas Excel)
+  - **Date-fns** (Manipulação de datas)
 
-- **📊 Dashboard**: Visão geral com métricas de RH, gráficos de tendências, aniversariantes e atividades recentes.
-- **👥 Gestão de Colaboradores**:
-  - Listagem, cadastro e edição de funcionários.
-  - Controle de status (Ativo, Férias, Afastado, Desligado).
-  - Importação em massa via Excel/CSV.
-  - Ações rápidas para concessão de férias e desligamento com confirmação.
-- **📅 Controle de Férias e Ponto**:
-  - Gestão de solicitações de ausência.
-  - Visualização de colaboradores em férias e alertas de cobertura de setor.
-  - Aprovação e rejeição de pedidos.
-- **📢 Comunicação Interna**: Mural de avisos e comunicados importantes com níveis de prioridade.
-- **🤝 Recrutamento e Seleção**:
-  - Quadro Kanban (arrastar e soltar) para gestão de candidatos.
-  - Gerenciamento de vagas em aberto.
-- **🤖 Assistente de IA**:
-  - Chat inteligente para consultas e execução de tarefas operacionais.
-  - Comandos de linguagem natural (ex: "Agendar férias para João", "Desligar colaborador Maria").
-  - Análise de dados e sugestões proativas.
+## 🛠️ Módulos e Funcionalidades
+
+O sistema é dividido em módulos integrados para cobrir todas as áreas do RH:
+
+### 📊 Dashboard
+Visão panorâmica da empresa com métricas em tempo real.
+- KPIs de total de colaboradores, turnover, vagas abertas e solicitações pendentes.
+- Gráficos de tendências de contratação e distribuição por departamento.
+- Lista de aniversariantes do mês e atividades recentes.
+
+### 👥 Gestão de Colaboradores
+Controle total sobre o quadro de funcionários.
+- **Listagem e Busca**: Filtros avançados por departamento e status.
+- **CRUD Completo**: Adição, edição e visualização de detalhes.
+- **Ações Rápidas**: Concessão de férias, desligamento e alteração de status.
+- **Importação em Massa**: Suporte para importação de dados via arquivos Excel/CSV.
+
+### 🤝 Recrutamento e Seleção
+Ferramentas para atrair e selecionar talentos.
+- **Quadro Kanban**: Gestão visual de candidatos por etapas (Inscrito, Triagem, Entrevista, Aprovado).
+- **Gestão de Vagas**: Criação e edição de descrições de vagas.
+- **Movimentação**: Arrastar e soltar candidatos entre as fases do processo.
+
+### 📅 Controle de Férias e Ponto
+Gestão eficiente de ausências.
+- **Solicitações**: Visualização de pedidos de férias e licenças.
+- **Aprovação**: Fluxo de aprovação ou rejeição de solicitações.
+- **Visão Geral**: Calendário e lista de quem está ausente.
+
+### 📢 Comunicação Interna
+Canal direto com a equipe.
+- **Mural de Avisos**: Publicação de comunicados com níveis de prioridade (Alta, Média, Baixa).
+- **Histórico**: Registro de mensagens enviadas.
+
+### 📄 Relatórios
+Geração de documentos para análise e arquivamento.
+- Exportação em **PDF** de relatórios de Colaboradores, Férias e Recrutamento.
+- Tabelas formatadas automaticamente com dados atualizados.
+
+### 🤖 Assistente de IA
+Suporte inteligente para o gestor de RH.
+- Chat interativo para consultas rápidas.
+- Execução de comandos via linguagem natural (ex: "Agendar férias para João").
+- Análise preditiva de dados (ex: risco de turnover).
+
+## 📂 Estrutura do Projeto
+
+```bash
+src/
+├── components/      # Componentes reutilizáveis (UI, Layout, específicos de módulos)
+├── contexts/        # Contextos do React (ex: ThemeContext)
+├── data/            # Dados mockados para desenvolvimento (mockData.ts)
+├── hooks/           # Hooks personalizados (use-toast, etc.)
+├── lib/             # Utilitários e configurações de bibliotecas
+├── pages/           # Páginas principais da aplicação (rotas)
+├── types/           # Definições de tipos TypeScript
+└── App.tsx          # Componente raiz e configuração de rotas
+```
 
 ## 🏁 Começando
 
-Para obter uma cópia local e executá-la, siga estes passos simples.
+Siga estas instruções para obter uma cópia do projeto e executá-la localmente.
 
 ### ✅ Pré-requisitos
 
-Você precisa ter o Node.js e o npm instalados em sua máquina. Você pode instalá-los usando o [nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+- Node.js (versão 18 ou superior recomendada)
+- npm ou yarn
 
 ### ⚙️ Instalação
 
-1.  Clone o repositório
+1.  **Clone o repositório**
     ```sh
     git clone <URL_DO_SEU_GIT>
     ```
-2.  Navegue até o diretório do projeto
+
+2.  **Acesse o diretório**
     ```sh
     cd gestaorecursoshumanos
     ```
-3.  Instale os pacotes NPM
+
+3.  **Instale as dependências**
     ```sh
     npm install
     ```
-4.  Inicie o servidor de desenvolvimento
+
+4.  **Inicie o servidor de desenvolvimento**
     ```sh
     npm run dev
     ```
 
-A aplicação estará disponível em `http://localhost:5173`.
+5.  **Acesse a aplicação**
+    Abra seu navegador em `http://localhost:5173`.
 
-## 🔑 Login
+## 🔑 Acesso (Ambiente de Desenvolvimento)
 
-Para fins de desenvolvimento, você pode fazer login com qualquer e-mail e senha.
+Como o projeto utiliza dados mockados e `localStorage` para persistência temporária, você pode acessar a tela de login com quaisquer credenciais fictícias para testar a interface.
 
-## 🚀 Próximos Passos (Roadmap)
+- **Email**: `admin@empresa.com` (exemplo)
+- **Senha**: `admin` (exemplo)
 
-- [ ] **Integração com Banco de Dados Real**: Migração do armazenamento local (`localStorage`) para **Supabase** (PostgreSQL) para persistência segura e escalável dos dados.
-- [ ] Implementação de autenticação robusta e níveis de permissão de usuário.
-- [ ] Geração de relatórios avançados em PDF.
+## 🚀 Roadmap (Próximos Passos)
+
+- [ ] **Backend Real**: Integração com Supabase/PostgreSQL para persistência de dados.
+- [ ] **Autenticação**: Implementação de login seguro com JWT/OAuth.
+- [ ] **Perfis de Acesso**: Diferenciação entre Admin, Gestor e Colaborador.
+- [ ] **Ponto Eletrônico**: Módulo para registro e espelho de ponto.
+- [ ] **App Mobile**: Versão responsiva otimizada ou app nativo.
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
