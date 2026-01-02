@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LayoutDashboard, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Label } from '@/components/ui/label';
+import { LayoutDashboard, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -141,6 +141,13 @@ export default function LoginPage() {
                 </>
               )}
             </Button>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou</span></div>
+            </div>
+            <Button type="button" variant="secondary" className="w-full h-11" onClick={() => navigate('/time-off')}><Clock className="mr-2 h-4 w-4" /> Acessar Ponto Eletrônico</Button>
           </form>
 
           <p className="px-8 text-center text-sm text-muted-foreground">

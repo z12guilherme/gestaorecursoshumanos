@@ -41,7 +41,7 @@ const mainNavItems = [
   { title: 'Colaboradores', url: '/employees', icon: Users },
   { title: 'Recrutamento', url: '/recruitment', icon: Briefcase },
   { title: 'Avaliações', url: '/performance', icon: Star },
-  { title: 'Férias & Ponto', url: '/time-off', icon: Calendar },
+  { title: 'Férias & Ponto', url: '/absences', icon: Calendar },
   { title: 'Relatórios', url: '/reports', icon: FileText },
   { title: 'Comunicação', url: '/communication', icon: MessageSquare },
 ];

@@ -17,6 +17,7 @@ import Automations from "./pages/Automations";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/Login";
+import ClockInPage from "./pages/ClockIn";
 
 const queryClient = new QueryClient();
 
@@ -38,13 +39,14 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/time-off" element={<ClockInPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/employees" element={<Employees />} />
               <Route path="/recruitment" element={<Recruitment />} />
               <Route path="/performance" element={<Performance />} />
-              <Route path="/time-off" element={<TimeOff />} />
+              <Route path="/absences" element={<TimeOff />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/communication" element={<Communication />} />
               <Route path="/ai-assistant" element={<AIAssistant />} />

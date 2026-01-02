@@ -12,6 +12,7 @@ export interface Employee {
   birthDate: string;
   avatar?: string;
   salary?: number;
+  pin?: string;
 }
 
 export interface JobPosting {

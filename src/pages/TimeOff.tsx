@@ -4,12 +4,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Check, X, Clock, Plus, Palmtree, Thermometer, User } from 'lucide-react';
+import { Calendar, Check, X, Clock, Plus, Palmtree, Thermometer, User, KeyRound, Search } from 'lucide-react';
 import { timeOffRequests as initialRequests, employees as mockEmployees } from '@/data/mockData';
 import { TimeOffRequest, Employee } from '@/types/hr';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const typeConfig = {
   vacation: { label: 'Férias', icon: Palmtree, color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
@@ -35,6 +52,9 @@ export default function TimeOff() {
     const saved = localStorage.getItem('hr_employees');
     return saved ? JSON.parse(saved) : mockEmployees;
   });
+
+  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     localStorage.setItem('hr_timeoff_requests', JSON.stringify(requests));
@@ -69,6 +89,17 @@ export default function TimeOff() {
       description: 'A solicitação foi rejeitada.',
       variant: 'destructive',
     });
+  };
+
+  const handlePinChange = (employeeId: string, newPin: string) => {
+    // Apenas números
+    if (newPin && !/^\d*$/.test(newPin)) return;
+
+    const updatedEmployees = employees.map(emp => 
+      emp.id === employeeId ? { ...emp, pin: newPin } : emp
+    );
+    setEmployees(updatedEmployees);
+    localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
   };
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
@@ -179,10 +210,16 @@ export default function TimeOff() {
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base">Solicitações Pendentes</CardTitle>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nova Solicitação
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => setIsPinDialogOpen(true)}>
+                <KeyRound className="h-4 w-4" />
+                Senhas de Ponto
+              </Button>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nova Solicitação
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {pendingRequests.length === 0 ? (
@@ -278,6 +315,70 @@ export default function TimeOff() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isPinDialogOpen} onOpenChange={setIsPinDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Senhas de Ponto</DialogTitle>
+            <DialogDescription>Defina as senhas (PIN) numéricas de 4 dígitos para os colaboradores.</DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
+             <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input 
+                  placeholder="Buscar colaborador..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+             </div>
+
+             <div className="flex-1 overflow-y-auto border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Colaborador</TableHead>
+                      <TableHead>Departamento</TableHead>
+                      <TableHead>Senha (PIN)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {employees
+                      .filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map(employee => (
+                      <TableRow key={employee.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                  {employee.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                </AvatarFallback>
+                              </Avatar>
+                              {employee.name}
+                          </div>
+                        </TableCell>
+                        <TableCell>{employee.department}</TableCell>
+                        <TableCell>
+                          <Input 
+                              className="w-24 font-mono text-center" 
+                              maxLength={4} 
+                              placeholder="----"
+                              value={employee.pin || ''}
+                              onChange={(e) => handlePinChange(employee.id, e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+             </div>
+          </div>
+          <DialogFooter>
+              <Button onClick={() => setIsPinDialogOpen(false)}>Concluído</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
