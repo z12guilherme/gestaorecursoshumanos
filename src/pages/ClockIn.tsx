@@ -96,7 +96,7 @@ export default function ClockInPage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-200">Ponto Eletrônico</h1>
           <Button variant="outline" onClick={() => navigate('/login')}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Login
+            <ArrowLeft className="mr-2 h-4 w-4" /> Área Administrativa
           </Button>
         </div>
         <p className="text-center text-muted-foreground mb-8">Selecione seu perfil para registrar o ponto.</p>

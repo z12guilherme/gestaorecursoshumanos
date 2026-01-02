@@ -85,10 +85,10 @@ export default function LoginPage() {
               </div>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Acesse sua conta
+              Acesso Administrativo
             </h1>
             <p className="text-sm text-muted-foreground">
-              Entre com suas credenciais para acessar o painel.
+              Área restrita para gestores e RH.
             </p>
           </div>
 
