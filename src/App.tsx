@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { ReloadPrompt } from "@/components/ReloadPrompt";
 import Dashboard from "./pages/Dashboard";
 import Employees from "./pages/Employees";
 import Recruitment from "./pages/Recruitment";
@@ -23,6 +22,8 @@ import LoginPage from "./pages/Login";
 import ClockInPage from "./pages/ClockIn";
 import TimesheetPage from "./pages/Timesheet";
 import JobDetails from "./pages/JobDetails";
+import { ReloadPrompt } from "@/components/ReloadPrompt";
+
 
 const queryClient = new QueryClient();
 
