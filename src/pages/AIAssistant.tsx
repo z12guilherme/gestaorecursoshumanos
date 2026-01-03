@@ -4,64 +4,46 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bot, Send, Sparkles, Users, TrendingUp, FileText, Lightbulb, Calendar, UserX } from 'lucide-react';
+import { Bot, Send, Sparkles, Users, TrendingUp, FileText, Lightbulb, Calendar, UserX, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Employee, TimeOffRequest } from '@/types/hr';
-import { employees as mockEmployees, timeOffRequests as mockRequests } from '@/data/mockData';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
+import { useEmployees } from '@/hooks/useEmployees';
+import { useRecruitment } from '@/hooks/useRecruitment';
+import { useTimeOff } from '@/hooks/useTimeOff';
+import { useAIChat } from '@/hooks/useAIChat';
 
 const suggestedQuestions = [
-  { icon: Users, text: 'Quais colaboradores têm risco de turnover?' },
-  { icon: TrendingUp, text: 'Quem está apto para promoção?' },
-  { icon: Calendar, text: 'Agende 15 dias de férias para Carlos Santos' },
-  { icon: UserX, text: 'Desligar o colaborador Pedro Costa' },
+  { icon: Users, text: 'Cadastre o funcionário "Marcos Guilherme", cargo "Desenvolvedor Pleno", no departamento "Tecnologia"' },
+  { icon: TrendingUp, text: 'Quem são os colaboradores com maior risco de turnover?' },
+  { icon: Calendar, text: 'Gere um relatório de férias para o time de Design' },
+  { icon: UserX, text: 'Desligue o colaborador "Pedro Costa"' },
 ];
 
 export default function AIAssistant() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: 'Olá! Sou o assistente de IA do RH. Posso ajudar com análises de dados, relatórios, sugestões de desenvolvimento e muito mais. Como posso ajudar você hoje?',
-      timestamp: new Date(),
-    },
-  ]);
+  const { employees, addEmployee, updateEmployee, deleteEmployee, refetch: refetchEmployees } = useEmployees();
+  const { candidates, jobs } = useRecruitment();
+  const { requests: timeOffRequests, addRequest, refetch: refetchTimeOff } = useTimeOff();
+  const { messages, loading: loadingMessages, addMessage, clearHistory } = useAIChat();
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<{
-    type: 'vacation';
+    type: 'vacation' | 'terminate';
     data: { days: number; employeeName: string };
   } | null>(null);
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
+    
+    await addMessage('user', currentInput);
     setIsLoading(true);
 
     // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: getAIResponse(input),
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, aiResponse]);
+    setTimeout(async () => {
+      const responseText = getAIResponse(currentInput);
+      await addMessage('assistant', responseText);
       setIsLoading(false);
     }, 1500);
   };
@@ -69,11 +51,6 @@ export default function AIAssistant() {
   const getAIResponse = (question: string): string => {
     const lowerQuestion = question.toLowerCase();
     
-    const employees: Employee[] = JSON.parse(localStorage.getItem('hr_employees') || 'null') || mockEmployees;
-    const candidates = JSON.parse(localStorage.getItem('hr_candidates') || '[]');
-    const jobs = JSON.parse(localStorage.getItem('hr_jobs') || '[]');
-    const timeOffRequests: TimeOffRequest[] = JSON.parse(localStorage.getItem('hr_timeoff_requests') || 'null') || mockRequests;
-
     // --- Tratamento de Confirmação Pendente ---
     if (pendingAction) {
       if (['sim', 's', 'yes', 'confirmar', 'ok', 'pode'].some(w => lowerQuestion.includes(w))) {
@@ -92,23 +69,14 @@ export default function AIAssistant() {
         const endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + days);
 
-        const newRequest: TimeOffRequest = {
-          id: Date.now().toString(),
-          employeeId: employee.id,
-          employeeName: employee.name,
+        addRequest({
+          employee_id: employee.id,
           type: 'vacation',
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          status: 'approved',
+          start_date: format(startDate, 'yyyy-MM-dd'),
+          end_date: format(endDate, 'yyyy-MM-dd'),
           reason: 'Solicitado via Assistente IA (Recesso/Exceção)',
-        };
-
-        const updatedRequests = [...timeOffRequests, newRequest];
-        localStorage.setItem('hr_timeoff_requests', JSON.stringify(updatedRequests));
-
-        const updatedEmployees = employees.map(e => e.id === employee.id ? { ...e, status: 'vacation' } : e);
-        localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
-        window.dispatchEvent(new Event('storage'));
+        });
+        updateEmployee(employee.id, { status: 'vacation' });
 
         setPendingAction(null);
         return `✅ **Confirmado.** Férias de ${days} dias agendadas para **${employee.name}**. \n\nO status do setor foi considerado como recesso temporário devido à ausência de colaboradores ativos.`;
@@ -122,7 +90,7 @@ export default function AIAssistant() {
     }
 
     // --- Ação: Agendar Férias ---
-    const vacationRegex = /(?:dê|agende|conceda)\s+(\d+)\s+dias\s+de\s+férias\s+(?:para|a|ao)\s+(.+)/i;
+    const vacationRegex = /(?:dê|da|dar|agende|agendar|conceda|conceder|coloque|colocar)\s+(\d+)\s+dias\s+de\s+férias\s+(?:para|a|ao)\s+(.+)/i;
     const vacationMatch = question.match(vacationRegex);
 
     if (vacationMatch) {
@@ -169,23 +137,14 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
       const endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + days);
 
-      const newRequest: TimeOffRequest = {
-        id: Date.now().toString(),
-        employeeId: employee.id,
-        employeeName: employee.name,
+      addRequest({
+        employee_id: employee.id,
         type: 'vacation',
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        status: 'approved',
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        end_date: format(endDate, 'yyyy-MM-dd'),
         reason: 'Solicitado via Assistente IA',
-      };
-
-      const updatedRequests = [...timeOffRequests, newRequest];
-      localStorage.setItem('hr_timeoff_requests', JSON.stringify(updatedRequests));
-
-      const updatedEmployees = employees.map(e => e.id === employee.id ? { ...e, status: 'vacation' } : e);
-      localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
-      window.dispatchEvent(new Event('storage'));
+      });
+      updateEmployee(employee.id, { status: 'vacation' });
 
       return `✅ Férias de ${days} dias agendadas para **${employee.name}** com sucesso!${warningMessage}\n\nO status do colaborador foi atualizado para "Em Férias".`;
     }
@@ -207,9 +166,7 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
         return `O colaborador **${employee.name}** não está de férias no momento.`;
       }
 
-      const updatedEmployees = employees.map(e => e.id === employee.id ? { ...e, status: 'active' } : e);
-      localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
-      window.dispatchEvent(new Event('storage'));
+      updateEmployee(employee.id, { status: 'active' });
 
       return `✅ As férias de **${employee.name}** foram encerradas e o status atualizado para "Ativo".`;
     }
@@ -231,9 +188,7 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
         return `O colaborador **${employee.name}** já está com o status "Desligado".`;
       }
 
-      const updatedEmployees = employees.map(e => e.id === employee.id ? { ...e, status: 'terminated' } : e);
-      localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
-      window.dispatchEvent(new Event('storage'));
+      updateEmployee(employee.id, { status: 'terminated' });
 
       return `✅ O status do colaborador **${employee.name}** foi alterado para "Desligado".`;
     }
@@ -248,20 +203,15 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
       const position = addEmployeeMatch[2]?.trim() || 'Não informado';
       const department = addEmployeeMatch[3]?.trim() || 'Geral';
 
-      const newEmployee: Employee = {
-        id: Date.now().toString(),
+      addEmployee({
         name,
         email: `${name.toLowerCase().replace(/\s+/g, '.')}@empresa.com`,
-        position,
+        role: position,
         department,
         status: 'active',
-        contractType: 'CLT',
-        hireDate: new Date().toISOString().split('T')[0],
-      } as Employee;
-
-      const updatedEmployees = [...employees, newEmployee];
-      localStorage.setItem('hr_employees', JSON.stringify(updatedEmployees));
-      window.dispatchEvent(new Event('storage'));
+        admission_date: new Date().toISOString().split('T')[0],
+        password: '1234',
+      });
 
       return `✅ Colaborador **${name}** cadastrado com sucesso!\n\n📋 **Detalhes:**\n- Cargo: ${position}\n- Departamento: ${department}\n- Email: ${newEmployee.email}`;
     }
@@ -342,26 +292,41 @@ Estou analisando ${employees.length} colaboradores e ${candidates.length} candid
     setInput(question);
   };
 
+  // Mensagem de boas-vindas padrão se o histórico estiver vazio
+  const displayMessages = messages.length > 0 ? messages : [
+    {
+      id: 'welcome',
+      role: 'assistant' as const,
+      content: 'Olá! Sou o assistente de IA do RH. Posso ajudar com análises de dados, relatórios, sugestões de desenvolvimento e muito mais. Como posso ajudar você hoje?',
+      timestamp: new Date(),
+    }
+  ];
+
   return (
     <AppLayout title="Assistente IA" subtitle="Análises inteligentes e suporte à decisão">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
         {/* Chat Area */}
         <Card className="lg:col-span-3 flex flex-col">
           <CardHeader className="border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <Bot className="h-5 w-5" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">HR Assistant</CardTitle>
+                  <p className="text-sm text-muted-foreground">Powered by Perplexity AI</p>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-base">HR Assistant</CardTitle>
-                <p className="text-sm text-muted-foreground">Powered by Perplexity AI</p>
-              </div>
+              <Button variant="ghost" size="icon" onClick={clearHistory} title="Limpar Histórico">
+                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col p-0">
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message) => (
+              {displayMessages.map((message) => (
                 <div
                   key={message.id}
                   className={cn(
