@@ -4,11 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Workflow, Copy, Check, FileCode, Mail, FileSpreadsheet, UserPlus, Download, RefreshCw, Sparkles } from 'lucide-react';
+import { Workflow, Copy, Check, FileCode, Mail, FileSpreadsheet, UserPlus, Download, RefreshCw, Sparkles, Save, Library } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useAutomations } from '@/hooks/useAutomations';
 
 const automations = [
   {
@@ -191,6 +192,8 @@ export default function Automations() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [isGeneratingCustom, setIsGeneratingCustom] = useState(false);
   const [customResult, setCustomResult] = useState<{ code: string; instructions: string } | null>(null);
+  const { scripts: savedScripts, saveScript } = useAutomations();
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleInputChange = (automationId: string, fieldName: string, value: any) => {
     setFormValues(prev => ({
@@ -246,6 +249,25 @@ export default function Automations() {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+  };
+
+  const handleSaveToLibrary = async (title: string, description: string, code: string, instructions: string = '', isCustom: boolean = false) => {
+    setIsSaving(true);
+    const { error } = await saveScript({
+      title,
+      description,
+      code,
+      language: 'python',
+      instructions,
+      is_custom: isCustom
+    });
+    setIsSaving(false);
+
+    if (error) {
+      toast({ title: "Erro ao salvar", description: "Não foi possível salvar o script.", variant: "destructive" });
+    } else {
+      toast({ title: "Salvo!", description: "Script adicionado à sua biblioteca." });
+    }
   };
 
   const handleCustomGenerate = () => {
@@ -352,6 +374,10 @@ if __name__ == "__main__":
                   <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
                   Criar com IA
                 </TabsTrigger>
+                <TabsTrigger value="library" className="w-full justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:text-foreground border border-transparent data-[state=active]:border-border mt-4">
+                  <Library className="h-4 w-4 mr-2" />
+                  Meus Scripts
+                </TabsTrigger>
               </TabsList>
             </div>
             
@@ -419,6 +445,14 @@ if __name__ == "__main__":
                                 >
                                   <Download className="h-4 w-4 mr-2" />
                                   Baixar .py
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleSaveToLibrary(auto.title, auto.description, code)}
+                                >
+                                  <Save className="h-4 w-4 mr-2" />
+                                  Salvar
                                 </Button>
                                 <Button
                                   size="sm"
@@ -508,6 +542,10 @@ if __name__ == "__main__":
                                             <Download className="h-4 w-4 mr-2" />
                                             Baixar .py
                                         </Button>
+                                        <Button size="sm" variant="outline" onClick={() => handleSaveToLibrary(customPrompt.substring(0, 30) + "...", customPrompt, customResult.code, customResult.instructions, true)}>
+                                            <Save className="h-4 w-4 mr-2" />
+                                            Salvar
+                                        </Button>
                                         <Button size="sm" variant="outline" onClick={() => handleCopy(customResult.code, 'custom')}>
                                             {copiedId === 'custom' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                                             {copiedId === 'custom' ? "Copiado" : "Copiar"}
@@ -529,6 +567,49 @@ if __name__ == "__main__":
                          )}
                       </div>
                    </CardContent>
+                </Card>
+             </TabsContent>
+
+             <TabsContent value="library" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Library className="h-5 w-5 text-primary" />
+                      <CardTitle>Meus Scripts Salvos</CardTitle>
+                    </div>
+                    <CardDescription>Biblioteca de automações geradas e salvas.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {savedScripts.length === 0 ? (
+                      <div className="text-center py-10 text-muted-foreground">
+                        Nenhum script salvo ainda. Gere um script e clique em "Salvar".
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {savedScripts.map((script) => (
+                          <div key={script.id} className="p-4 border rounded-lg bg-card hover:bg-accent/5 transition-colors">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h4 className="font-medium">{script.title}</h4>
+                                <p className="text-sm text-muted-foreground line-clamp-1">{script.description}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="ghost" onClick={() => handleCopy(script.code, script.id)}>
+                                  {copiedId === script.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => handleDownload(script.code, `${script.title}.py`)}>
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-2">
+                              Criado em: {new Date(script.created_at).toLocaleDateString()} • {script.is_custom ? 'IA Personalizada' : 'Template'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
                 </Card>
              </TabsContent>
             </div>

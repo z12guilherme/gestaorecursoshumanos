@@ -13,10 +13,12 @@ Status do progresso de migração dos módulos para o backend real.
 - [x] **Comunicação:** Mural de Avisos e Notificações.
 
 ## 🚧 Em Progresso / Pendente
-- [ ] **Assistente IA:** Migrar leitura de dados do `localStorage` para os hooks do Supabase (`useEmployees`, etc).
-- [ ] **Relatórios:** Atualizar geração de PDF para usar dados reais.
-- [ ] **Automações:** Implementar persistência no banco.
-- [ ] **Configurações:** Salvar preferências no banco.
+- [x] **Assistente IA:** Migrar leitura de dados do `localStorage` para os hooks do Supabase (`useEmployees`, etc).
+- [x] **Relatórios:** Atualizar geração de PDF para usar dados reais.
+- [ ] **Automações:**
+  - [x] Implementar persistência no banco para scripts gerados.
+  - [ ] Integrar a geração de script com uma API de IA real (substituir simulação).
+- [x] **Configurações:** Salvar preferências no banco (UI e lógica implementados).
 
 ## 🧹 Limpeza e Otimização
 - [ ] Remover arquivo `src/data/mockData.ts`.

@@ -1,21 +1,19 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Users, Calendar, Briefcase, FileChartColumn } from 'lucide-react';
+import { FileText, Download, Users, Calendar, Briefcase, FileChartColumn, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { employees as mockEmployees, timeOffRequests as mockRequests, jobPostings as mockJobs } from '@/data/mockData';
+import { useEmployees } from '@/hooks/useEmployees';
+import { useTimeOff } from '@/hooks/useTimeOff';
+import { useJobPostings } from '@/hooks/useJobPostings';
 
 export default function Reports() {
-  // Função auxiliar para recuperar dados atualizados
-  const getData = () => {
-    const employees = JSON.parse(localStorage.getItem('hr_employees') || 'null') || mockEmployees;
-    const requests = JSON.parse(localStorage.getItem('hr_timeoff_requests') || 'null') || mockRequests;
-    const jobs = JSON.parse(localStorage.getItem('hr_jobs') || 'null') || mockJobs;
-    return { employees, requests, jobs };
-  };
+  const { employees, loading: loadingEmployees } = useEmployees();
+  const { requests, loading: loadingRequests } = useTimeOff();
+  const { jobPostings, loading: loadingJobs } = useJobPostings();
 
   const generatePDF = (title: string, subtitle: string, columns: string[], data: any[][], filename: string) => {
     const doc = new jsPDF();
@@ -71,14 +69,13 @@ export default function Reports() {
   };
 
   const handleEmployeeReport = () => {
-    const { employees } = getData();
     const columns = ["Nome", "Cargo", "Departamento", "Status", "Admissão"];
-    const rows = employees.map((emp: any) => [
+    const rows = employees.map((emp) => [
       emp.name,
-      emp.position,
+      emp.role || emp.position, // Fallback para compatibilidade com tipos diferentes
       emp.department,
       emp.status === 'active' ? 'Ativo' : emp.status === 'vacation' ? 'Férias' : emp.status === 'terminated' ? 'Desligado' : 'Afastado',
-      emp.hireDate ? format(new Date(emp.hireDate), 'dd/MM/yyyy') : '-'
+      (emp.admission_date || emp.hireDate) ? format(new Date(emp.admission_date || emp.hireDate), 'dd/MM/yyyy') : '-'
     ]);
 
     generatePDF(
@@ -91,9 +88,8 @@ export default function Reports() {
   };
 
   const handleTimeOffReport = () => {
-    const { requests } = getData();
     const columns = ["Colaborador", "Tipo", "Início", "Fim", "Status"];
-    const rows = requests.map((req: any) => [
+    const rows = requests.map((req) => [
       req.employeeName,
       req.type === 'vacation' ? 'Férias' : req.type === 'sick' ? 'Atestado' : 'Outro',
       format(new Date(req.startDate), 'dd/MM/yyyy'),
@@ -111,14 +107,13 @@ export default function Reports() {
   };
 
   const handleRecruitmentReport = () => {
-    const { jobs } = getData();
     const columns = ["Vaga", "Departamento", "Tipo", "Local", "Candidatos", "Status"];
-    const rows = jobs.map((job: any) => [
+    const rows = jobPostings.map((job) => [
       job.title,
       job.department,
       job.type,
       job.location,
-      job.applicants?.toString() || "0",
+      job.applicants?.toString() || job.applicants_count?.toString() || "0",
       job.status === 'open' ? 'Aberta' : 'Fechada'
     ]);
 
@@ -131,27 +126,32 @@ export default function Reports() {
     );
   };
 
+  const isLoading = loadingEmployees || loadingRequests || loadingJobs;
+
   const reportTypes = [
     {
       title: "Colaboradores",
       description: "Lista completa de funcionários, cargos e status atual.",
       icon: Users,
       action: handleEmployeeReport,
-      color: "text-blue-500 bg-blue-50 dark:bg-blue-900/20"
+      color: "text-blue-500 bg-blue-50 dark:bg-blue-900/20",
+      disabled: loadingEmployees
     },
     {
       title: "Férias e Ponto",
       description: "Histórico de solicitações, férias agendadas e ausências.",
       icon: Calendar,
       action: handleTimeOffReport,
-      color: "text-orange-500 bg-orange-50 dark:bg-orange-900/20"
+      color: "text-orange-500 bg-orange-50 dark:bg-orange-900/20",
+      disabled: loadingRequests
     },
     {
       title: "Recrutamento",
       description: "Status das vagas abertas e volume de candidatos.",
       icon: Briefcase,
       action: handleRecruitmentReport,
-      color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+      color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20",
+      disabled: loadingJobs
     }
   ];
 
@@ -171,9 +171,17 @@ export default function Reports() {
               {/* Espaço para filtros futuros (ex: DatePicker) */}
             </CardContent>
             <CardFooter>
-              <Button className="w-full gap-2" onClick={report.action}>
-                <Download className="h-4 w-4" />
-                Gerar PDF
+              <Button 
+                className="w-full gap-2" 
+                onClick={report.action} 
+                disabled={report.disabled}
+              >
+                {report.disabled ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {report.disabled ? 'Carregando...' : 'Gerar PDF'}
               </Button>
             </CardFooter>
           </Card>
