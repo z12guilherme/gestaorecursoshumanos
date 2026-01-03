@@ -10,6 +10,8 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { useRecruitment } from '@/hooks/useRecruitment';
 import { useTimeOff } from '@/hooks/useTimeOff';
 import { useAIChat } from '@/hooks/useAIChat';
+import { useCommunication } from '@/hooks/useCommunication';
+import { usePerformance } from '@/hooks/usePerformance';
 
 const suggestedQuestions = [
   { icon: Users, text: 'Cadastre o funcionário "Marcos Guilherme", cargo "Desenvolvedor Pleno", no departamento "Tecnologia"' },
@@ -20,9 +22,11 @@ const suggestedQuestions = [
 
 export default function AIAssistant() {
   const { employees, addEmployee, updateEmployee, deleteEmployee, refetch: refetchEmployees } = useEmployees();
-  const { candidates, jobs } = useRecruitment();
+  const { candidates, jobs, addJob } = useRecruitment();
   const { requests: timeOffRequests, addRequest, refetch: refetchTimeOff } = useTimeOff();
   const { messages, loading: loadingMessages, addMessage, clearHistory } = useAIChat();
+  const { addAnnouncement } = useCommunication();
+  const { reviews } = usePerformance();
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -48,12 +52,17 @@ export default function AIAssistant() {
     }, 1500);
   };
 
+  // Função auxiliar para normalizar texto (remove acentos e deixa minúsculo)
+  const normalize = (text: string) => {
+    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  };
+
   const getAIResponse = (question: string): string => {
-    const lowerQuestion = question.toLowerCase();
+    const normalizedQuestion = normalize(question);
     
     // --- Tratamento de Confirmação Pendente ---
     if (pendingAction) {
-      if (['sim', 's', 'yes', 'confirmar', 'ok', 'pode'].some(w => lowerQuestion.includes(w))) {
+      if (['sim', 's', 'yes', 'confirmar', 'ok', 'pode', 'prossiga', 'vai'].some(w => normalizedQuestion.includes(w))) {
         const { days, employeeName } = pendingAction.data;
         const employee = employees.find(e => e.name.toLowerCase() === employeeName.toLowerCase());
 
@@ -81,7 +90,7 @@ export default function AIAssistant() {
         setPendingAction(null);
         return `✅ **Confirmado.** Férias de ${days} dias agendadas para **${employee.name}**. \n\nO status do setor foi considerado como recesso temporário devido à ausência de colaboradores ativos.`;
 
-      } else if (['não', 'nao', 'n', 'no', 'cancelar'].some(w => lowerQuestion.includes(w))) {
+      } else if (['nao', 'n', 'no', 'cancelar', 'pare', 'abortar'].some(w => normalizedQuestion.includes(w))) {
         setPendingAction(null);
         return "❌ Solicitação cancelada. O colaborador permanece ativo e nenhuma alteração foi feita.";
       } else {
@@ -89,13 +98,25 @@ export default function AIAssistant() {
       }
     }
 
-    // --- Ação: Agendar Férias ---
-    const vacationRegex = /(?:dê|da|dar|agende|agendar|conceda|conceder|coloque|colocar)\s+(\d+)\s+dias\s+de\s+férias\s+(?:para|a|ao)\s+(.+)/i;
-    const vacationMatch = question.match(vacationRegex);
+    // --- INTENÇÃO: Agendar Férias ---
+    // Detecta palavras-chave de férias e dias
+    if (normalizedQuestion.includes('ferias') && (normalizedQuestion.includes('dias') || normalizedQuestion.match(/\d+/))) {
+      // Extrai dias (procura número próximo a palavra dias ou apenas um número)
+      const daysMatch = normalizedQuestion.match(/(\d+)\s*dias/) || normalizedQuestion.match(/(\d+)/);
+      const days = daysMatch ? parseInt(daysMatch[1], 10) : null;
 
-    if (vacationMatch) {
-      const days = parseInt(vacationMatch[1], 10);
-      const employeeName = vacationMatch[2].trim();
+      // Tenta encontrar um funcionário mencionado na frase
+      // Estratégia: Procura nomes conhecidos na frase do usuário
+      // Ordena por tamanho do nome (decrescente) para priorizar nomes completos (ex: "Ana Silva" antes de "Ana")
+      const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
+      
+      const employeeName = sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name)))?.name 
+        || sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name.split(' ')[0])))?.name; // Tenta primeiro nome
+
+      if (!days || !employeeName) {
+        if (!employeeName) return "Não consegui identificar o nome do colaborador. Tente dizer o nome completo.";
+        if (!days) return `Quantos dias de férias você quer dar para ${employeeName}?`;
+      }
 
       const employee = employees.find(e => e.name.toLowerCase() === employeeName.toLowerCase());
 
@@ -149,12 +170,13 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
       return `✅ Férias de ${days} dias agendadas para **${employee.name}** com sucesso!${warningMessage}\n\nO status do colaborador foi atualizado para "Em Férias".`;
     }
 
-    // --- Ação: Encerrar Férias ---
-    const endVacationRegex = /(?:(?:tire|remova|encerre)\s+(?:as\s+)?férias\s+de\s+(.+))|(?:(.+?)\s+(?:já\s+)?voltou\s+de\s+férias)/i;
-    const endVacationMatch = question.match(endVacationRegex);
+    // --- INTENÇÃO: Encerrar Férias ---
+    if ((normalizedQuestion.includes('encerrar') || normalizedQuestion.includes('voltou') || normalizedQuestion.includes('tirar')) && normalizedQuestion.includes('ferias')) {
+      const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
+      const employeeName = sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name)))?.name 
+        || sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name.split(' ')[0])))?.name;
 
-    if (endVacationMatch) {
-      const employeeName = (endVacationMatch[1] || endVacationMatch[2] || '').trim().replace(/[.,!?]$/, '');
+      if (!employeeName) return "De quem você quer encerrar as férias?";
 
       const employee = employees.find(e => e.name.toLowerCase() === employeeName.toLowerCase());
 
@@ -171,13 +193,14 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
       return `✅ As férias de **${employee.name}** foram encerradas e o status atualizado para "Ativo".`;
     }
 
-    // --- Ação: Desligar Funcionário ---
-    // Ex: "Desligar o funcionário Pedro Costa"
-    const terminateEmployeeRegex = /(?:desligar|demita|encerrar o contrato d(?:o|a))\s+(?:o\s+)?(?:funcionário|colaborador|colaboradora)\s+(.+)/i;
-    const terminateEmployeeMatch = question.match(terminateEmployeeRegex);
+    // --- INTENÇÃO: Desligar Funcionário ---
+    if (normalizedQuestion.includes('desligar') || normalizedQuestion.includes('demitir') || normalizedQuestion.includes('encerrar contrato')) {
+      const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
+      const employeeName = sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name)))?.name 
+        || sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name.split(' ')[0])))?.name;
 
-    if (terminateEmployeeMatch) {
-      const employeeName = terminateEmployeeMatch[1].trim().replace(/[.,!?]$/, '');
+      if (!employeeName) return "Qual colaborador você deseja desligar?";
+
       const employee = employees.find(e => e.name.toLowerCase() === employeeName.toLowerCase());
 
       if (!employee) {
@@ -193,15 +216,19 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
       return `✅ O status do colaborador **${employee.name}** foi alterado para "Desligado".`;
     }
 
-    // --- Ação: Cadastrar Funcionário ---
-    // Ex: "Cadastre o funcionário João Silva, cargo Desenvolvedor, departamento TI"
-    const addEmployeeRegex = /(?:adicione|cadastre|registre|contrate)\s+(?:o\s+)?(?:funcionário|colaborador)\s+([^,]+)(?:,\s*(?:cargo\s*)?([^,]+))?(?:,\s*(?:departamento\s*|setor\s*)?([^,]+))?/i;
-    const addEmployeeMatch = question.match(addEmployeeRegex);
+    // --- INTENÇÃO: Cadastrar Funcionário ---
+    if (normalizedQuestion.includes('cadastre') || normalizedQuestion.includes('adicionar') || normalizedQuestion.includes('contratar')) {
+      // Tenta extrair informações com regex mais flexível ou por partes
+      // Ex: "Cadastre João Silva, cargo Dev, setor TI"
+      const nameMatch = question.match(/(?:funcionário|colaborador)\s+([A-Za-zÀ-ÿ\s]+?)(?:,|$| cargo| setor| departamento)/i);
+      const roleMatch = question.match(/(?:cargo|como)\s+([A-Za-zÀ-ÿ\s]+?)(?:,|$| setor| departamento)/i);
+      const deptMatch = question.match(/(?:departamento|setor)\s+([A-Za-zÀ-ÿ\s]+?)(?:,|$)/i);
 
-    if (addEmployeeMatch) {
-      const name = addEmployeeMatch[1].trim();
-      const position = addEmployeeMatch[2]?.trim() || 'Não informado';
-      const department = addEmployeeMatch[3]?.trim() || 'Geral';
+      const name = nameMatch ? nameMatch[1].trim() : null;
+      if (!name) return "Para cadastrar, preciso pelo menos do nome. Tente: 'Cadastre o funcionário [Nome], cargo [Cargo], setor [Setor]'";
+
+      const position = roleMatch ? roleMatch[1].trim() : 'Novo Colaborador';
+      const department = deptMatch ? deptMatch[1].trim() : 'Geral';
 
       addEmployee({
         name,
@@ -213,25 +240,118 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
         password: '1234',
       });
 
-      return `✅ Colaborador **${name}** cadastrado com sucesso!\n\n📋 **Detalhes:**\n- Cargo: ${position}\n- Departamento: ${department}\n- Email: ${newEmployee.email}`;
+      return `✅ Colaborador **${name}** cadastrado com sucesso!\n\n📋 **Detalhes:**\n- Cargo: ${position}\n- Departamento: ${department}`;
+    }
+
+    // --- INTENÇÃO: Criar Vaga (Recrutamento) ---
+    if (normalizedQuestion.includes('criar vaga') || normalizedQuestion.includes('nova vaga') || normalizedQuestion.includes('abrir vaga')) {
+      const jobMatch = question.match(/(?:vaga|posição)\s+(?:de\s+)?(.+?)\s+(?:para|em|no|na)\s+(?:o\s+|a\s+)?(?:setor\s+|departamento\s+)?(.+)/i);
+      
+      if (jobMatch) {
+        const title = jobMatch[1].trim();
+        const department = jobMatch[2].trim();
+        
+        addJob({
+          title,
+          department,
+          location: 'Híbrido', // Default inteligente
+          type: 'Integral',
+          status: 'Aberta',
+          description: `Vaga para ${title} no departamento de ${department}.`,
+          requirements: ['Experiência na área', 'Proatividade', 'Trabalho em equipe'],
+        });
+        
+        return `✅ Vaga de **${title}** para o departamento **${department}** criada com sucesso!`;
+      }
+      return "Para criar uma vaga, tente algo como: 'Criar vaga de Analista para o Financeiro'.";
+    }
+
+    // --- INTENÇÃO: Publicar Aviso (Comunicação) ---
+    if (normalizedQuestion.includes('aviso') || normalizedQuestion.includes('comunicado') || normalizedQuestion.includes('publicar')) {
+      const noticeMatch = question.match(/(?:aviso|comunicado|publicar)\s+(?:sobre\s+|intitulado\s+)?([^:]+|".+?")(?:\s*:\s*|\s+dizendo\s+que\s+|\s+com\s+o\s+texto\s+)(.+)/i);
+      
+      if (noticeMatch) {
+        const title = noticeMatch[1].replace(/['"]/g, '').trim();
+        const content = noticeMatch[2].trim();
+        
+        addAnnouncement({
+          title,
+          content,
+          priority: 'medium',
+          author: 'Assistente IA',
+        });
+        
+        return `✅ Aviso **"${title}"** publicado no mural com sucesso!`;
+      }
+    }
+
+    // --- INTENÇÃO: Promoção / Alteração de Cargo ---
+    if (normalizedQuestion.includes('promover') || normalizedQuestion.includes('mudar cargo') || normalizedQuestion.includes('alterar cargo')) {
+       const promoteMatch = question.match(/(?:promover|mudar cargo de)\s+(.+?)\s+(?:para|a)\s+(.+)/i);
+       if (promoteMatch) {
+         const namePart = promoteMatch[1].trim();
+         const newRole = promoteMatch[2].trim();
+         
+         const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
+         const employeeName = sortedEmployees.find(e => normalize(e.name).includes(normalize(namePart)))?.name;
+         
+         if (employeeName) {
+            const emp = employees.find(e => e.name === employeeName);
+            if (emp) {
+              updateEmployee(emp.id, { role: newRole });
+              return `✅ **${emp.name}** foi promovido(a) para **${newRole}** com sucesso!`;
+            }
+         }
+         return `Não encontrei o colaborador "${namePart}".`;
+       }
+    }
+
+    // --- INTENÇÃO: Consultar Desempenho ---
+    if (normalizedQuestion.includes('desempenho') || normalizedQuestion.includes('nota') || normalizedQuestion.includes('avaliacao')) {
+       const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
+       const employeeName = sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name)))?.name;
+       
+       if (employeeName) {
+         const empReviews = reviews.filter(r => r.employee_name === employeeName);
+         if (empReviews.length > 0) {
+           const latest = empReviews[0];
+           return `📊 **Desempenho de ${employeeName}:**\n- Última Avaliação: ${latest.period}\n- Nota Geral: ⭐ ${Number(latest.overall_score).toFixed(1)}\n- Feedback: "${latest.feedback}"`;
+         }
+         return `Não encontrei avaliações de desempenho registradas para **${employeeName}**.`;
+       }
+    }
+
+    // --- INTENÇÃO: Informações Gerais do Colaborador ---
+    if (normalizedQuestion.includes('dados') || normalizedQuestion.includes('detalhes') || normalizedQuestion.includes('quem e')) {
+       const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
+       const employeeName = sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name)))?.name;
+
+       if (employeeName) {
+         const emp = employees.find(e => e.name === employeeName);
+         if (emp) {
+           // Formata data de admissão
+           const admission = emp.admission_date ? new Date(emp.admission_date).toLocaleDateString('pt-BR') : 'N/A';
+           return `📋 **Ficha de ${emp.name}:**\n- Cargo: ${emp.role}\n- Departamento: ${emp.department}\n- Email: ${emp.email}\n- Admissão: ${admission}\n- Status: ${emp.status === 'active' ? 'Ativo' : emp.status}`;
+         }
+       }
     }
 
     // Lógica de Respostas Dinâmicas
-    if (lowerQuestion.includes('quantos') || lowerQuestion.includes('total')) {
-      if (lowerQuestion.includes('funcionário') || lowerQuestion.includes('colaborador')) {
+    if (normalizedQuestion.includes('quantos') || normalizedQuestion.includes('total')) {
+      if (normalizedQuestion.includes('funcionario') || normalizedQuestion.includes('colaborador')) {
         const active = employees.filter((e: any) => e.status === 'active').length;
         return `Atualmente, a empresa conta com **${employees.length} colaboradores** registrados. Desses, **${active}** estão ativos e ${employees.length - active} estão afastados ou em férias.`;
       }
-      if (lowerQuestion.includes('candidato')) {
+      if (normalizedQuestion.includes('candidato')) {
         return `Temos um total de **${candidates.length} candidatos** participando de processos seletivos no momento.`;
       }
-      if (lowerQuestion.includes('vaga')) {
+      if (normalizedQuestion.includes('vaga')) {
         const openJobs = jobs.filter((j: any) => j.status === 'open');
         return `Existem **${openJobs.length} vagas em aberto** no painel de recrutamento.`;
       }
     }
 
-    if (lowerQuestion.includes('turnover') || lowerQuestion.includes('risco') || lowerQuestion.includes('sair')) {
+    if (normalizedQuestion.includes('turnover') || normalizedQuestion.includes('risco') || normalizedQuestion.includes('sair')) {
       // Simula uma análise pegando alguns funcionários aleatórios como exemplo
       const riskyEmployees = employees.slice(0, 2).map((e: any) => e.name);
       
@@ -246,7 +366,7 @@ ${riskyEmployees.map((name: string) => `• **${name}** - Baixo engajamento rece
 - Avaliar possibilidade de efetivação`;
     }
     
-    if (lowerQuestion.includes('promoção') || lowerQuestion.includes('apto') || lowerQuestion.includes('carreira')) {
+    if (normalizedQuestion.includes('promocao') || normalizedQuestion.includes('apto') || normalizedQuestion.includes('carreira')) {
       return `Analisando as avaliações de desempenho e tempo de casa, os seguintes colaboradores estão aptos para promoção:
 
 1. **Carlos Santos** (Dev Senior) - Score 4.5/5, 3 anos de casa, liderança natural
@@ -258,7 +378,7 @@ ${riskyEmployees.map((name: string) => `• **${name}** - Baixo engajamento rece
 - Comunicar gestores diretos`;
     }
     
-    if (lowerQuestion.includes('relatório') || lowerQuestion.includes('desempenho') || lowerQuestion.includes('resumo')) {
+    if (normalizedQuestion.includes('relatorio') || normalizedQuestion.includes('desempenho') || normalizedQuestion.includes('resumo') || normalizedQuestion.includes('analise') || normalizedQuestion.includes('insights')) {
       return `### Resumo Executivo de RH
 
 **Métricas Gerais:**

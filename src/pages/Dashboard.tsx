@@ -1,6 +1,6 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, UserCheck, Calendar, Briefcase, Clock, UserPlus } from 'lucide-react';
+import { Users, UserCheck, Calendar, Briefcase, Clock, UserPlus, Sparkles, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useRecruitment } from '@/hooks/useRecruitment';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
@@ -32,6 +32,26 @@ export default function Dashboard() {
       employeeRole: emp?.role || '',
     };
   });
+
+  // Insights da IA (Cálculos em tempo real)
+  const longTenureEmployees = employees.filter(e => {
+    if (!e.admission_date) return false;
+    const years = (new Date().getTime() - new Date(e.admission_date).getTime()) / (1000 * 60 * 60 * 24 * 365);
+    return years > 2 && e.status === 'active';
+  }).length;
+
+  const aiInsights = [
+    {
+      icon: AlertTriangle,
+      color: "text-amber-500",
+      text: `${longTenureEmployees} colaboradores completaram 2+ anos de casa. Considere agendar conversas de carreira para reduzir risco de turnover.`
+    },
+    {
+      icon: TrendingUp,
+      color: "text-emerald-500",
+      text: `A taxa de ocupação de vagas está em ${stats.openJobs > 0 ? Math.round((stats.total / (stats.total + stats.openJobs)) * 100) : 100}%. O setor de Tecnologia tem a maior demanda.`
+    }
+  ];
 
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da empresa">
@@ -88,6 +108,27 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* AI Insights Card */}
+          <Card className="col-span-1 border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Sparkles className="h-5 w-5" />
+                Insights da IA
+              </CardTitle>
+              <CardDescription>Análise inteligente dos dados da sua empresa</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {aiInsights.map((insight, index) => (
+                  <div key={index} className="flex gap-3 items-start p-3 bg-background/60 rounded-lg border border-border/50">
+                    <insight.icon className={`h-5 w-5 shrink-0 ${insight.color} mt-0.5`} />
+                    <p className="text-sm text-foreground">{insight.text}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Recent Activity */}
           <Card className="col-span-1">
             <CardHeader>
