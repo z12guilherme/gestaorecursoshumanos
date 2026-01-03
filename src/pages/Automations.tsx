@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Workflow, Copy, Check, FileCode, Mail, FileSpreadsheet, UserPlus, Download, RefreshCw } from 'lucide-react';
+import { Workflow, Copy, Check, FileCode, Mail, FileSpreadsheet, UserPlus, Download, RefreshCw, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const automations = [
   {
@@ -187,6 +188,9 @@ export default function Automations() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [generatedCodes, setGeneratedCodes] = useState<{ [key: string]: string }>({});
   const [formValues, setFormValues] = useState<{ [key: string]: any }>({});
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [isGeneratingCustom, setIsGeneratingCustom] = useState(false);
+  const [customResult, setCustomResult] = useState<{ code: string; instructions: string } | null>(null);
 
   const handleInputChange = (automationId: string, fieldName: string, value: any) => {
     setFormValues(prev => ({
@@ -244,6 +248,70 @@ export default function Automations() {
     window.URL.revokeObjectURL(url);
   };
 
+  const handleCustomGenerate = () => {
+    if (!customPrompt.trim()) return;
+    
+    setIsGeneratingCustom(true);
+    
+    // Simulação de geração de script pela IA
+    setTimeout(() => {
+      const mockCode = `import pandas as pd
+import os
+from datetime import datetime
+
+# Script gerado automaticamente pelo Assistente de RH
+# Descrição da tarefa: ${customPrompt}
+
+def process_automation():
+    print(f"Iniciando automação: {datetime.now()}")
+    
+    # Simulação da lógica solicitada
+    # Em um ambiente real, aqui estaria o código específico para:
+    # "${customPrompt}"
+    
+    try:
+        # Exemplo de estrutura de processamento
+        data = []
+        print("Processando dados...")
+        
+        # Lógica placeholder
+        for i in range(5):
+            data.append({"id": i, "status": "processed"})
+            
+        df = pd.DataFrame(data)
+        print("Resultado preliminar:")
+        print(df.head())
+        
+        output_file = "resultado_automacao.csv"
+        df.to_csv(output_file, index=False)
+        print(f"Dados salvos em {output_file}")
+        
+    except Exception as e:
+        print(f"Erro durante a execução: {e}")
+
+if __name__ == "__main__":
+    process_automation()
+`;
+      const mockInstructions = `1. Certifique-se de ter o Python instalado (versão 3.8+ recomendada).
+2. Instale as dependências necessárias (se houver):
+   pip install pandas openpyxl
+3. Salve o código acima em um arquivo, por exemplo 'minha_automacao.py'.
+4. Execute o script no terminal:
+   python minha_automacao.py
+5. Verifique o arquivo de saída gerado no mesmo diretório.`;
+
+      setCustomResult({
+        code: mockCode,
+        instructions: mockInstructions
+      });
+      setIsGeneratingCustom(false);
+      toast({
+        title: "Script Gerado!",
+        description: "A IA criou seu script de automação com sucesso.",
+      });
+    }, 2000);
+  };
+
   return (
     <AppLayout title="Automações" subtitle="Gerador de scripts Python customizados para RH">
       <div className="space-y-6">
@@ -280,6 +348,10 @@ export default function Automations() {
                     {auto.title}
                   </TabsTrigger>
                 ))}
+                <TabsTrigger value="ai-custom" className="w-full justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:text-foreground border border-transparent data-[state=active]:border-border">
+                  <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
+                  Criar com IA
+                </TabsTrigger>
               </TabsList>
             </div>
             
@@ -385,6 +457,80 @@ export default function Automations() {
                   </TabsContent>
                 );
               })}
+
+              <TabsContent value="ai-custom" className="mt-0">
+                <Card>
+                   <CardHeader>
+                      <div className="flex items-center gap-2">
+                         <Sparkles className="h-5 w-5 text-purple-500" />
+                         <CardTitle>Criador de Automação IA</CardTitle>
+                      </div>
+                      <CardDescription>Descreva a tarefa que você deseja automatizar e a IA gerará o script Python para você.</CardDescription>
+                   </CardHeader>
+                   <CardContent>
+                      <div className="space-y-4">
+                         <div className="grid gap-2">
+                            <Label htmlFor="custom-prompt">O que você quer automatizar?</Label>
+                            <Textarea 
+                               id="custom-prompt"
+                               placeholder="Ex: Ler todos os arquivos Excel da pasta 'vendas', consolidar em um único arquivo e enviar por email para o gerente..." 
+                               value={customPrompt}
+                               onChange={(e) => setCustomPrompt(e.target.value)}
+                               rows={4}
+                               className="resize-none"
+                            />
+                         </div>
+                         <Button 
+                            onClick={handleCustomGenerate} 
+                            disabled={isGeneratingCustom || !customPrompt.trim()}
+                            className="w-full md:w-auto bg-purple-600 hover:bg-purple-700 text-white"
+                         >
+                            {isGeneratingCustom ? (
+                                <>
+                                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                    Gerando Script...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="mr-2 h-4 w-4" />
+                                    Gerar Script
+                                </>
+                            )}
+                         </Button>
+
+                         {customResult && (
+                            <div className="space-y-6 mt-6 pt-6 border-t animate-in fade-in slide-in-from-bottom-4">
+                               <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Label>Script Gerado</Label>
+                                    <div className="flex gap-2">
+                                        <Button size="sm" variant="outline" onClick={() => handleDownload(customResult.code, 'custom_script.py')}>
+                                            <Download className="h-4 w-4 mr-2" />
+                                            Baixar .py
+                                        </Button>
+                                        <Button size="sm" variant="outline" onClick={() => handleCopy(customResult.code, 'custom')}>
+                                            {copiedId === 'custom' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                                            {copiedId === 'custom' ? "Copiado" : "Copiar"}
+                                        </Button>
+                                    </div>
+                                  </div>
+                                  <ScrollArea className="h-[300px] w-full rounded-md border bg-slate-950 p-4">
+                                     <pre className="font-mono text-sm text-slate-50">
+                                        <code>{customResult.code}</code>
+                                     </pre>
+                                  </ScrollArea>
+                               </div>
+
+                               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-sm text-purple-900 dark:text-purple-200 border border-purple-200 dark:border-purple-800">
+                                  <strong>Instruções de Uso:</strong>
+                                  <pre className="mt-2 whitespace-pre-wrap font-sans text-muted-foreground">{customResult.instructions}</pre>
+                               </div>
+                            </div>
+                         )}
+                      </div>
+                   </CardContent>
+                </Card>
+             </TabsContent>
             </div>
           </div>
         </Tabs>
