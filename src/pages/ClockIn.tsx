@@ -16,13 +16,17 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LogIn, LogOut, User, ArrowLeft } from 'lucide-react';
+import { LogIn, LogOut, User, ArrowLeft, Megaphone, Pin } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
+import { useCommunication } from '@/hooks/useCommunication';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function ClockInPage() {
   const { employees, validateEmployeeLogin } = useEmployees();
   const { entries: clockEvents, addEntry } = useTimeEntries();
+  const { announcements } = useCommunication();
 
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
@@ -70,6 +74,12 @@ export default function ClockInPage() {
     ? clockEvents.filter(e => e.employee_id === selectedEmployee.id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
     : null;
 
+  const priorityConfig = {
+    low: { label: 'Baixa', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+    medium: { label: 'Média', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+    high: { label: 'Alta', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
@@ -79,7 +89,45 @@ export default function ClockInPage() {
             <ArrowLeft className="mr-2 h-4 w-4" /> Área Administrativa
           </Button>
         </div>
-        <p className="text-center text-muted-foreground mb-8">Selecione seu perfil para registrar o ponto.</p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div className="lg:col-span-2">
+             <p className="text-muted-foreground mb-4">Selecione seu perfil para registrar o ponto.</p>
+          </div>
+          
+          {/* Mural de Avisos Simplificado */}
+          <Card className="lg:col-span-1 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-primary" />
+                Mural de Avisos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[150px] pr-4">
+                <div className="space-y-4">
+                  {announcements.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum aviso no momento.</p>
+                  ) : (
+                    announcements.slice(0, 3).map(announcement => (
+                      <div key={announcement.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm flex items-center gap-2">
+                            {announcement.priority === 'high' && <Pin className="h-3 w-3 text-red-500" />}
+                            {announcement.title}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">{format(new Date(announcement.created_at), 'dd/MM')}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{announcement.content}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {employees.filter(e => e.status !== 'terminated').map(employee => (
             <Card

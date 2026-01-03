@@ -27,6 +27,7 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/lib/AuthContext';
 import { useTimeOff } from '@/hooks/useTimeOff';
 import { supabase } from '@/lib/supabase';
+import { format } from 'date-fns';
 
 export default function Employees() {
   const { 
@@ -148,11 +149,11 @@ export default function Employees() {
   };
 
   const handleEndVacation = async (employeeId: string) => {
-    // 1. Encontra a solicitação de férias ativa antes de fazer qualquer alteração
+    // 1. Encontra TODAS as solicitações de férias ativas para este funcionário
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const activeRequest = timeOffRequests.find(r => 
+    const activeRequests = timeOffRequests.filter(r => 
       r.employee_id === employeeId && 
       r.status === 'approved' && 
       r.type === 'vacation' &&
@@ -163,16 +164,19 @@ export default function Employees() {
     // 2. Atualiza o status do funcionário para 'active'
     await updateEmployee(employeeId, { status: 'active' });
 
-    // 3. Se houver uma solicitação ativa, atualiza sua data de término para ontem
-    if (activeRequest) {
+    // 3. Se houver solicitações ativas, atualiza a data de término de TODAS para ontem
+    if (activeRequests.length > 0) {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
       
-      // Usa a nova função do hook para atualizar a solicitação
-      await updateRequest(activeRequest.id, { end_date: yesterday.toISOString().split('T')[0] });
-      await refetchTimeOff(); // Força a atualização da lista de solicitações para refletir a mudança imediatamente
+      // Atualiza todas as solicitações em paralelo e aguarda
+      await Promise.all(activeRequests.map(req => updateRequest(req.id, { end_date: yesterdayStr })));
+      
+      await refetchTimeOff(); // Atualiza a lista de férias
     }
     
+    await refetch(); // Atualiza a lista de colaboradores para garantir o status 'active'
     toast({
       title: "Férias encerradas",
       description: "O colaborador foi atualizado para 'Ativo'.",

@@ -27,6 +27,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useCommunication } from '@/hooks/useCommunication';
+import { useAuth } from '@/lib/AuthContext';
+import { useEmployees } from '@/hooks/useEmployees';
 
 const priorityConfig = {
   low: { label: 'Baixa', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
@@ -36,6 +38,8 @@ const priorityConfig = {
 
 export default function Communication() {
   const { announcements, loading, addAnnouncement } = useCommunication();
+  const { user } = useAuth();
+  const { employees } = useEmployees();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Form states
@@ -46,11 +50,14 @@ export default function Communication() {
   const { toast } = useToast();
 
   const handlePublish = async () => {
+    const currentEmployee = employees.find(e => e.email === user?.email);
+    const authorName = currentEmployee?.name || (user?.email ? user.email.split('@')[0] : "Admin");
+
     const { error } = await addAnnouncement({
       title,
       content,
       priority,
-      author: "Admin", // Usuário atual mockado
+      author: authorName,
     });
 
     if (error) {
