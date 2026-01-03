@@ -1,4 +1,4 @@
-import { Employee } from '@/types/hr';
+import { Employee, TimeOffRequest } from '@/types/hr';
 import {
   Sheet,
   SheetContent,
@@ -10,19 +10,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User, Undo2, Palmtree, KeyRound } from "lucide-react";
-import { format, parseISO, differenceInDays } from "date-fns";
+import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User, Undo2, KeyRound } from "lucide-react";
+import { format, differenceInDays, addDays, differenceInYears, addYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface EmployeeDetailSheetProps {
   employee: Employee | null;
+  timeOffRequests: TimeOffRequest[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
+  onEndVacation: (employeeId: string) => void;
   onChangePassword: () => void;
 }
 
-export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onChangePassword }: EmployeeDetailSheetProps) {
+export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenChange, onEdit, onEndVacation, onChangePassword }: EmployeeDetailSheetProps) {
   if (!employee) return null;
 
   const statusConfig: Record<string, { label: string; className: string }> = {
@@ -32,30 +34,45 @@ export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onCh
     leave: { label: 'Afastado', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
   };
 
-  // Mock calculation for vacation balance
-  const vacationBalance = 22; 
+  // Cálculo dinâmico do saldo de férias
+  const hireDate = employee.hireDate ? new Date(employee.hireDate + 'T00:00:00') : new Date();
+  const today = new Date();
+  const yearsOfService = differenceInYears(today, hireDate);
+  
+  // Período aquisitivo atual (aniversário de admissão deste ano até o próximo)
+  const currentPeriodStart = addYears(hireDate, yearsOfService);
+  const currentPeriodEnd = addYears(hireDate, yearsOfService + 1);
+
+  // Calcula dias tirados no período atual
+  const takenDays = timeOffRequests
+    .filter(r => 
+      r.employee_id === employee.id && 
+      r.status === 'approved' && 
+      r.type === 'vacation' &&
+      new Date(r.start_date + 'T00:00:00') >= currentPeriodStart
+    )
+    .reduce((acc, r) => acc + (differenceInDays(new Date(r.end_date + 'T00:00:00'), new Date(r.start_date + 'T00:00:00')) + 1), 0);
+
+  const vacationBalance = Math.max(0, 30 - takenDays);
 
   // Logic to find return date if on vacation
   let returnDate: Date | null = null;
   let daysLeft = 0;
 
   if (employee.status === 'vacation') {
-    try {
-      const requests = JSON.parse(localStorage.getItem('hr_timeoff_requests') || '[]');
-      // Find the latest approved vacation request for this employee
-      const activeRequest = requests
-        .filter((r: any) => r.employeeId === employee.id && r.status === 'approved' && r.type === 'vacation')
-        .sort((a: any, b: any) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime())[0];
+    // Find the latest approved vacation request for this employee from props
+    const activeRequest = timeOffRequests
+      .filter((r) => r.employee_id === employee.id && r.status === 'approved' && r.type === 'vacation')
+      .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0];
 
-      if (activeRequest) {
-        const end = parseISO(activeRequest.endDate);
-        if (end >= new Date()) {
-            returnDate = end;
-            daysLeft = differenceInDays(end, new Date());
-        }
+    if (activeRequest) {
+      const end = new Date(activeRequest.end_date + 'T00:00:00');
+      const todayForDiff = new Date();
+      todayForDiff.setHours(0, 0, 0, 0);
+      if (end >= todayForDiff) {
+          returnDate = addDays(end, 1); // Return date is the day after vacation ends
+          daysLeft = differenceInDays(end, todayForDiff) + 1;
       }
-    } catch (error) {
-      console.error("Error loading vacation info", error);
     }
   }
 
@@ -96,6 +113,10 @@ export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onCh
                   <Calendar className="h-4 w-4" />
                   <span>Status de Férias</span>
                 </div>
+                <Button size="sm" variant="outline" onClick={() => onEndVacation(employee.id)}>
+                  <Undo2 className="h-4 w-4 mr-2" />
+                  Encerrar Férias
+                </Button>
               </div>
               {returnDate && (
                 <div className="grid grid-cols-2 gap-4 pt-2">
@@ -137,7 +158,7 @@ export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onCh
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>Saldo de Férias</span>
                 </div>
-                <Badge variant="outline" className="bg-background">2024</Badge>
+                <Badge variant="outline" className="bg-background">{today.getFullYear()}</Badge>
              </div>
              <div className="flex items-end gap-2">
                 <span className="text-3xl font-bold">{vacationBalance}</span>
@@ -147,7 +168,7 @@ export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onCh
                 <div className="bg-primary h-full rounded-full" style={{ width: '70%' }} />
              </div>
              <p className="text-xs text-muted-foreground">
-                Período aquisitivo: 12/05/2023 - 11/05/2024
+                Período aquisitivo: {format(currentPeriodStart, 'dd/MM/yyyy')} - {format(currentPeriodEnd, 'dd/MM/yyyy')}
              </p>
           </div>
 
@@ -189,14 +210,14 @@ export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onCh
                 <User className="h-4 w-4 text-muted-foreground" />
                 <div className="flex flex-col">
                     <span className="text-muted-foreground text-xs">Gestor</span>
-                    <span>Carlos Silva</span>
+                    <span>{employee.manager || 'Não definido'}</span>
                 </div>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div className="flex flex-col">
                     <span className="text-muted-foreground text-xs">Data de Admissão</span>
-                    <span>{employee.admissionDate ? format(parseISO(employee.admissionDate), 'dd/MM/yyyy') : '01/01/2023'}</span>
+                    <span>{employee.hireDate ? format(new Date(employee.hireDate + 'T00:00:00'), 'dd/MM/yyyy') : 'Não informado'}</span>
                 </div>
               </div>
             </div>

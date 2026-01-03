@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar as CalendarIcon, Check, X, Clock, Plus, Palmtree, Thermometer, User, KeyRound, Search, Undo2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, X, Clock, Plus, Palmtree, Thermometer, User, KeyRound, Search, Undo2, BarChart3 } from 'lucide-react';
 import { format, parseISO, differenceInDays, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const typeConfig = {
   vacation: { label: 'Férias', icon: Palmtree, color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
@@ -167,6 +168,22 @@ export default function TimeOff() {
     ? mappedRequests
     : mappedRequests.filter(r => r.employee_department === departmentFilter);
 
+  // Cálculo de estatísticas por departamento para o gráfico
+  const uniqueDepartments = Array.from(new Set(employees.map(e => e.department))).filter(Boolean);
+  const departmentStats = uniqueDepartments.map(dept => {
+    const deptEmployees = employees.filter(e => e.department === dept && e.status !== 'terminated');
+    const total = deptEmployees.length;
+    const absent = deptEmployees.filter(e => ['vacation', 'leave', 'Férias', 'Afastado'].includes(e.status)).length;
+    const available = total - absent;
+    
+    return {
+      name: dept,
+      total,
+      available,
+      absent,
+    };
+  });
+
   return (
     <AppLayout title="Férias & Ausências" subtitle="Gerencie solicitações de férias e ausências">
       <div className="space-y-6">
@@ -212,8 +229,8 @@ export default function TimeOff() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <div className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5 text-primary" />
-                Relatório de Ausências
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Capacidade e Ausências por Setor
               </div>
               <div className="ml-auto w-full max-w-[200px]">
                 <Select value={departmentFilter} onValueChange={setDepartmentFilter}>

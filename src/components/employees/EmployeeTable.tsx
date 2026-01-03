@@ -22,13 +22,14 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Eye, Edit, Trash2, KeyRound } from 'lucide-react';
+import { MoreHorizontal, Eye, Edit, Trash2, KeyRound, Undo2 } from 'lucide-react';
 
 interface EmployeeTableProps {
   employees: Employee[];
   onView: (employee: Employee) => void;
   onEdit: (employee: Employee) => void;
   onDelete: (employee: Employee) => void;
+  onEndVacation: (employeeId: string) => void;
   onChangePassword: (employee: Employee) => void;
 }
 
@@ -39,7 +40,7 @@ const statusConfig = {
   terminated: { label: 'Desligado', variant: 'destructive' as const, className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
 };
 
-export function EmployeeTable({ employees, onView, onEdit, onDelete, onChangePassword }: EmployeeTableProps) {
+export function EmployeeTable({ employees, onView, onEdit, onDelete, onEndVacation, onChangePassword }: EmployeeTableProps) {
   return (
     <div className="rounded-lg border border-border bg-card">
       <Table>
@@ -92,6 +93,10 @@ export function EmployeeTable({ employees, onView, onEdit, onDelete, onChangePas
                       <DropdownMenuItem onClick={() => onView(employee)}>
                         <Eye className="mr-2 h-4 w-4" />
                         Ver detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEndVacation(employee.id)} disabled={employee.status !== 'vacation'}>
+                        <Undo2 className="mr-2 h-4 w-4" />
+                        Encerrar Férias
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onEdit(employee)}>
                         <Edit className="mr-2 h-4 w-4" />

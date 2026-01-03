@@ -32,7 +32,7 @@ export function useTimeOff() {
 
       if (error) throw error;
 
-      const formatted = (data || []).map((item: any) => ({
+      const formatted = data.map((item: any) => ({
         ...item,
         employee_name: item.employee?.name || 'Desconhecido',
         employee_department: item.employee?.department || '-',
@@ -78,9 +78,28 @@ export function useTimeOff() {
     }
   };
 
+  const updateRequest = async (id: string, updates: Partial<TimeOffRequest>) => {
+    try {
+      const { data, error } = await supabase
+        .from('time_off_requests')
+        .update(updates)
+        .eq('id', id)
+        .select('*, employee:employees!employee_id(name, department)')
+        .single();
+
+      if (error) throw error;
+
+      const formatted = { ...data, employee_name: data.employee?.name || 'Desconhecido', employee_department: data.employee?.department || '-' };
+      setRequests(prev => prev.map(r => (r.id === id ? formatted : r)));
+      return { data: formatted, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  };
+
   useEffect(() => {
     fetchRequests();
   }, []);
 
-  return { requests, loading, addRequest, updateRequestStatus, refetch: fetchRequests };
+  return { requests, loading, addRequest, updateRequestStatus, updateRequest, refetch: fetchRequests };
 }

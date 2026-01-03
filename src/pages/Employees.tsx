@@ -4,7 +4,7 @@ import { EmployeeTable } from '@/components/employees/EmployeeTable';
 import { EmployeeFilters } from '@/components/employees/EmployeeFilters';
 import { EmployeeFormDialog } from '@/components/employees/EmployeeFormDialog';
 import { EmployeeDetailSheet } from '@/components/employees/EmployeeDetailSheet';
-import { Employee, TimeOffRequest } from '@/types/hr';
+import { Employee } from '@/types/hr';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/lib/AuthContext';
+import { useTimeOff } from '@/hooks/useTimeOff';
+import { supabase } from '@/lib/supabase';
 
 export default function Employees() {
   const { 
@@ -36,6 +38,7 @@ export default function Employees() {
     refetch 
   } = useEmployees();
   const { signOut } = useAuth();
+  const { requests: timeOffRequests, updateRequest, refetch: refetchTimeOff } = useTimeOff();
 
   // Mapeia os dados do Supabase (DB) para o formato da UI (Employee)
   const employees: Employee[] = dbEmployees.map(dbEmp => ({
@@ -65,7 +68,22 @@ export default function Employees() {
   const [employeeToTerminate, setEmployeeToTerminate] = useState<Employee | null>(null);
   const { toast } = useToast();
 
-  const filteredEmployees = employees.filter((employee) => {
+  // Computa o status real baseado nas solicitações de férias ativas
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const employeesWithStatus = employees.map(emp => {
+    const isOnVacation = timeOffRequests.some(r => 
+      r.employee_id === emp.id && 
+      r.status === 'approved' && 
+      r.type === 'vacation' &&
+      new Date(r.start_date + 'T00:00:00') <= today &&
+      new Date(r.end_date + 'T00:00:00') >= today
+    );
+    return isOnVacation ? { ...emp, status: 'vacation' } : emp;
+  });
+
+  const filteredEmployees = employeesWithStatus.filter((employee) => {
     const matchesSearch = 
       employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -127,6 +145,39 @@ export default function Employees() {
         variant: "destructive" 
       });
     }
+  };
+
+  const handleEndVacation = async (employeeId: string) => {
+    // 1. Encontra a solicitação de férias ativa antes de fazer qualquer alteração
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const activeRequest = timeOffRequests.find(r => 
+      r.employee_id === employeeId && 
+      r.status === 'approved' && 
+      r.type === 'vacation' &&
+      new Date(r.start_date + 'T00:00:00') <= today &&
+      new Date(r.end_date + 'T00:00:00') >= today
+    );
+
+    // 2. Atualiza o status do funcionário para 'active'
+    await updateEmployee(employeeId, { status: 'active' });
+
+    // 3. Se houver uma solicitação ativa, atualiza sua data de término para ontem
+    if (activeRequest) {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Usa a nova função do hook para atualizar a solicitação
+      await updateRequest(activeRequest.id, { end_date: yesterday.toISOString().split('T')[0] });
+      await refetchTimeOff(); // Força a atualização da lista de solicitações para refletir a mudança imediatamente
+    }
+    
+    toast({
+      title: "Férias encerradas",
+      description: "O colaborador foi atualizado para 'Ativo'.",
+    });
+    setIsDetailOpen(false);
   };
 
   const handlePasswordClick = (employee: Employee) => {
@@ -237,11 +288,11 @@ export default function Employees() {
   };
 
   const stats = {
-    total: employees.length,
-    active: employees.filter(e => e.status === 'active' || e.status === 'Ativo').length,
-    vacation: employees.filter(e => e.status === 'vacation' || e.status === 'Férias').length,
-    leave: employees.filter(e => e.status === 'leave' || e.status === 'Afastado').length,
-    terminated: employees.filter(e => e.status === 'terminated' || e.status === 'Desligado').length,
+    total: employeesWithStatus.length,
+    active: employeesWithStatus.filter(e => e.status === 'active' || e.status === 'Ativo').length,
+    vacation: employeesWithStatus.filter(e => e.status === 'vacation' || e.status === 'Férias').length,
+    leave: employeesWithStatus.filter(e => e.status === 'leave' || e.status === 'Afastado').length,
+    terminated: employeesWithStatus.filter(e => e.status === 'terminated' || e.status === 'Desligado').length,
   };
 
   return (
@@ -327,6 +378,7 @@ export default function Employees() {
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleTerminateClick}
+          onEndVacation={handleEndVacation}
           onChangePassword={handlePasswordClick}
         />
 
@@ -340,12 +392,14 @@ export default function Employees() {
 
         <EmployeeDetailSheet
           employee={selectedEmployee}
+          timeOffRequests={timeOffRequests}
           open={isDetailOpen}
           onOpenChange={setIsDetailOpen}
           onEdit={() => {
             setIsDetailOpen(false);
             setIsFormOpen(true);
           }}
+          onEndVacation={handleEndVacation}
           onChangePassword={() => selectedEmployee && handlePasswordClick(selectedEmployee)}
         />
 
