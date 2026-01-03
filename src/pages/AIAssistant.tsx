@@ -115,7 +115,8 @@ export default function AIAssistant() {
 
     // --- INTENÇÃO: Agendar Férias ---
     // Detecta palavras-chave de férias e dias
-    if (normalizedQuestion.includes('ferias') && (normalizedQuestion.includes('dias') || normalizedQuestion.match(/\d+/))) {
+    if ((normalizedQuestion.includes('ferias') || normalizedQuestion.includes('descanso') || normalizedQuestion.includes('recesso') || normalizedQuestion.includes('folga')) && 
+        (normalizedQuestion.includes('dias') || normalizedQuestion.match(/\d+/))) {
       // Extrai dias (procura número próximo a palavra dias ou apenas um número)
       const daysMatch = normalizedQuestion.match(/(\d+)\s*dias/) || normalizedQuestion.match(/(\d+)/);
       const days = daysMatch ? parseInt(daysMatch[1], 10) : null;
@@ -186,7 +187,8 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
     }
 
     // --- INTENÇÃO: Encerrar Férias ---
-    if ((normalizedQuestion.includes('encerrar') || normalizedQuestion.includes('voltou') || normalizedQuestion.includes('tirar')) && normalizedQuestion.includes('ferias')) {
+    if ((normalizedQuestion.includes('encerrar') || normalizedQuestion.includes('voltou') || normalizedQuestion.includes('tirar') || normalizedQuestion.includes('cancelar') || normalizedQuestion.includes('finalizar') || normalizedQuestion.includes('acabar') || normalizedQuestion.includes('retornar')) && 
+        (normalizedQuestion.includes('ferias') || normalizedQuestion.includes('descanso') || normalizedQuestion.includes('recesso'))) {
       const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
       const employeeName = sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name)))?.name 
         || sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name.split(' ')[0])))?.name;
@@ -209,7 +211,7 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
     }
 
     // --- INTENÇÃO: Desligar Funcionário ---
-    if (normalizedQuestion.includes('desligar') || normalizedQuestion.includes('desligue') || normalizedQuestion.includes('demitir') || normalizedQuestion.includes('demita') || normalizedQuestion.includes('encerrar contrato')) {
+    if (normalizedQuestion.includes('desligar') || normalizedQuestion.includes('desligue') || normalizedQuestion.includes('demitir') || normalizedQuestion.includes('demita') || normalizedQuestion.includes('encerrar contrato') || normalizedQuestion.includes('mandar embora') || normalizedQuestion.includes('dispensar') || normalizedQuestion.includes('exonerar') || normalizedQuestion.includes('rescindir') || normalizedQuestion.includes('rua')) {
       const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
       const employeeName = sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name)))?.name 
         || sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name.split(' ')[0])))?.name;
@@ -232,10 +234,10 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
     }
 
     // --- INTENÇÃO: Cadastrar Funcionário ---
-    if (normalizedQuestion.includes('cadastre') || normalizedQuestion.includes('adicionar') || normalizedQuestion.includes('contratar')) {
+    if (normalizedQuestion.includes('cadastre') || normalizedQuestion.includes('adicionar') || normalizedQuestion.includes('contratar') || normalizedQuestion.includes('registrar') || normalizedQuestion.includes('novo funcionario') || normalizedQuestion.includes('novo colaborador') || normalizedQuestion.includes('inserir') || normalizedQuestion.includes('criar perfil') || normalizedQuestion.includes('admitir')) {
       // Tenta extrair informações com regex mais flexível ou por partes
       // Ex: "Cadastre João Silva, cargo Dev, setor TI"
-      const nameMatch = question.match(/(?:funcionário|colaborador)\s+([A-Za-zÀ-ÿ\s]+?)(?:,|$| cargo| setor| departamento)/i);
+      const nameMatch = question.match(/(?:funcionário|colaborador|pessoa|o|a)?\s+([A-Za-zÀ-ÿ\s]+?)(?:,|$| cargo| setor| departamento| como| no)/i);
       const roleMatch = question.match(/(?:cargo|como)\s+([A-Za-zÀ-ÿ\s]+?)(?:,|$| setor| departamento)/i);
       const deptMatch = question.match(/(?:departamento|setor)\s+([A-Za-zÀ-ÿ\s]+?)(?:,|$)/i);
 
@@ -259,8 +261,8 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
     }
 
     // --- INTENÇÃO: Criar Vaga (Recrutamento) ---
-    if (normalizedQuestion.includes('criar vaga') || normalizedQuestion.includes('nova vaga') || normalizedQuestion.includes('abrir vaga')) {
-      const jobMatch = question.match(/(?:vaga|posição)\s+(?:de\s+)?(.+?)\s+(?:para|em|no|na)\s+(?:o\s+|a\s+)?(?:setor\s+|departamento\s+)?(.+)/i);
+    if (normalizedQuestion.includes('criar vaga') || normalizedQuestion.includes('nova vaga') || normalizedQuestion.includes('abrir vaga') || normalizedQuestion.includes('publicar vaga') || normalizedQuestion.includes('anunciar vaga') || normalizedQuestion.includes('nova posicao') || normalizedQuestion.includes('abrir posicao') || normalizedQuestion.includes('recrutamento')) {
+      const jobMatch = question.match(/(?:vaga|posição|oportunidade)\s+(?:de\s+)?(.+?)\s+(?:para|em|no|na)\s+(?:o\s+|a\s+)?(?:setor\s+|departamento\s+)?(.+)/i);
       
       if (jobMatch) {
         const title = jobMatch[1].trim();
@@ -282,8 +284,8 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
     }
 
     // --- INTENÇÃO: Publicar Aviso (Comunicação) ---
-    if (normalizedQuestion.includes('aviso') || normalizedQuestion.includes('comunicado') || normalizedQuestion.includes('publicar')) {
-      const noticeMatch = question.match(/(?:aviso|comunicado|publicar)\s+(?:sobre\s+|intitulado\s+)?([^:]+|".+?")(?:\s*:\s*|\s+dizendo\s+que\s+|\s+com\s+o\s+texto\s+)(.+)/i);
+    if (normalizedQuestion.includes('aviso') || normalizedQuestion.includes('comunicado') || normalizedQuestion.includes('publicar') || normalizedQuestion.includes('mural') || normalizedQuestion.includes('noticia') || normalizedQuestion.includes('informar') || normalizedQuestion.includes('postar') || normalizedQuestion.includes('mensagem')) {
+      const noticeMatch = question.match(/(?:aviso|comunicado|publicar|postar|mensagem|informe)\s+(?:sobre\s+|intitulado\s+)?([^:]+|".+?")(?:\s*:\s*|\s+dizendo\s+que\s+|\s+com\s+o\s+texto\s+)(.+)/i);
       
       if (noticeMatch) {
         const title = noticeMatch[1].replace(/['"]/g, '').trim();
@@ -301,8 +303,8 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
     }
 
     // --- INTENÇÃO: Promoção / Alteração de Cargo ---
-    if (normalizedQuestion.includes('promover') || normalizedQuestion.includes('mudar cargo') || normalizedQuestion.includes('alterar cargo')) {
-       const promoteMatch = question.match(/(?:promover|mudar cargo de)\s+(.+?)\s+(?:para|a)\s+(.+)/i);
+    if (normalizedQuestion.includes('promover') || normalizedQuestion.includes('mudar cargo') || normalizedQuestion.includes('alterar cargo') || normalizedQuestion.includes('subir de cargo') || normalizedQuestion.includes('nova funcao') || normalizedQuestion.includes('efetivar')) {
+       const promoteMatch = question.match(/(?:promover|mudar cargo de|efetivar|subir)\s+(?:o|a)?\s*(.+?)\s+(?:para|a|como)\s+(.+)/i);
        if (promoteMatch) {
          const namePart = promoteMatch[1].trim();
          const newRole = promoteMatch[2].trim();
@@ -322,7 +324,7 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
     }
 
     // --- INTENÇÃO: Consultar Desempenho ---
-    if (normalizedQuestion.includes('desempenho') || normalizedQuestion.includes('nota') || normalizedQuestion.includes('avaliacao')) {
+    if (normalizedQuestion.includes('desempenho') || normalizedQuestion.includes('nota') || normalizedQuestion.includes('avaliacao') || normalizedQuestion.includes('performance') || normalizedQuestion.includes('feedback') || normalizedQuestion.includes('resultado') || normalizedQuestion.includes('rendimento')) {
        const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
        const employeeName = sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name)))?.name;
        
@@ -337,7 +339,7 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
     }
 
     // --- INTENÇÃO: Informações Gerais do Colaborador ---
-    if (normalizedQuestion.includes('dados') || normalizedQuestion.includes('detalhes') || normalizedQuestion.includes('quem e')) {
+    if (normalizedQuestion.includes('dados') || normalizedQuestion.includes('detalhes') || normalizedQuestion.includes('quem e') || normalizedQuestion.includes('informacoes') || normalizedQuestion.includes('perfil') || normalizedQuestion.includes('sobre') || normalizedQuestion.includes('ficha') || normalizedQuestion.includes('consultar')) {
        const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
        const employeeName = sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name)))?.name;
 
@@ -441,72 +443,86 @@ Estou analisando ${employees.length} colaboradores e ${candidates.length} candid
     <AppLayout title="Assistente IA" subtitle="Análises inteligentes e suporte à decisão">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
         {/* Chat Area */}
-        <Card className="lg:col-span-3 flex flex-col">
-          <CardHeader className="border-b border-border">
+        <Card className="lg:col-span-3 flex flex-col border-0 shadow-lg overflow-hidden h-full">
+          <CardHeader className="border-b bg-card/50 backdrop-blur-sm px-6 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
                   <Bot className="h-5 w-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base">HR Assistant</CardTitle>
-                  <p className="text-sm text-muted-foreground">Powered by Perplexity AI</p>
+                  <CardTitle className="text-lg">HR Assistant</CardTitle>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Online • Powered by Perplexity AI
+                  </p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={clearHistory} title="Limpar Histórico">
-                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+              <Button variant="ghost" size="icon" onClick={clearHistory} title="Limpar Histórico" className="hover:bg-destructive/10 hover:text-destructive">
+                <Trash2 className="h-5 w-5" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col p-0">
+          
+          <CardContent className="flex-1 flex flex-col p-0 bg-slate-50/50 dark:bg-slate-950/50 relative overflow-hidden">
             {/* Messages */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
               {displayMessages.map((message) => (
                 <div
                   key={message.id}
                   className={cn(
-                    'flex gap-3',
-                    message.role === 'user' && 'justify-end'
+                    'flex gap-4 max-w-[85%]',
+                    message.role === 'user' ? 'ml-auto flex-row-reverse' : ''
                   )}
                 >
-                  {message.role === 'assistant' && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                        <Bot className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div
-                    className={cn(
-                      'rounded-lg px-4 py-3 max-w-[80%]',
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-foreground'
-                    )}
-                  >
-                    <p className="text-sm whitespace-pre-line">{message.content}</p>
-                  </div>
-                  {message.role === 'user' && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-secondary text-foreground text-xs">
-                        AS
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                      <Bot className="h-4 w-4" />
+                  <Avatar className={cn("h-10 w-10 border-2", message.role === 'user' ? "border-primary/20" : "border-muted")}>
+                    <AvatarFallback className={message.role === 'user' ? "bg-primary text-primary-foreground" : "bg-background"}>
+                      {message.role === 'user' ? 'VC' : <Bot className="h-5 w-5 text-primary" />}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="bg-secondary rounded-lg px-4 py-3">
-                    <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                      <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.1s]" />
-                      <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.2s]" />
+                  
+                  <div
+                    className={cn(
+                      "flex flex-col gap-1 min-w-0", 
+                      message.role === 'user' ? "items-end" : "items-start"
+                    )}>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">
+                            {message.role === 'user' ? 'Você' : 'Assistente'}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/60">
+                            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
+                        </span>
+                    </div>
+                    <div
+                        className={cn(
+                        'rounded-2xl px-5 py-3 text-sm shadow-sm whitespace-pre-line leading-relaxed',
+                        message.role === 'user'
+                            ? 'bg-primary text-primary-foreground rounded-tr-none'
+                            : 'bg-white dark:bg-slate-900 border border-border text-foreground rounded-tl-none'
+                        )}
+                    >
+                        {message.content}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {isLoading && (
+                <div className="flex gap-4 max-w-[85%]">
+                  <Avatar className="h-10 w-10 border-2 border-muted">
+                    <AvatarFallback className="bg-background">
+                      <Bot className="h-5 w-5 text-primary" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-muted-foreground">Assistente</span>
+                      <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl rounded-tl-none px-5 py-4 shadow-sm">
+                        <div className="flex gap-1.5">
+                        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" />
+                        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:0.1s]" />
+                        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]" />
+                        </div>
                     </div>
                   </div>
                 </div>
@@ -514,26 +530,34 @@ Estou analisando ${employees.length} colaboradores e ${candidates.length} candid
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-border">
-              <div className="flex gap-2">
+            <div className="p-4 bg-background border-t border-border">
+              <div className="relative flex items-center gap-2 max-w-4xl mx-auto">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Digite sua pergunta..."
+                  placeholder="Digite sua pergunta ou comando..."
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  className="flex-1"
+                  className="flex-1 h-12 pl-4 pr-12 rounded-full border-muted-foreground/20 focus-visible:ring-primary shadow-sm bg-muted/30"
                 />
-                <Button onClick={handleSend} disabled={isLoading}>
+                <Button 
+                    onClick={handleSend} 
+                    disabled={isLoading || !input.trim()} 
+                    size="icon"
+                    className="absolute right-1.5 h-9 w-9 rounded-full shadow-sm"
+                >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                A IA pode cometer erros. Verifique as informações importantes.
+              </p>
             </div>
           </CardContent>
         </Card>
 
         {/* Suggestions */}
-        <div className="space-y-4">
-          <Card>
+        <div className="space-y-6 h-full overflow-y-auto pr-1">
+          <Card className="border-0 shadow-md bg-gradient-to-br from-primary/5 to-transparent">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-amber-500" />
@@ -542,30 +566,56 @@ Estou analisando ${employees.length} colaboradores e ${candidates.length} candid
             </CardHeader>
             <CardContent className="space-y-2">
               {suggestedQuestions.map((question, index) => (
-                <Button
+                <button
                   key={index}
-                  variant="outline"
-                  className="w-full justify-start h-auto py-3 px-3 text-left"
+                  className="w-full text-left p-3 rounded-xl bg-background/50 hover:bg-background border border-border/50 hover:border-primary/30 transition-all duration-200 group"
                   onClick={() => handleSuggestedQuestion(question.text)}
                 >
-                  <question.icon className="h-4 w-4 mr-2 shrink-0 text-primary" />
-                  <span className="text-sm">{question.text}</span>
-                </Button>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                        <question.icon className="h-4 w-4" />
+                    </div>
+                    <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors line-clamp-2">
+                        {question.text}
+                    </span>
+                  </div>
+                </button>
               ))}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-md">
             <CardHeader>
-              <CardTitle className="text-base">Capacidades</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Lightbulb className="h-5 w-5 text-yellow-500" />
+                Capacidades
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>• Análise preditiva de turnover</p>
-              <p>• Identificação de talentos</p>
-              <p>• Geração de relatórios</p>
-              <p>• Sugestões de PDI</p>
-              <p>• Análise de clima</p>
-              <p>• Textos de vagas</p>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Gestão</h4>
+                    <div className="flex flex-wrap gap-2">
+                        <span className="px-2 py-1 rounded-md bg-secondary text-xs text-secondary-foreground">Contratação</span>
+                        <span className="px-2 py-1 rounded-md bg-secondary text-xs text-secondary-foreground">Desligamento</span>
+                        <span className="px-2 py-1 rounded-md bg-secondary text-xs text-secondary-foreground">Promoção</span>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Operacional</h4>
+                    <div className="flex flex-wrap gap-2">
+                        <span className="px-2 py-1 rounded-md bg-secondary text-xs text-secondary-foreground">Férias</span>
+                        <span className="px-2 py-1 rounded-md bg-secondary text-xs text-secondary-foreground">Avisos</span>
+                        <span className="px-2 py-1 rounded-md bg-secondary text-xs text-secondary-foreground">Vagas</span>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Análise</h4>
+                    <div className="flex flex-wrap gap-2">
+                        <span className="px-2 py-1 rounded-md bg-secondary text-xs text-secondary-foreground">Turnover</span>
+                        <span className="px-2 py-1 rounded-md bg-secondary text-xs text-secondary-foreground">Desempenho</span>
+                        <span className="px-2 py-1 rounded-md bg-secondary text-xs text-secondary-foreground">Relatórios</span>
+                    </div>
+                </div>
             </CardContent>
           </Card>
         </div>
