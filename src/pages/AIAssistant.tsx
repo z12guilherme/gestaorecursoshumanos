@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ export default function AIAssistant() {
   const { messages, loading: loadingMessages, addMessage, clearHistory } = useAIChat();
   const { addAnnouncement } = useCommunication();
   const { reviews } = usePerformance();
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +35,13 @@ export default function AIAssistant() {
     type: 'vacation' | 'terminate';
     data: { days: number; employeeName: string };
   } | null>(null);
+
+  useEffect(() => {
+    // Garante que a conversa role para a última mensagem
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -46,14 +54,21 @@ export default function AIAssistant() {
 
     // Simulate AI response
     setTimeout(async () => {
-      const responseText = getAIResponse(currentInput);
-      await addMessage('assistant', responseText);
-      setIsLoading(false);
+      try {
+        const responseText = getAIResponse(currentInput);
+        await addMessage('assistant', responseText);
+      } catch (error) {
+        console.error("Erro na IA:", error);
+        await addMessage('assistant', "Desculpe, encontrei um erro ao processar sua solicitação. Tente reformular.");
+      } finally {
+        setIsLoading(false);
+      }
     }, 1500);
   };
 
   // Função auxiliar para normalizar texto (remove acentos e deixa minúsculo)
   const normalize = (text: string) => {
+    if (!text) return "";
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   };
 
@@ -194,7 +209,7 @@ Responda **SIM** para confirmar ou **NÃO** para cancelar.`;
     }
 
     // --- INTENÇÃO: Desligar Funcionário ---
-    if (normalizedQuestion.includes('desligar') || normalizedQuestion.includes('demitir') || normalizedQuestion.includes('encerrar contrato')) {
+    if (normalizedQuestion.includes('desligar') || normalizedQuestion.includes('desligue') || normalizedQuestion.includes('demitir') || normalizedQuestion.includes('demita') || normalizedQuestion.includes('encerrar contrato')) {
       const sortedEmployees = [...employees].sort((a, b) => b.name.length - a.name.length);
       const employeeName = sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name)))?.name 
         || sortedEmployees.find(e => normalizedQuestion.includes(normalize(e.name.split(' ')[0])))?.name;
@@ -445,7 +460,7 @@ Estou analisando ${employees.length} colaboradores e ${candidates.length} candid
           </CardHeader>
           <CardContent className="flex-1 flex flex-col p-0">
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
               {displayMessages.map((message) => (
                 <div
                   key={message.id}
