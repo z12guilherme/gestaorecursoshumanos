@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { LayoutDashboard, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

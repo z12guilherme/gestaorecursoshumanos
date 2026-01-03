@@ -158,8 +158,7 @@ O sistema utiliza a autenticação do Supabase.
 ## 🚀 Roadmap (Próximos Passos)
 
  - [x] **Backend Real**: Integração com Supabase/PostgreSQL para persistência de dados.
-- [ ] **Autenticação**: Implementação de login seguro com JWT/OAuth.
-- [ ] **Perfis de Acesso**: Diferenciação entre Admin, Gestor e Colaborador.
+- [x] **Autenticação**: Implementação de login seguro com JWT/OAuth.
 - [x] **Ponto Eletrônico**: Módulo para registro e espelho de ponto.
 - [ ] **App Mobile**: Versão responsiva otimizada ou app nativo.
 

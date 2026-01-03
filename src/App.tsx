@@ -5,7 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { AuthProvider, useAuth } from "@/lib/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ReloadPrompt } from "@/components/ReloadPrompt";
 import Dashboard from "./pages/Dashboard";
 import Employees from "./pages/Employees";
 import Recruitment from "./pages/Recruitment";
@@ -24,16 +26,6 @@ import JobDetails from "./pages/JobDetails";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = () => {
-  const { session, loading } = useAuth();
-
-  if (loading) {
-    return <div className="flex h-screen w-full items-center justify-center">Carregando...</div>;
-  }
-
-  return session ? <Outlet /> : <Navigate to="/login" />;
-};
-
 const App = () => {
   useEffect(() => {
     document.title = "GestaoRH";
@@ -46,6 +38,7 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <ReloadPrompt />
           <BrowserRouter
             future={{
               v7_startTransition: true,
