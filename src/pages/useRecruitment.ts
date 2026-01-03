@@ -115,20 +115,9 @@ export function useRecruitment() {
     }
   };
 
-  const deleteCandidate = async (id: string) => {
-    try {
-      const { error } = await supabase.from('candidates').delete().eq('id', id);
-      if (error) throw error;
-      setCandidates(prev => prev.filter(c => c.id !== id));
-      return { error: null };
-    } catch (err: any) {
-      return { error: err };
-    }
-  };
-
   useEffect(() => {
     fetchData();
   }, []);
 
-  return { jobs, candidates, loading, error, refetch: fetchData, addJob, updateJob, deleteJob, addCandidate, updateCandidate, deleteCandidate };
+  return { jobs, candidates, loading, error, refetch: fetchData, addJob, updateJob, deleteJob, addCandidate, updateCandidate };
 }

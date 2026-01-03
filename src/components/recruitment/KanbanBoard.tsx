@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Star, Mail, Phone, ChevronRight, ChevronLeft } from 'lucide-react';
+import { MoreHorizontal, Star, Mail, Phone, ChevronRight, ChevronLeft, FileText, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +14,9 @@ import {
 import { cn } from '@/lib/utils';
 
 interface KanbanBoardProps {
-  candidates: Candidate[];
+  candidates: (Candidate & { resume_url?: string })[];
   onMoveCandidate: (candidateId: string, newStatus: Candidate['status']) => void;
+  onDeleteCandidate: (candidateId: string) => void;
 }
 
 const columns: { id: Candidate['status']; title: string; color: string }[] = [
@@ -26,9 +27,13 @@ const columns: { id: Candidate['status']; title: string; color: string }[] = [
   { id: 'rejected', title: 'Reprovados', color: 'bg-red-50 dark:bg-red-900/20' },
 ];
 
-export function KanbanBoard({ candidates, onMoveCandidate }: KanbanBoardProps) {
-  const getColumnCandidates = (status: Candidate['status']) => 
-    candidates.filter(c => c.status === status);
+export function KanbanBoard({ candidates, onMoveCandidate, onDeleteCandidate }: KanbanBoardProps) {
+  const getColumnCandidates = (status: Candidate['status']) =>
+    candidates.filter((c) => {
+      // Mapeia 'Inscrito' (padrão do banco) para a coluna 'applied'
+      if (status === 'applied') return c.status === 'applied' || c.status === 'Inscrito';
+      return c.status === status;
+    });
 
   const getNextStatus = (current: Candidate['status']): Candidate['status'] | null => {
     const order: Candidate['status'][] = ['applied', 'screening', 'interview', 'approved'];
@@ -67,7 +72,7 @@ export function KanbanBoard({ candidates, onMoveCandidate }: KanbanBoardProps) {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-sm text-foreground">{candidate.name}</p>
+                          <p className="font-medium text-sm text-foreground">{candidate.name || 'Candidato'}</p>
                           <p className="text-xs text-muted-foreground">{candidate.position}</p>
                         </div>
                       </div>
@@ -112,6 +117,18 @@ export function KanbanBoard({ candidates, onMoveCandidate }: KanbanBoardProps) {
                       </p>
                     )}
 
+                    {candidate.resume_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mb-3 text-xs gap-2 h-8"
+                        onClick={() => window.open(candidate.resume_url, '_blank')}
+                      >
+                        <FileText className="h-3 w-3" />
+                        Ver Currículo
+                      </Button>
+                    )}
+
                     <div className="flex items-center justify-between gap-2">
                       {getPrevStatus(candidate.status) && (
                         <Button
@@ -142,6 +159,17 @@ export function KanbanBoard({ candidates, onMoveCandidate }: KanbanBoardProps) {
                           onClick={() => onMoveCandidate(candidate.id, 'rejected')}
                         >
                           Reprovar
+                        </Button>
+                      )}
+                      {column.id === 'rejected' && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="w-full text-xs"
+                          onClick={() => onDeleteCandidate(candidate.id)}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Excluir
                         </Button>
                       )}
                     </div>

@@ -47,7 +47,8 @@ export default function Recruitment() {
     addJob, 
     updateJob, 
     deleteJob, 
-    updateCandidate 
+    updateCandidate,
+    deleteCandidate
   } = useRecruitment();
 
   const [isJobDialogOpen, setIsJobDialogOpen] = useState(false);
@@ -72,6 +73,15 @@ export default function Recruitment() {
     toast({
       title: 'Candidato movido',
       description: `${candidate?.name} foi movido para ${statusLabels[newStatus]}.`,
+    });
+  };
+
+  const handleDeleteCandidate = async (candidateId: string) => {
+    await deleteCandidate(candidateId);
+    toast({
+      title: 'Candidato excluído',
+      description: 'O candidato foi removido permanentemente.',
+      variant: 'destructive',
     });
   };
 
@@ -267,6 +277,7 @@ export default function Recruitment() {
             <KanbanBoard 
               candidates={filteredCandidates} 
               onMoveCandidate={handleMoveCandidate}
+              onDeleteCandidate={handleDeleteCandidate}
             />
           </TabsContent>
 
