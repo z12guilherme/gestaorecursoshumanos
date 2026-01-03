@@ -60,11 +60,9 @@ export default function Employees() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [isVacationDialogOpen, setIsVacationDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [passwordToUpdate, setPasswordToUpdate] = useState('');
   const [employeeToTerminate, setEmployeeToTerminate] = useState<Employee | null>(null);
-  const [vacationDays, setVacationDays] = useState(30);
   const { toast } = useToast();
 
   const filteredEmployees = employees.filter((employee) => {
@@ -102,7 +100,7 @@ export default function Employees() {
         email: employeeData.email!,
         role: employeeData.position!, // UI (position) -> DB (role)
         department: employeeData.department!,
-        status: employeeData.status || 'Ativo',
+        status: employeeData.status || 'active',
         admission_date: employeeData.hireDate || new Date().toISOString(),
         password: '1234', // Senha padrão para novos colaboradores
       };
@@ -129,25 +127,6 @@ export default function Employees() {
         variant: "destructive" 
       });
     }
-  };
-
-  const handleEndVacation = async (employeeId: string) => {
-    await updateEmployee(employeeId, { status: 'Ativo' });
-    
-    toast({
-      title: "Férias encerradas",
-      description: "O colaborador foi marcado como ativo.",
-    });
-    // Fecha o painel de detalhes após a ação
-    setIsDetailOpen(false);
-  };
-
-  const handleEndVacationFromTable = (employee: Employee) => {
-    handleEndVacation(employee.id);
-  };
-
-  const handleGrantVacationFromTable = (employee: Employee) => {
-    handleGrantVacationClick(employee.id);
   };
 
   const handlePasswordClick = (employee: Employee) => {
@@ -184,49 +163,6 @@ export default function Employees() {
       variant: "destructive"
     });
     setEmployeeToTerminate(null);
-  };
-
-  const handleGrantVacationClick = (employeeId: string) => {
-    setSelectedEmployee(employees.find(e => e.id === employeeId) || null);
-    setVacationDays(30); // Reset to default
-    setIsVacationDialogOpen(true);
-  };
-
-  const confirmGrantVacation = async () => {
-    if (!selectedEmployee) return;
-
-    const days = vacationDays;
-    const today = new Date();
-    const startDate = new Date();
-    startDate.setDate(today.getDate() + 1);
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + days);
-
-    const newRequest: TimeOffRequest = {
-      id: Date.now().toString(),
-      employeeId: selectedEmployee.id,
-      employeeName: selectedEmployee.name,
-      type: 'vacation',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      status: 'approved',
-      reason: 'Concedido manualmente via Painel de Colaboradores',
-    };
-
-    // Update requests
-    const currentRequests = JSON.parse(localStorage.getItem('hr_timeoff_requests') || '[]');
-    localStorage.setItem('hr_timeoff_requests', JSON.stringify([...currentRequests, newRequest]));
-
-    // Update employee status
-    await updateEmployee(selectedEmployee.id, { status: 'Férias' });
-
-    toast({
-      title: "Férias concedidas",
-      description: `Férias de ${days} dias registradas para ${selectedEmployee.name}.`,
-    });
-
-    setIsVacationDialogOpen(false);
-    setIsDetailOpen(false);
   };
 
   const handleDownloadTemplate = () => {
@@ -391,8 +327,6 @@ export default function Employees() {
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleTerminateClick}
-          onGrantVacation={handleGrantVacationFromTable}
-          onEndVacation={handleEndVacationFromTable}
           onChangePassword={handlePasswordClick}
         />
 
@@ -412,39 +346,8 @@ export default function Employees() {
             setIsDetailOpen(false);
             setIsFormOpen(true);
           }}
-          onEndVacation={handleEndVacation}
-          onGrantVacation={handleGrantVacationClick}
           onChangePassword={() => selectedEmployee && handlePasswordClick(selectedEmployee)}
         />
-
-        <Dialog open={isVacationDialogOpen} onOpenChange={setIsVacationDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Conceder Férias</DialogTitle>
-              <DialogDescription>
-                Defina o período de férias para {selectedEmployee?.name}.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="days" className="text-right">
-                  Dias
-                </Label>
-                <Input
-                  id="days"
-                  type="number"
-                  value={vacationDays}
-                  onChange={(e) => setVacationDays(parseInt(e.target.value))}
-                  className="col-span-3"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsVacationDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={confirmGrantVacation}>Confirmar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
           <DialogContent className="sm:max-w-[425px]">

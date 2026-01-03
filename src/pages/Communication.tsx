@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Plus, Megaphone, MessageSquare, Bell, Send, Pin } from 'lucide-react';
-import { announcements as initialAnnouncements } from '@/data/mockData';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -27,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { useCommunication } from '@/hooks/useCommunication';
 
 const priorityConfig = {
   low: { label: 'Baixa', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
@@ -35,34 +35,28 @@ const priorityConfig = {
 };
 
 export default function Communication() {
+  const { announcements, loading, addAnnouncement } = useCommunication();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [announcements, setAnnouncements] = useState<any[]>(() => {
-    const saved = localStorage.getItem('hr_announcements');
-    return saved ? JSON.parse(saved) : initialAnnouncements;
-  });
 
   // Form states
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [priority, setPriority] = useState('medium');
-
-  useEffect(() => {
-    localStorage.setItem('hr_announcements', JSON.stringify(announcements));
-  }, [announcements]);
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
 
   const { toast } = useToast();
 
-  const handlePublish = () => {
-    const newAnnouncement = {
-      id: Date.now().toString(),
+  const handlePublish = async () => {
+    const { error } = await addAnnouncement({
       title,
       content,
       priority,
       author: "Admin", // Usuário atual mockado
-      createdAt: new Date().toISOString(),
-    };
+    });
 
-    setAnnouncements([newAnnouncement, ...announcements]);
+    if (error) {
+      return toast({ title: 'Erro', description: 'Falha ao publicar aviso.', variant: 'destructive' });
+    }
+
     setIsDialogOpen(false);
     setTitle(''); setContent(''); setPriority('medium');
     toast({
@@ -150,7 +144,7 @@ export default function Communication() {
                     <div className="space-y-2">
                       <Label htmlFor="priority">Prioridade</Label>
                       <Select value={priority} onValueChange={setPriority}>
-                        <SelectTrigger>
+                        <SelectTrigger id="priority">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -174,8 +168,10 @@ export default function Communication() {
               </Dialog>
             </div>
 
+            {loading && <div className="text-center py-4 text-muted-foreground">Carregando avisos...</div>}
+
             <div className="space-y-4">
-              {announcements.map((announcement) => {
+              {!loading && announcements.map((announcement) => {
                 const priority = priorityConfig[announcement.priority];
                 
                 return (
@@ -201,7 +197,7 @@ export default function Communication() {
                           <span className="text-muted-foreground">{announcement.author}</span>
                         </div>
                         <span className="text-muted-foreground">
-                          {format(parseISO(announcement.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                          {format(parseISO(announcement.created_at), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
                         </span>
                       </div>
                     </CardContent>

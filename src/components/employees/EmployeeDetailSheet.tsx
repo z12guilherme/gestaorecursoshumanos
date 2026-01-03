@@ -19,12 +19,10 @@ interface EmployeeDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
-  onEndVacation: (employeeId: string) => void;
-  onGrantVacation: (employeeId: string) => void;
   onChangePassword: () => void;
 }
 
-export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onEndVacation, onGrantVacation, onChangePassword }: EmployeeDetailSheetProps) {
+export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onChangePassword }: EmployeeDetailSheetProps) {
   if (!employee) return null;
 
   const statusConfig: Record<string, { label: string; className: string }> = {
@@ -98,10 +96,6 @@ export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onEn
                   <Calendar className="h-4 w-4" />
                   <span>Status de Férias</span>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => onEndVacation(employee.id)}>
-                  <Undo2 className="h-4 w-4 mr-2" />
-                  Encerrar Férias
-                </Button>
               </div>
               {returnDate && (
                 <div className="grid grid-cols-2 gap-4 pt-2">
@@ -130,10 +124,6 @@ export function EmployeeDetailSheet({ employee, open, onOpenChange, onEdit, onEn
                   <Button size="sm" variant="outline" onClick={onChangePassword} className="bg-white dark:bg-slate-950">
                     <KeyRound className="h-4 w-4 mr-2" />
                     Senha
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => onGrantVacation(employee.id)} className="bg-white dark:bg-slate-950">
-                    <Palmtree className="h-4 w-4 mr-2" />
-                    Férias
                   </Button>
                 </div>
               </div>

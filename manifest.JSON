@@ -1,0 +1,16 @@
+{
+  "name": "GestaoRH",
+  "short_name": "GestaoRH",
+  "description": "Sistema de Gestão de Recursos Humanos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#18181b",
+  "icons": [
+    {
+      "src": "/app.ico",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
