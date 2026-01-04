@@ -4,6 +4,8 @@ Um sistema moderno, intuitivo e completo para a gestão de recursos humanos, pro
 
 ![GestaoRH Screenshot](./img/print.JPG)
 
+> **🔗 Demonstração Online:** [Acesse o sistema aqui](https://gestaorecursoshumanos.vercel.app/login)
+
 ## ✨ Tecnologias Utilizadas
 
 Este projeto foi desenvolvido utilizando uma stack moderna e robusta:
