@@ -12,6 +12,7 @@ import { useTimeOff } from '@/hooks/useTimeOff';
 import { useAIChat } from '@/hooks/useAIChat';
 import { useCommunication } from '@/hooks/useCommunication';
 import { usePerformance } from '@/hooks/usePerformance';
+import { useAiActions } from '@/components/layout/useAiActions';
 
 const suggestedQuestions = [
   { icon: Users, text: 'Cadastre o funcionário "Marcos Guilherme", cargo "Desenvolvedor Pleno", no departamento "Tecnologia"' },
@@ -27,6 +28,7 @@ export default function AIAssistant() {
   const { messages, loading: loadingMessages, addMessage, clearHistory } = useAIChat();
   const { addAnnouncement } = useCommunication();
   const { reviews } = usePerformance();
+  const { executeTool } = useAiActions();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const [input, setInput] = useState('');
@@ -52,18 +54,18 @@ export default function AIAssistant() {
     await addMessage('user', currentInput);
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(async () => {
-      try {
-        const responseText = getAIResponse(currentInput);
-        await addMessage('assistant', responseText);
-      } catch (error) {
-        console.error("Erro na IA:", error);
-        await addMessage('assistant', "Desculpe, encontrei um erro ao processar sua solicitação. Tente reformular.");
-      } finally {
-        setIsLoading(false);
-      }
-    }, 1500);
+    try {
+      // Simula tempo de "pensamento" da IA
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const responseText = await getAIResponse(currentInput);
+      await addMessage('assistant', responseText);
+    } catch (error) {
+      console.error("Erro na IA:", error);
+      await addMessage('assistant', "Desculpe, encontrei um erro ao processar sua solicitação. Tente reformular.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Função auxiliar para normalizar texto (remove acentos e deixa minúsculo)
@@ -72,7 +74,7 @@ export default function AIAssistant() {
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   };
 
-  const getAIResponse = (question: string): string => {
+  const getAIResponse = async (question: string): Promise<string> => {
     const normalizedQuestion = normalize(question);
     
     // --- Tratamento de Confirmação Pendente ---
@@ -112,6 +114,32 @@ export default function AIAssistant() {
         return "⚠️ **Aguardando confirmação.** \n\nO setor ficará sem funcionários ativos. Responda **SIM** para confirmar o recesso ou **NÃO** para cancelar.";
       }
     }
+
+    // --- INTENÇÃO: Ações do Sistema (Navegação, Tema, Logout) ---
+    if (normalizedQuestion.includes('ir para') || normalizedQuestion.includes('navegar') || normalizedQuestion.includes('abrir') || normalizedQuestion.includes('acessar')) {
+      let path = '';
+      if (normalizedQuestion.includes('dashboard') || normalizedQuestion.includes('inicio') || normalizedQuestion.includes('home')) path = '/';
+      else if (normalizedQuestion.includes('colaborador') || normalizedQuestion.includes('funcionario')) path = '/employees';
+      else if (normalizedQuestion.includes('recrutamento') || normalizedQuestion.includes('vaga')) path = '/recruitment';
+      else if (normalizedQuestion.includes('avaliacao') || normalizedQuestion.includes('desempenho')) path = '/performance';
+      else if (normalizedQuestion.includes('ferias') || normalizedQuestion.includes('ausencia')) path = '/absences';
+      else if (normalizedQuestion.includes('ponto')) path = '/timesheet';
+      else if (normalizedQuestion.includes('relatorio')) path = '/reports';
+      else if (normalizedQuestion.includes('comunicacao') || normalizedQuestion.includes('aviso')) path = '/communication';
+      else if (normalizedQuestion.includes('configuracao') || normalizedQuestion.includes('ajuste')) path = '/settings';
+      else if (normalizedQuestion.includes('assistente') || normalizedQuestion.includes('ia')) path = '/ai-assistant';
+
+      if (path) return await executeTool('navigate', { path });
+    }
+
+    if (normalizedQuestion.includes('tema') || normalizedQuestion.includes('modo escuro') || normalizedQuestion.includes('modo claro')) {
+      return await executeTool('toggle_theme', {});
+    }
+
+    if (normalizedQuestion.includes('sair') && (normalizedQuestion.includes('sistema') || normalizedQuestion.includes('conta') || normalizedQuestion.includes('logout'))) {
+      return await executeTool('logout', {});
+    }
+    // -----------------------------------------------------------
 
     // --- INTENÇÃO: Agendar Férias ---
     // Detecta palavras-chave de férias e dias
