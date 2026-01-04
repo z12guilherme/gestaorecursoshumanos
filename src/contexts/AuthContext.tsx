@@ -37,8 +37,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (mounted) {
         console.log("Auth event:", event);
-        setSession(session);
-        setUser(session?.user ?? null);
+        
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+        } else {
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
         setLoading(false);
       }
     });
@@ -51,13 +57,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      // 1. Logout REAL no Supabase. O onAuthStateChange cuidará do resto.
-      await supabase.auth.signOut({ scope: 'global' });
-      // 2. Redireciona para garantir que o estado seja limpo
-      window.location.replace('/login');
+      // 1. Tenta avisar o Supabase (mas não bloqueia se falhar)
+      // Adicionado timeout para evitar travamento em caso de erro de rede
+      const { error } = await Promise.race([
+        supabase.auth.signOut(),
+        new Promise<{ error: any }>(resolve => setTimeout(() => resolve({ error: 'timeout' }), 2000))
+      ]);
+      
+      if (error) console.error("Logout warning:", error);
     } catch (error) {
       console.error("Error signing out:", error);
-      // Fallback: força o redirecionamento mesmo se der erro
+    } finally {
+      // 2. MATAR SERVICE WORKERS E CACHE (CRÍTICO)
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(r => r.unregister()));
+      }
+
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+
+      // 3. LIMPEZA NUCLEAR DE STORAGE
+      // Remove explicitamente todos os tokens do armazenamento
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Limpa cookies por garantia
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+
+      // 4. Limpa estado local
+      setSession(null);
+      setUser(null);
+
+      // 5. Força recarregamento total para a tela de login
       window.location.replace('/login');
     }
   };

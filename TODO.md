@@ -21,6 +21,6 @@ Status do progresso de migração dos módulos para o backend real.
 - [x] **Configurações:** Salvar preferências no banco (UI e lógica implementados).
 
 ## 🧹 Limpeza e Otimização
-- [ ] Remover arquivo `src/data/mockData.ts`.
+- [x] Remover arquivo `src/data/mockData.ts`.
 - [ ] Remover todas as chamadas a `localStorage`.
 - [ ] Revisar regras de segurança (RLS) no Supabase para produção.
