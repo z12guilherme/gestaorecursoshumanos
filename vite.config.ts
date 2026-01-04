@@ -16,24 +16,34 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: {
-        enabled: false
+        // Habilita o PWA em modo de desenvolvimento para facilitar testes
+        enabled: true,
       },
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      // Garante que os ícones essenciais sejam pré-cacheados
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
         name: 'GestãoRH',
         short_name: 'GestãoRH',
         description: 'Sistema de Gestão de Recursos Humanos',
         theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
         icons: [
           {
             src: 'icons/pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
           },
           {
             src: 'icons/pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+          },
+          {
+            src: 'icons/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable', // Ícone "mascarável" para melhor adaptação no Android
           }
         ]
       }
