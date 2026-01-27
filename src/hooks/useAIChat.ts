@@ -211,6 +211,7 @@ export function useAIChat() {
              const bulkData = content.substring(6).trim();
              const entries = bulkData.split(';').map(e => e.trim()).filter(e => e);
              let successCount = 0;
+             let errors: string[] = [];
              
              if (entries.length === 0) {
                  reply = 'Formato inválido. Use: massa: Nome, Cargo, Dept; Nome2, Cargo2, Dept2';
@@ -219,19 +220,32 @@ export function useAIChat() {
                      const parts = entry.split(',').map(p => p.trim());
                      if (parts.length >= 3) {
                          const [name, role, department] = parts;
+                         // Normaliza email removendo acentos e espaços
+                         const normalizedEmail = name.toLowerCase()
+                            .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                            .replace(/\s+/g, '.') + '@empresa.com';
+
                          const { error } = await supabase.from('employees').insert([{
                              name,
                              role,
                              department,
-                             email: `${name.toLowerCase().replace(/\s+/g, '.')}@empresa.com`,
+                             email: normalizedEmail,
                              status: 'active',
                              admission_date: new Date().toISOString(),
                              password: '1234'
                          }]);
-                         if (!error) successCount++;
+                         if (!error) {
+                             successCount++;
+                         } else {
+                             console.error(error);
+                             errors.push(`${name}: ${error.message}`);
+                         }
                      }
                  }
                  reply = `Processo finalizado. ${successCount} colaboradores foram admitidos com sucesso.`;
+                 if (errors.length > 0) {
+                     reply += `\n\nErros encontrados:\n` + errors.join('\n');
+                 }
              }
           } else {
             reply = `Comando não reconhecido. Digite "ajuda" para ver a lista de opções.`;

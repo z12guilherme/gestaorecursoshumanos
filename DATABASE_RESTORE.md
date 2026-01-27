@@ -28,6 +28,11 @@ CREATE TABLE public.employees (
   status text DEFAULT 'Ativo'::text,
   admission_date date,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  phone text,
+  contract_type text,
+  birth_date date,
+  salary numeric,
+  manager text,
   password text DEFAULT '1234'::text, -- Senha utilizada para o Ponto Eletrônico
   CONSTRAINT employees_pkey PRIMARY KEY (id)
 );

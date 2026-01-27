@@ -51,11 +51,11 @@ export default function Employees() {
     status: dbEmp.status as any, // Cast simples para o status da UI
     hireDate: dbEmp.admission_date, // Mapeia admission_date -> hireDate
     // Campos que não estão no banco simplificado (preenchidos com padrão)
-    phone: '',
-    contractType: 'CLT',
-    birthDate: '',
-    salary: 0,
-    manager: '',
+    phone: dbEmp.phone || '',
+    contractType: dbEmp.contract_type || 'CLT',
+    birthDate: dbEmp.birth_date || '',
+    salary: dbEmp.salary || 0,
+    manager: dbEmp.manager || '',
   }));
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -121,6 +121,11 @@ export default function Employees() {
         department: employeeData.department!,
         status: employeeData.status || 'active',
         admission_date: employeeData.hireDate || new Date().toISOString(),
+        phone: employeeData.phone,
+        contract_type: employeeData.contractType,
+        birth_date: employeeData.birthDate,
+        salary: employeeData.salary,
+        manager: employeeData.manager,
         password: '1234', // Senha padrão para novos colaboradores
       };
 
