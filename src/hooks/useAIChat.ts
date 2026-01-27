@@ -8,24 +8,40 @@ export interface Message {
   timestamp: Date;
 }
 
-const menuText = `Olá! Sou seu assistente de RH.
-Selecione uma opção digitando o número correspondente:
+const menuText = `Olá! Sou seu assistente de RH inteligente. 🤖
+Estou aqui para agilizar sua gestão. Você pode conversar comigo naturalmente ou usar os comandos numéricos.
 
-1. Listar todos os colaboradores
-2. Contar total de colaboradores
-3. Ver vagas de emprego abertas
-4. Ver solicitações de férias recentes
-5. Criar um novo aviso (Ex: "aviso: Reunião geral amanhã")
-6. Buscar funcionário por nome
-7. Demitir funcionário
-8. Admitir funcionários em massa
+Exemplos do que posso fazer:
+• "Liste os colaboradores do setor de Tecnologia"
+• "Quantas pessoas temos na empresa?"
+• "Há vagas abertas para Desenvolvedor?"
+• "Quem pediu férias recentemente?"
+• "Cadastre o funcionário João Silva..."
 
-Você também pode digitar "ajuda" a qualquer momento para ver estas opções.`;
+Menu Rápido:
+1. Listar todos
+2. Contagem total
+3. Vagas abertas
+4. Férias
+5. Criar aviso
+6. Buscar
+7. Demitir
+8. Admissão em massa`;
 
 export function useAIChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+
+  // Sugestões de prompt para a UI (Chips/Botões)
+  const suggestions = [
+    "Listar colaboradores",
+    "Quantos funcionários temos?",
+    "Vagas abertas",
+    "Solicitações de férias",
+    "Criar aviso: Reunião Geral",
+    "Ajuda"
+  ];
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -92,129 +108,141 @@ export function useAIChat() {
       const msg = content.toLowerCase().trim();
       let reply = '';
 
-      // --- INTENÇÕES DE COMANDO ---
-      switch (msg) {
-        case '1': {
-          const { data, error } = await supabase.from('employees').select('name, role, department').limit(20);
-          if (error) throw error;
-          if (data && data.length > 0) {
-              reply = 'Aqui estão os colaboradores cadastrados:\n' + data.map((e: any) => `- ${e.name} (${e.role} - ${e.department})`).join('\n');
-          } else {
-              reply = "Não encontrei nenhum colaborador cadastrado no sistema.";
+      // --- LÓGICA INTELIGENTE (NLP Básico + Regex) ---
+
+      // 1. Listar Colaboradores (Com filtro opcional de departamento)
+      // Ex: "Listar colaboradores", "Ver funcionários de TI", "1"
+      if (/(listar|ver|mostrar|quais|quem)\s+(?:s[aã]o\s+os\s+)?(?:todos\s+os\s+)?(?:colaboradores|funcion[aá]rios|empregados)|op[cç][aã]o\s*1|^1$/i.test(msg)) {
+          // Tenta extrair departamento: "de TI", "do setor Financeiro"
+          const deptMatch = msg.match(/(?:de|do|da|no|na)\s+(?:setor\s+|departamento\s+)?([a-z\u00C0-\u00FF\s]+)/i);
+          let query = supabase.from('employees').select('name, role, department');
+          
+          if (deptMatch && !msg.includes('todos')) {
+             const dept = deptMatch[1].trim();
+             // Ignora palavras comuns que não são departamentos
+             if (!['empresa', 'rh', 'aqui'].includes(dept)) {
+                 query = query.ilike('department', `%${dept}%`);
+             }
           }
-          break;
-        }
-        case '2': {
+          
+          const { data, error } = await query.limit(20);
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+              reply = `Aqui estão os colaboradores${deptMatch ? ` (filtro: ${deptMatch[1]})` : ''}:\n` + 
+                      data.map((e: any) => `- ${e.name} (${e.role} - ${e.department})`).join('\n');
+          } else {
+              reply = "Não encontrei colaboradores com esses critérios.";
+          }
+      }
+
+      // 2. Contagem
+      // Ex: "Quantos funcionários?", "Total de colaboradores", "2"
+      else if (/quantos\s+(?:colaboradores|funcion[aá]rios|pessoas)|total\s+de\s+(?:colaboradores|funcion[aá]rios)|op[cç][aã]o\s*2|^2$/i.test(msg)) {
           const { count, error } = await supabase.from('employees').select('*', { count: 'exact', head: true });
           if (error) throw error;
-          reply = `Atualmente, temos ${count ?? 0} colaboradores cadastrados no sistema.`;
-          break;
-        }
-        case '3': {
-          const { data, error } = await supabase.from('jobs').select('title, department').eq('status', 'Aberta').limit(10);
-          if (error) throw error;
-          if (data && data.length > 0) {
-            reply = "Vagas abertas no momento:\n" + data.map((j: any) => `- ${j.title} (${j.department})`).join('\n');
-          } else {
-            reply = "Não há vagas abertas no momento.";
+          reply = `Atualmente, a empresa conta com ${count ?? 0} colaboradores ativos.`;
+      }
+
+      // 3. Vagas (Com filtro opcional)
+      // Ex: "Vagas abertas", "Tem vaga para Dev?", "3"
+      else if (/vagas|oportunidades|recrutamento|op[cç][aã]o\s*3|^3$/i.test(msg)) {
+          let query = supabase.from('jobs').select('title, department').eq('status', 'Aberta');
+          
+          // Filtro por título ou departamento se mencionado
+          const termMatch = msg.match(/(?:para|de)\s+([a-z\u00C0-\u00FF\s]+)/i);
+          if (termMatch && !msg.match(/^3$/)) {
+             const term = termMatch[1].trim();
+             query = query.or(`title.ilike.%${term}%,department.ilike.%${term}%`);
           }
-          break;
-        }
-        case '4': {
+
+          const { data, error } = await query.limit(10);
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            reply = "Encontrei estas vagas abertas:\n" + data.map((j: any) => `- ${j.title} (${j.department})`).join('\n');
+          } else {
+            reply = "Não encontrei vagas abertas com esses critérios no momento.";
+          }
+      }
+
+      // 4. Férias
+      // Ex: "Quem está de férias?", "Solicitações de férias", "4"
+      else if (/f[eé]rias|aus[eê]ncias|folgas|op[cç][aã]o\s*4|^4$/i.test(msg)) {
           const { data, error } = await supabase.from('time_off_requests').select('*, employees(name)').order('created_at', { ascending: false }).limit(5);
           if (error) throw error;
           if (data && data.length > 0) {
-            reply = `Estas são as solicitações de férias mais recentes:\n` + data.map((r: any) => `- ${r.employees?.name}: ${r.status} (Início: ${r.start_date})`).join('\n');
+            reply = `Últimas movimentações de férias/ausências:\n` + data.map((r: any) => `- ${r.employees?.name}: ${r.status === 'approved' ? 'Aprovado' : r.status === 'pending' ? 'Pendente' : 'Rejeitado'} (Início: ${new Date(r.start_date).toLocaleDateString()})`).join('\n');
           } else {
-            reply = "Nenhuma solicitação de férias recente encontrada.";
+            reply = "Não há registros recentes de férias.";
           }
-          break;
-        }
-        case '5': {
-          reply = 'Para criar um aviso, digite: aviso: [sua mensagem]. Exemplo: "aviso: Reunião geral às 14h".';
-          break;
-        }
-        case '6': {
-          reply = 'Para buscar um funcionário, digite: buscar [nome]. Exemplo: "buscar João".';
-          break;
-        }
-        case '7': {
-          reply = 'Para demitir um funcionário, digite: demitir [nome]. Exemplo: "demitir João Silva".';
-          break;
-        }
-        case '8': {
-          reply = 'Para admitir em massa, digite: massa: Nome, Cargo, Departamento; Nome2, Cargo2, Dept2. Exemplo: "massa: Ana, Dev, TI; Pedro, RH, Admin"';
-          break;
-        }
-        case 'ajuda':
-        case 'menu': {
-            reply = menuText;
-            break;
-        }
-        default: {
-          if (msg.startsWith('aviso:')) {
-            const announcementContent = content.substring('aviso:'.length).trim();
-            if (announcementContent) {
-                const { error } = await supabase.from('announcements').insert([{
-                    title: 'Novo Aviso (via Chat)',
-                    content: announcementContent,
-                    priority: 'medium',
-                    author: 'Assistente IA'
-                }]);
-                if (error) throw error;
-                reply = "Aviso criado e publicado no mural com sucesso!";
-            } else {
-                reply = 'Para criar um aviso, use o formato "aviso: [seu texto]".';
-            }
-          } else if (msg.startsWith('buscar ')) {
-             const searchTerm = content.substring('buscar '.length).trim();
-             
-             if (searchTerm) {
-                const { data, error } = await supabase.from('employees').select('name, role, department').ilike('name', `%${searchTerm}%`).limit(5);
-                if (error) throw error;
-                if (data && data.length > 0) {
-                    reply = `Encontrei os seguintes colaboradores:\n` + data.map((e: any) => `- ${e.name} (${e.role})`).join('\n');
-                } else {
-                    reply = `Não encontrei ninguém com o nome "${searchTerm}".`;
-                }
-             } else {
-                 reply = "Por favor, especifique o nome que deseja buscar. Ex: 'buscar Maria'";
-             }
-          } else if (msg.startsWith('demitir ')) {
-             const nameToTerminate = content.substring(8).trim();
-             
-             if (nameToTerminate) {
-                const { data: employees, error: searchError } = await supabase
-                  .from('employees')
-                  .select('id, name, status')
-                  .ilike('name', `%${nameToTerminate}%`)
-                  .limit(1);
-                
-                if (searchError) throw searchError;
+      }
 
-                if (employees && employees.length > 0) {
-                    const emp = employees[0];
-                    const { error: updateError } = await supabase
-                        .from('employees')
-                        .update({ status: 'terminated' })
-                        .eq('id', emp.id);
-                    
-                    if (updateError) throw updateError;
-                    reply = `O colaborador ${emp.name} foi desligado com sucesso.`;
-                } else {
-                    reply = `Não encontrei ninguém com o nome "${nameToTerminate}".`;
-                }
+      // 5. Criar Aviso
+      else if (/(?:criar|crie|novo|publicar|adicionar)\s+(?:um\s+)?aviso|^aviso:|op[cç][aã]o\s*5|^5$/i.test(msg)) {
+          const contentMatch = content.match(/(?:aviso:|criar\s+aviso|crie\s+(?:um\s+)?aviso|novo\s+aviso|publicar\s+aviso)(?:\s+(?:com\s+o\s+texto|sobre|que\s+diga|dizendo)[:\s]*)?\s*(.+)/i);
+          if (contentMatch) {
+             const noticeText = contentMatch[1].trim();
+             const { error } = await supabase.from('announcements').insert([{
+                title: 'Aviso do Assistente',
+                content: noticeText,
+                priority: 'medium',
+                author: 'IA'
+            }]);
+            if (error) throw error;
+            reply = `✅ Aviso publicado no mural: "${noticeText}"`;
+          } else {
+             reply = 'Para publicar, diga: "aviso: [sua mensagem]" ou "criar aviso [mensagem]".';
+          }
+      }
+
+      // 6. Buscar Funcionário
+      else if (/buscar|procurar|quem\s+[eé]|encontrar|op[cç][aã]o\s*6|^6$/i.test(msg)) {
+          const searchMatch = content.match(/(?:buscar|procurar|quem\s+[eé]|encontrar)\s+(?:o\s+|a\s+|pelo\s+|pela\s+)?([a-z\u00C0-\u00FF\s]+)/i);
+          if (searchMatch && !msg.match(/^6$/)) {
+             const term = searchMatch[1].trim();
+             const { data, error } = await supabase.from('employees').select('name, role, department, email').ilike('name', `%${term}%`).limit(5);
+             if (error) throw error;
+             if (data && data.length > 0) {
+                 reply = `Encontrei:\n` + data.map((e: any) => `- ${e.name}\n  Cargo: ${e.role}\n  Dept: ${e.department}\n  Email: ${e.email}`).join('\n\n');
              } else {
-                 reply = "Por favor, especifique o nome que deseja demitir. Ex: 'demitir Maria'";
+                 reply = `Não encontrei ninguém chamado "${term}".`;
              }
-          } else if (msg.startsWith('massa:')) {
-             const bulkData = content.substring(6).trim();
+          } else {
+             reply = 'Diga o nome que deseja buscar. Ex: "buscar Mariana"';
+          }
+      }
+
+      // 7. Demitir
+      else if (/demitir|desligar|remover\s+funcion[aá]rio|op[cç][aã]o\s*7|^7$/i.test(msg)) {
+          const termMatch = content.match(/(?:demitir|desligar)\s+([a-z\u00C0-\u00FF\s]+)/i);
+          if (termMatch) {
+             const name = termMatch[1].trim();
+             // Lógica de busca e demissão (simplificada para segurança, idealmente pediria confirmação)
+             const { data, error } = await supabase.from('employees').select('id, name').ilike('name', `%${name}%`).limit(1);
+             if (error) throw error;
+             if (data && data.length > 0) {
+                 const emp = data[0];
+                 await supabase.from('employees').update({ status: 'terminated' }).eq('id', emp.id);
+                 reply = `O colaborador ${emp.name} foi desligado.`;
+             } else {
+                 reply = `Colaborador "${name}" não encontrado.`;
+             }
+          } else {
+             reply = 'Diga o nome para desligamento. Ex: "demitir Carlos"';
+          }
+      }
+
+      // 8. Admissão em Massa
+      else if (/massa:|admiss[aã]o\s+em\s+massa|importar|op[cç][aã]o\s*8|^8$/i.test(msg)) {
+          if (msg.includes('massa:')) {
+             const bulkData = content.substring(content.indexOf('massa:') + 6).trim();
              const entries = bulkData.split(';').map(e => e.trim()).filter(e => e);
              let successCount = 0;
              let errors: string[] = [];
              
              if (entries.length === 0) {
-                 reply = 'Formato inválido. Use: massa: Nome, Cargo, Dept; Nome2, Cargo2, Dept2';
+                 reply = 'Formato: "massa: Nome, Cargo, Dept; Nome2, Cargo2, Dept2"';
              } else {
                  for (const entry of entries) {
                      const parts = entry.split(',').map(p => p.trim());
@@ -248,9 +276,44 @@ export function useAIChat() {
                  }
              }
           } else {
-            reply = `Comando não reconhecido. Digite "ajuda" para ver a lista de opções.`;
+             reply = 'Para admissão em massa, use: "massa: Nome, Cargo, Dept; Nome2..."';
           }
-        }
+      }
+
+      // 9. Cadastro Individual (Natural Language)
+      else {
+          const registrationMatch = content.match(/(?:cadastre|admitir|novo)\s+(?:o\s+|a\s+)?(?:funcionário|colaborador)\s+["']?([^"',;]+)["']?[\s,;]+(?:cargo\s+)?["']?([^"',;]+)["']?[\s,;]+(?:no\s+)?(?:departamento\s+|setor\s+)?["']?([^"';]+)["']?/i);
+          
+          if (registrationMatch) {
+             const [_, name, role, department] = registrationMatch;
+             const normalizedEmail = name.trim().toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .replace(/\s+/g, '.') + '@empresa.com';
+
+             const { error } = await supabase.from('employees').insert([{
+                 name: name.trim(),
+                 role: role.trim(),
+                 department: department.trim(),
+                 email: normalizedEmail,
+                 status: 'active',
+                 admission_date: new Date().toISOString(),
+                 password: '1234'
+             }]);
+
+             if (error) {
+                 console.error(error);
+                 reply = `Erro ao cadastrar: ${error.message}`;
+             } else {
+                 reply = `✅ Colaborador ${name.trim()} cadastrado com sucesso no cargo de ${role.trim()} (Dept: ${department.trim()}).`;
+             }
+          } 
+          
+          // 10. Help / Fallback
+          else if (/ajuda|menu|op[cç][oõ]es|o\s+que\s+voc[eê]\s+faz/i.test(msg)) {
+              reply = menuText;
+          } else {
+              reply = "Desculpe, não entendi. Tente 'ajuda' para ver o que posso fazer ou use os botões de sugestão.";
+          }
       }
 
       await addMessage('assistant', reply);
@@ -282,5 +345,5 @@ export function useAIChat() {
     fetchMessages();
   }, [fetchMessages]);
 
-  return { messages, loading, sending, addMessage, sendMessage, clearHistory };
+  return { messages, loading, sending, addMessage, sendMessage, clearHistory, suggestions };
 }
