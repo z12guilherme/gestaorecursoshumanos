@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("mguimarcos39@gmail.com");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -62,9 +62,11 @@ export default function LoginPage() {
         </div>
         
         <div className="relative z-10 flex items-center gap-2 text-lg font-medium">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <LayoutDashboard className="h-5 w-5" />
-          </div>
+          <img 
+            src="/icone.png" 
+            alt="Logo" 
+            className="h-8 w-8 rounded-lg object-contain"
+          />
           GestaoRH
         </div>
 
@@ -97,10 +99,13 @@ export default function LoginPage() {
       <div className="flex items-center justify-center p-8 bg-background">
         <div className="mx-auto w-full max-w-sm space-y-8">
           <div className="flex flex-col space-y-2 text-center lg:text-left">
-            <div className="lg:hidden flex justify-center mb-4">
-               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <LayoutDashboard className="h-6 w-6" />
-              </div>
+            <div className="lg:hidden flex items-center justify-center gap-2 mb-4">
+              <img 
+                src="/icone.png" 
+                alt="Logo" 
+                className="h-10 w-10 rounded-lg object-contain"
+              />
+              <span className="font-semibold text-xl">GestaoRH</span>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">
               Acesso Administrativo
