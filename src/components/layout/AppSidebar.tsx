@@ -1,4 +1,6 @@
-  import { 
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { 
   LayoutDashboard, 
   Users, 
   Briefcase, 
@@ -62,6 +64,19 @@ export function AppSidebar() {
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
   const isCollapsed = state === 'collapsed';
+  const [developerName, setDeveloperName] = useState('[DEV] Marcos Guilherme');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      const { data } = await supabase.from('settings').select('developer_name, avatar_url').maybeSingle();
+      if (data) {
+        if (data.developer_name) setDeveloperName(data.developer_name);
+        if (data.avatar_url) setAvatarUrl(data.avatar_url);
+      }
+    }
+    fetchSettings();
+  }, []);
 
   const handleLogout = async () => {
     await signOut();
@@ -121,13 +136,13 @@ export function AppSidebar() {
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-lg p-2 hover:bg-sidebar-accent transition-colors">
               <Avatar className="h-9 w-9">
-                <AvatarImage src="/placeholder.svg" />
+                <AvatarImage src={avatarUrl || "/placeholder.svg"} className="object-cover" />
                 <AvatarFallback className="bg-primary text-primary-foreground text-sm">AS</AvatarFallback>
               </Avatar>
               {!isCollapsed && (
                 <>
                   <div className="flex flex-col items-start text-left flex-1">
-                    <span className="text-sm font-medium text-sidebar-foreground">[DEV] Marcos Guilherme</span>
+                    <span className="text-sm font-medium text-sidebar-foreground">{developerName}</span>
                     <span className="text-xs text-muted-foreground">Admin</span>
                   </div>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />

@@ -150,6 +150,8 @@ CREATE TABLE public.settings (
   zip_code text,
   theme text DEFAULT 'light'::text,
   notifications_enabled boolean DEFAULT true,
+  developer_name text DEFAULT 'Marcos Guilherme'::text,
+  avatar_url text,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT settings_pkey PRIMARY KEY (id)
@@ -180,7 +182,27 @@ Se o seu projeto utiliza upload de arquivos (ex: currículos em `candidates.resu
 1.  Acesse **Storage** no painel.
 2.  Crie um bucket chamado `resumes` (ou o nome utilizado no código).
 3.  Crie um bucket chamado `avatars` (se aplicável).
-4.  Configure as políticas do Storage para permitir upload/download.
+4.  Configure as políticas do Storage. Rode o script abaixo no SQL Editor:
+
+```sql
+-- Políticas de Storage (Copie e cole no SQL Editor)
+
+-- 1. Bucket 'resumes' (Currículos)
+-- Permitir upload público (Candidatos enviam currículo sem login)
+DROP POLICY IF EXISTS "Public Upload Resumes" ON storage.objects;
+CREATE POLICY "Public Upload Resumes" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'resumes');
+-- Permitir leitura pública (RH visualiza currículos)
+DROP POLICY IF EXISTS "Public Read Resumes" ON storage.objects;
+CREATE POLICY "Public Read Resumes" ON storage.objects FOR SELECT USING (bucket_id = 'resumes');
+
+-- 2. Bucket 'avatars' (Fotos de Perfil)
+-- Permitir leitura pública
+DROP POLICY IF EXISTS "Public Read Avatars" ON storage.objects;
+CREATE POLICY "Public Read Avatars" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+-- Permitir upload apenas para usuários logados (RH)
+DROP POLICY IF EXISTS "Auth Upload Avatars" ON storage.objects;
+CREATE POLICY "Auth Upload Avatars" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars');
+```
 
 ## 5. Como Restaurar
 
