@@ -38,6 +38,8 @@ export function useAIChat() {
     "Listar colaboradores",
     "Quantos funcionários temos?",
     "Vagas abertas",
+    "Criar vaga de Analista",
+    "Dar férias para...",
     "Solicitações de férias",
     "Criar aviso: Reunião Geral",
     "Ajuda"
@@ -280,7 +282,137 @@ export function useAIChat() {
           }
       }
 
-      // 9. Cadastro Individual (Natural Language)
+      // 9. Abrir Vaga (Novo)
+      else if (/(?:abrir|criar|nova)\s+(?:uma\s+)?vaga/i.test(msg)) {
+          const jobMatch = content.match(/(?:abrir|criar|nova)\s+(?:uma\s+)?vaga\s+(?:para\s+|de\s+)?(.+?)(?:\s+(?:no\s+)?(?:departamento\s+|setor\s+)\s*(.+))?$/i);
+          
+          if (jobMatch) {
+              const title = jobMatch[1].trim().replace(/["']/g, '');
+              const department = jobMatch[2] ? jobMatch[2].trim().replace(/["']/g, '') : 'Geral';
+              
+              const { error } = await supabase.from('jobs').insert([{
+                  title: title,
+                  department: department,
+                  location: 'Híbrido',
+                  type: 'Tempo Integral',
+                  status: 'Aberta',
+                  description: `Vaga para ${title} no departamento ${department}.`,
+                  requirements: ['Experiência relevante', 'Trabalho em equipe']
+              }]);
+
+              if (error) {
+                  console.error(error);
+                  reply = `Erro ao criar vaga: ${error.message}`;
+              } else {
+                  reply = `✅ Vaga para "${title}" criada com sucesso no departamento "${department}".`;
+              }
+          } else {
+              reply = 'Para criar uma vaga, diga: "Abra uma vaga para [Cargo] no departamento [Setor]".';
+          }
+      }
+
+      // 10. Dar Férias (Novo)
+      else if (/(?:dar|conceder|agendar|marcar)\s+f[eé]rias/i.test(msg)) {
+          // Ex: "Dar férias para João Silva de 01/10 a 15/10"
+          const vacationMatch = content.match(/(?:dar|conceder|agendar|marcar)\s+f[eé]rias\s+(?:para\s+|ao\s+|a\s+)?(.+?)\s+(?:de|do\s+dia|desde|a\s+partir\s+de)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:at[eé]|a)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i);
+
+          if (vacationMatch) {
+              const name = vacationMatch[1].trim();
+              const startStr = vacationMatch[2];
+              const endStr = vacationMatch[3];
+
+              const parseDate = (d: string) => {
+                  const parts = d.split('/');
+                  const day = parts[0].padStart(2, '0');
+                  const month = parts[1].padStart(2, '0');
+                  const year = parts[2] ? (parts[2].length === 2 ? '20' + parts[2] : parts[2]) : new Date().getFullYear().toString();
+                  return `${year}-${month}-${day}`;
+              };
+
+              const startDate = parseDate(startStr);
+              const endDate = parseDate(endStr);
+
+              const { data: employees, error: empError } = await supabase
+                  .from('employees')
+                  .select('id, name')
+                  .ilike('name', `%${name}%`)
+                  .limit(1);
+
+              if (empError) throw empError;
+              if (!employees || employees.length === 0) {
+                  reply = `Não encontrei o funcionário "${name}".`;
+              } else {
+                  const emp = employees[0];
+                  
+                  const { error: reqError } = await supabase.from('time_off_requests').insert([{
+                      employee_id: emp.id,
+                      type: 'vacation',
+                      start_date: startDate,
+                      end_date: endDate,
+                      status: 'approved',
+                      reason: 'Solicitado via Assistente IA'
+                  }]);
+
+                  if (reqError) throw reqError;
+
+                  await supabase.from('employees').update({ status: 'vacation' }).eq('id', emp.id);
+
+                  reply = `✅ Férias agendadas para ${emp.name} de ${startStr} a ${endStr}.`;
+              }
+          } else {
+              reply = 'Para dar férias, use: "Dar férias para [Nome] de [DD/MM] a [DD/MM]".';
+          }
+      }
+
+      // 11. Cancelar/Encerrar Férias (Novo)
+      else if (/(?:cancelar|encerrar|cortar|voltar|tirar)\s+(?:das\s+)?f[eé]rias/i.test(msg)) {
+          const cancelMatch = content.match(/(?:cancelar|encerrar|cortar|voltar|tirar)\s+(?:das\s+)?f[eé]rias\s+(?:de\s+|do\s+|da\s+)?(.+)/i);
+          
+          if (cancelMatch) {
+              const name = cancelMatch[1].trim();
+
+              const { data: employees, error: empError } = await supabase
+                  .from('employees')
+                  .select('id, name')
+                  .ilike('name', `%${name}%`)
+                  .limit(1);
+
+              if (empError) throw empError;
+              if (!employees || employees.length === 0) {
+                  reply = `Não encontrei o funcionário "${name}".`;
+              } else {
+                  const emp = employees[0];
+
+                  await supabase.from('employees').update({ status: 'active' }).eq('id', emp.id);
+
+                  // Encerra solicitações ativas ajustando a data final para ontem
+                  const today = new Date().toISOString().split('T')[0];
+                  const { data: requests } = await supabase
+                      .from('time_off_requests')
+                      .select('id')
+                      .eq('employee_id', emp.id)
+                      .eq('status', 'approved')
+                      .eq('type', 'vacation')
+                      .gte('end_date', today);
+                  
+                  if (requests && requests.length > 0) {
+                      const yesterday = new Date();
+                      yesterday.setDate(yesterday.getDate() - 1);
+                      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+                      for (const req of requests) {
+                          await supabase.from('time_off_requests').update({ end_date: yesterdayStr }).eq('id', req.id);
+                      }
+                  }
+
+                  reply = `✅ Férias de ${emp.name} encerradas. Status atualizado para Ativo.`;
+              }
+          } else {
+              reply = 'Para encerrar férias, use: "Encerrar férias de [Nome]".';
+          }
+      }
+
+      // 12. Cadastro Individual (Natural Language)
       else {
           const registrationMatch = content.match(/(?:cadastre|admitir|novo)\s+(?:o\s+|a\s+)?(?:funcionário|colaborador)\s+["']?([^"',;]+)["']?[\s,;]+(?:cargo\s+)?["']?([^"',;]+)["']?[\s,;]+(?:no\s+)?(?:departamento\s+|setor\s+)?["']?([^"';]+)["']?/i);
           
