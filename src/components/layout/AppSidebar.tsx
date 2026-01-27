@@ -87,7 +87,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
           <img 
-            src="/android/android-launchericon-96-96.png" 
+            src="/icone.png" 
             alt="Logo" 
             className="h-10 w-10 rounded-lg object-contain"
           />
