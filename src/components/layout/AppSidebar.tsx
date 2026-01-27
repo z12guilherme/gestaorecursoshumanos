@@ -86,9 +86,11 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-lg">
-            RH
-          </div>
+          <img 
+            src="/android/android-launchericon-96-96.png" 
+            alt="Logo" 
+            className="h-10 w-10 rounded-lg object-contain"
+          />
           {!isCollapsed && (
             <div className="flex flex-col">
               <span className="font-semibold text-sidebar-foreground">GestaoRH</span>

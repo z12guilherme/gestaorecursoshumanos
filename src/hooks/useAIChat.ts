@@ -311,7 +311,86 @@ export function useAIChat() {
           }
       }
 
-      // 10. Dar Férias (Novo)
+      // 10. Confirmar Recesso (Segurança para Setor)
+      else if (/(?:confirmar|sim)\s+(?:recesso|f[eé]rias coletivas?)/i.test(msg)) {
+          const confirmMatch = content.match(/(?:confirmar|sim)\s+(?:recesso|f[eé]rias coletivas?)\s+(?:do\s+|no\s+)?(?:setor|departamento)\s+(?:de\s+|da\s+)?(.+?)\s+(?:de|do\s+dia|desde|a\s+partir\s+de)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:at[eé]|a)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i);
+          
+          if (confirmMatch) {
+              const dept = confirmMatch[1].trim();
+              const startStr = confirmMatch[2];
+              const endStr = confirmMatch[3];
+
+              const parseDate = (d: string) => {
+                  const parts = d.split('/');
+                  const day = parts[0].padStart(2, '0');
+                  const month = parts[1].padStart(2, '0');
+                  const year = parts[2] ? (parts[2].length === 2 ? '20' + parts[2] : parts[2]) : new Date().getFullYear().toString();
+                  return `${year}-${month}-${day}`;
+              };
+
+              const startDate = parseDate(startStr);
+              const endDate = parseDate(endStr);
+
+              // Busca funcionários do setor
+              const { data: employees, error: searchError } = await supabase
+                 .from('employees')
+                 .select('id, name')
+                 .ilike('department', `%${dept}%`)
+                 .eq('status', 'active');
+
+              if (searchError) throw searchError;
+
+              if (!employees || employees.length === 0) {
+                  reply = `Não encontrei funcionários ativos no departamento "${dept}".`;
+              } else {
+                  let successCount = 0;
+                  for (const emp of employees) {
+                      await supabase.from('time_off_requests').insert([{
+                         employee_id: emp.id,
+                         type: 'vacation',
+                         start_date: startDate,
+                         end_date: endDate,
+                         status: 'approved',
+                         reason: 'Recesso Coletivo (Via IA)'
+                      }]);
+                      await supabase.from('employees').update({ status: 'vacation' }).eq('id', emp.id);
+                      successCount++;
+                  }
+                  reply = `✅ Recesso confirmado! ${successCount} colaboradores do setor ${dept} estão de férias de ${startStr} a ${endStr}.`;
+              }
+          } else {
+              reply = 'Para confirmar, digite exatamente: "Confirmar recesso setor [Nome] de [Data] a [Data]".';
+          }
+      }
+
+      // 11. Dar Férias por Setor (Detecta tentativa em massa)
+      else if (/(?:dar|conceder|agendar|marcar)\s+f[eé]rias\s+(?:para\s+|ao\s+|a\s+)?(?:o\s+)?(?:todo\s+o\s+)?(?:setor|departamento)/i.test(msg)) {
+           const deptMatch = content.match(/(?:dar|conceder|agendar|marcar)\s+f[eé]rias\s+(?:para\s+|ao\s+|a\s+)?(?:o\s+)?(?:todo\s+o\s+)?(?:setor|departamento)\s+(?:de\s+|da\s+)?(.+?)\s+(?:de|do\s+dia|desde|a\s+partir\s+de)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:at[eé]|a)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i);
+
+           if (deptMatch) {
+               const dept = deptMatch[1].trim();
+               const startStr = deptMatch[2];
+               const endStr = deptMatch[3];
+
+               const { count, error } = await supabase
+                  .from('employees')
+                  .select('*', { count: 'exact', head: true })
+                  .ilike('department', `%${dept}%`)
+                  .eq('status', 'active');
+                
+               if (error) throw error;
+
+               if (count && count > 0) {
+                   reply = `⚠️ **Atenção:** Você solicitou férias para **${count} colaboradores** do setor **${dept}**.\n\nIsso configura um **Recesso Coletivo**? Se sim, confirme digitando:\n\n👉 "Confirmar recesso setor ${dept} de ${startStr} a ${endStr}"`;
+               } else {
+                   reply = `Não encontrei funcionários ativos no setor "${dept}".`;
+               }
+           } else {
+               reply = 'Não entendi o setor ou as datas. Use: "Dar férias setor [Nome] de [Data] a [Data]".';
+           }
+      }
+
+      // 12. Dar Férias Individual (Mantido)
       else if (/(?:dar|conceder|agendar|marcar)\s+f[eé]rias/i.test(msg)) {
           // Ex: "Dar férias para João Silva de 01/10 a 15/10"
           const vacationMatch = content.match(/(?:dar|conceder|agendar|marcar)\s+f[eé]rias\s+(?:para\s+|ao\s+|a\s+)?(.+?)\s+(?:de|do\s+dia|desde|a\s+partir\s+de)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:at[eé]|a)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i);
@@ -364,7 +443,7 @@ export function useAIChat() {
           }
       }
 
-      // 11. Cancelar/Encerrar Férias (Novo)
+      // 13. Cancelar/Encerrar Férias (Mantido)
       else if (/(?:cancelar|encerrar|cortar|voltar|tirar)\s+(?:das\s+)?f[eé]rias/i.test(msg)) {
           const cancelMatch = content.match(/(?:cancelar|encerrar|cortar|voltar|tirar)\s+(?:das\s+)?f[eé]rias\s+(?:de\s+|do\s+|da\s+)?(.+)/i);
           
@@ -412,7 +491,7 @@ export function useAIChat() {
           }
       }
 
-      // 12. Cadastro Individual (Natural Language)
+      // 14. Cadastro Individual (Mantido)
       else {
           const registrationMatch = content.match(/(?:cadastre|admitir|novo)\s+(?:o\s+|a\s+)?(?:funcionário|colaborador)\s+["']?([^"',;]+)["']?[\s,;]+(?:cargo\s+)?["']?([^"',;]+)["']?[\s,;]+(?:no\s+)?(?:departamento\s+|setor\s+)?["']?([^"';]+)["']?/i);
           
