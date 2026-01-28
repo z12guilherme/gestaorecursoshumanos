@@ -188,7 +188,9 @@ Se o seu projeto utiliza upload de arquivos (ex: currículos em `candidates.resu
 1.  Acesse **Storage** no painel.
 2.  Crie um bucket chamado `resumes` (ou o nome utilizado no código).
 3.  Crie um bucket chamado `avatars` (se aplicável).
-4.  Configure as políticas do Storage. Rode o script abaixo no SQL Editor:
+4.  Crie um bucket chamado `documents` (para laudos, contratos, etc).
+5.  Crie um bucket chamado `time-off-attachments` (para atestados).
+6.  Configure as políticas do Storage. Rode o script abaixo no SQL Editor:
 
 ```sql
 -- Políticas de Storage (Copie e cole no SQL Editor)
@@ -208,6 +210,20 @@ CREATE POLICY "Public Read Avatars" ON storage.objects FOR SELECT USING (bucket_
 -- Permitir upload apenas para usuários logados (RH)
 DROP POLICY IF EXISTS "Auth Upload Avatars" ON storage.objects;
 CREATE POLICY "Auth Upload Avatars" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars');
+
+-- 3. Bucket 'documents' (Documentos do Funcionário)
+-- Permitir leitura pública (para facilitar o acesso no terminal de ponto, ou restrinja se preferir)
+DROP POLICY IF EXISTS "Public Read Documents" ON storage.objects;
+CREATE POLICY "Public Read Documents" ON storage.objects FOR SELECT USING (bucket_id = 'documents');
+-- Permitir upload apenas para RH (autenticado)
+DROP POLICY IF EXISTS "Auth Upload Documents" ON storage.objects;
+CREATE POLICY "Auth Upload Documents" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'documents');
+
+-- 4. Bucket 'time-off-attachments' (Atestados)
+DROP POLICY IF EXISTS "Public Read TimeOff" ON storage.objects;
+CREATE POLICY "Public Read TimeOff" ON storage.objects FOR SELECT USING (bucket_id = 'time-off-attachments');
+DROP POLICY IF EXISTS "Public Upload TimeOff" ON storage.objects;
+CREATE POLICY "Public Upload TimeOff" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'time-off-attachments');
 ```
 
 ## 5. Como Restaurar

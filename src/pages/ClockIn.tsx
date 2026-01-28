@@ -16,13 +16,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LogIn, LogOut, User, ArrowLeft, Megaphone, Pin, Building2 } from 'lucide-react';
+import { LogIn, LogOut, User, ArrowLeft, Megaphone, Pin, Building2, FileText, Download } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { useCommunication } from '@/hooks/useCommunication';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/lib/supabase';
+import { useDocuments } from '@/hooks/useDocuments';
 
 export default function ClockInPage() {
   const { employees, validateEmployeeLogin } = useEmployees();
@@ -37,6 +38,8 @@ export default function ClockInPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [companySettings, setCompanySettings] = useState<any>(null);
+  const [showDocuments, setShowDocuments] = useState(false);
+  const { documents } = useDocuments(selectedEmployee?.id);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -51,6 +54,7 @@ export default function ClockInPage() {
     setIsPinDialogOpen(true);
     setError('');
     setPin('');
+    setShowDocuments(false);
   };
 
   const handleClockAction = async (type: 'in' | 'out') => {
@@ -132,6 +136,19 @@ export default function ClockInPage() {
     setIsPinDialogOpen(false);
     setSelectedEmployee(null);
     setPin('');
+  };
+
+  const handleViewDocuments = async () => {
+    if (!selectedEmployee) return;
+    
+    const isValid = await validateEmployeeLogin(selectedEmployee.id, pin);
+    if (!isValid) {
+      setError('Senha incorreta.');
+      setPin('');
+      return;
+    }
+    
+    setShowDocuments(true);
   };
 
   const lastEventForSelected = selectedEmployee
@@ -243,6 +260,8 @@ export default function ClockInPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
+              {!showDocuments ? (
+              <>
               <div className="space-y-2">
                 <label htmlFor="pin" className="text-center block">Digite sua Senha</label>
                 <Input
@@ -287,10 +306,37 @@ export default function ClockInPage() {
                     )}
                   </Button>
                 )}
+                <Button variant="outline" className="w-full" onClick={handleViewDocuments}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Meus Documentos
+                </Button>
               </div>
+              </>
+              ) : (
+                <div className="space-y-3">
+                  <h3 className="font-medium text-center text-sm">Documentos Disponíveis</h3>
+                  <ScrollArea className="h-[200px] pr-2">
+                    {documents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum documento encontrado.</p>
+                    ) : (
+                      documents.map(doc => (
+                        <div key={doc.id} className="flex items-center justify-between p-3 mb-2 rounded-md border bg-secondary/20">
+                          <span className="text-sm truncate max-w-[180px]" title={doc.name}>{doc.name}</span>
+                          <Button size="sm" variant="ghost" onClick={() => window.open(doc.url, '_blank')}>
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </ScrollArea>
+                  <Button variant="ghost" className="w-full" onClick={() => setShowDocuments(false)}>
+                    Voltar
+                  </Button>
+                </div>
+              )}
             </div>
             <DialogFooter>
-              <Button variant="outline" className="w-full" onClick={() => setIsPinDialogOpen(false)}>
+              <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setIsPinDialogOpen(false)}>
                 Cancelar
               </Button>
             </DialogFooter>

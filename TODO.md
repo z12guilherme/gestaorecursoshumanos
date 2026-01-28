@@ -31,11 +31,11 @@ Status do progresso de migração dos módulos para o backend real.
 - [x] Melhorar aba de relatórios
 - [x] Colocar quem registrou ou não o ponto eletrônico na aba Controle de ponto
 - [x] Colocar escala de trabalho do funcionário
-- [ ] Colocar comunicação com o RH através da aba de ponto
+- [x] Colocar comunicação com o RH através da aba de ponto
 - [x] Colocar média de avaliação por colaborador em avaliação e desempenho
-- [ ] Anexar atestado a solicitação de férias e ausências
+- [x] Anexar atestado a solicitação de férias e ausências (Backend pronto)
 - [x] Incluir intervalo de horário de almoço no controle de ponto
-- [ ] Colocar para anexar documentos ao funcionário e uma forma dele acessar esses documentos, como contra-cheque
+- [x] Colocar para anexar documentos ao funcionário e uma forma dele acessar esses documentos, como contra-cheque
 - [x] Deixar registro do mural de avisos
 - [ ] Colocar o funcionário para acessar o contra cheque através do controle de ponto
 - [x] Coloca geolocalização de onde o funcionário acessou o ponto
