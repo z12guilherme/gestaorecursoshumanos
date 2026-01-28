@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,8 +22,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+
 
 export default function Performance() {
   const { reviews, loading: loadingReviews, addReview, deleteReview } = usePerformance();
@@ -51,6 +51,26 @@ export default function Performance() {
     ],
     feedback: ''
   });
+  const [employeeAverages, setEmployeeAverages] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (reviews.length > 0) {
+        const scores: Record<string, { total: number, count: number }> = {};
+        reviews.forEach(review => {
+            if (!scores[review.employee_id]) {
+                scores[review.employee_id] = { total: 0, count: 0 };
+            }
+            scores[review.employee_id].total += Number(review.overall_score);
+            scores[review.employee_id].count += 1;
+        });
+
+        const averages: Record<string, number> = {};
+        for (const empId in scores) {
+            averages[empId] = scores[empId].total / scores[empId].count;
+        }
+        setEmployeeAverages(averages);
+    }
+}, [reviews]);
 
   const calculateOverallScore = () => {
     const goalScores = formData.goals.map(g => Number(g.score) || 0);
@@ -210,7 +230,7 @@ export default function Performance() {
                 </DialogDescription>
               </DialogHeader>
               
-              <ScrollArea className="flex-1 pr-4">
+              <div className="flex-1 overflow-y-auto pr-4">
                 <div className="grid gap-6 py-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
@@ -351,7 +371,7 @@ export default function Performance() {
                     <span className="text-2xl font-bold text-primary">{calculateOverallScore().toFixed(1)}</span>
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
 
               <DialogFooter className="pt-4">
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
@@ -486,6 +506,12 @@ export default function Performance() {
                     <p className="text-sm font-medium text-foreground truncate">{employee.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{employee.position}</p>
                   </div>
+                  {employeeAverages[employee.id] && (
+                    <div className="flex items-center gap-1 text-amber-500">
+                        <Star className="h-3 w-3" />
+                        <span className="text-xs font-bold">{employeeAverages[employee.id].toFixed(1)}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

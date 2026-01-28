@@ -33,6 +33,7 @@ CREATE TABLE public.employees (
   birth_date date,
   salary numeric,
   manager text,
+  work_schedule text DEFAULT '09:00 - 18:00'::text,
   password text DEFAULT '1234'::text, -- Senha utilizada para o Ponto Eletrônico
   CONSTRAINT employees_pkey PRIMARY KEY (id)
 );
@@ -73,7 +74,7 @@ CREATE TABLE public.time_entries (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   employee_id uuid,
   timestamp timestamp with time zone DEFAULT now(),
-  type text CHECK (type = ANY (ARRAY['in'::text, 'out'::text])),
+  type text CHECK (type = ANY (ARRAY['in'::text, 'out'::text, 'lunch_start'::text, 'lunch_end'::text])),
   CONSTRAINT time_entries_pkey PRIMARY KEY (id),
   CONSTRAINT time_entries_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id)
 );
@@ -217,3 +218,37 @@ CREATE POLICY "Auth Upload Avatars" ON storage.objects FOR INSERT TO authenticat
 4.  (Opcional) Cole scripts de RLS ou configure manualmente.
 5.  Atualize o arquivo `.env` do seu projeto React com as novas credenciais.
 6.  Rode `npm run dev` e teste a aplicação.
+
+## 6. Atualizações Incrementais (Se já restaurou o banco)
+
+Se você já rodou o script acima anteriormente, execute apenas estes comandos para atualizar a estrutura:
+
+```sql
+-- Adicionar escala de trabalho
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS work_schedule text DEFAULT '09:00 - 18:00';
+
+-- Atualizar tipos de ponto para incluir almoço
+ALTER TABLE public.time_entries DROP CONSTRAINT IF EXISTS time_entries_type_check;
+ALTER TABLE public.time_entries ADD CONSTRAINT time_entries_type_check CHECK (type = ANY (ARRAY['in'::text, 'out'::text, 'lunch_start'::text, 'lunch_end'::text]));
+
+-- Adicionar Unidade ao Funcionário
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS unit text;
+
+-- Adicionar Geolocalização e Observação ao Ponto
+ALTER TABLE public.time_entries ADD COLUMN IF NOT EXISTS latitude numeric;
+ALTER TABLE public.time_entries ADD COLUMN IF NOT EXISTS longitude numeric;
+ALTER TABLE public.time_entries ADD COLUMN IF NOT EXISTS notes text;
+
+-- Adicionar Anexo a Solicitações
+ALTER TABLE public.time_off_requests ADD COLUMN IF NOT EXISTS attachment_url text;
+
+-- Criar tabela de Documentos
+CREATE TABLE IF NOT EXISTS public.employee_documents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  employee_id uuid REFERENCES public.employees(id),
+  name text NOT NULL,
+  url text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT employee_documents_pkey PRIMARY KEY (id)
+);
+```

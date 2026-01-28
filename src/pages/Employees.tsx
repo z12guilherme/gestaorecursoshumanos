@@ -56,6 +56,8 @@ export default function Employees() {
     birthDate: dbEmp.birth_date || '',
     salary: dbEmp.salary || 0,
     manager: dbEmp.manager || '',
+    workSchedule: dbEmp.work_schedule || '09:00 - 18:00',
+    unit: dbEmp.unit || '',
   }));
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,6 +76,11 @@ export default function Employees() {
   today.setHours(0, 0, 0, 0);
 
   const employeesWithStatus = employees.map(emp => {
+    // FIX: Se o funcionário estiver desligado, não sobrescreve o status com férias
+    if (emp.status === 'terminated' || emp.status === 'Desligado') {
+      return emp;
+    }
+
     const isOnVacation = timeOffRequests.some(r => 
       r.employee_id === emp.id && 
       r.status === 'approved' && 
@@ -126,6 +133,8 @@ export default function Employees() {
         birth_date: employeeData.birthDate,
         salary: employeeData.salary,
         manager: employeeData.manager,
+        work_schedule: employeeData.workSchedule,
+        unit: employeeData.unit,
         password: '1234', // Senha padrão para novos colaboradores
       };
 
@@ -154,39 +163,49 @@ export default function Employees() {
   };
 
   const handleEndVacation = async (employeeId: string) => {
-    // 1. Encontra TODAS as solicitações de férias ativas para este funcionário
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const activeRequests = timeOffRequests.filter(r => 
-      r.employee_id === employeeId && 
-      r.status === 'approved' && 
-      r.type === 'vacation' &&
-      new Date(r.start_date + 'T00:00:00') <= today &&
-      new Date(r.end_date + 'T00:00:00') >= today
-    );
-
-    // 2. Atualiza o status do funcionário para 'active'
-    await updateEmployee(employeeId, { status: 'active' });
-
-    // 3. Se houver solicitações ativas, atualiza a data de término de TODAS para ontem
-    if (activeRequests.length > 0) {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
+    try {
+      // 1. Encontra TODAS as solicitações de férias ativas para este funcionário
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       
-      // Atualiza todas as solicitações em paralelo e aguarda
-      await Promise.all(activeRequests.map(req => updateRequest(req.id, { end_date: yesterdayStr })));
+      const activeRequests = timeOffRequests.filter(r => 
+        r.employee_id === employeeId && 
+        r.status === 'approved' && 
+        r.type === 'vacation' &&
+        new Date(r.start_date + 'T00:00:00') <= today &&
+        new Date(r.end_date + 'T00:00:00') >= today
+      );
+
+      // 2. Atualiza o status do funcionário para 'active'
+      const { error: updateError } = await updateEmployee(employeeId, { status: 'active' });
+      if (updateError) throw updateError;
+
+      // 3. Se houver solicitações ativas, atualiza a data de término de TODAS para ontem
+      if (activeRequests.length > 0) {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
+        
+        // Atualiza todas as solicitações em paralelo e aguarda
+        await Promise.all(activeRequests.map(req => updateRequest(req.id, { end_date: yesterdayStr })));
+        
+        await refetchTimeOff(); // Atualiza a lista de férias
+      }
       
-      await refetchTimeOff(); // Atualiza a lista de férias
+      await refetch(); // Atualiza a lista de colaboradores para garantir o status 'active'
+      toast({
+        title: "Férias encerradas",
+        description: "O colaborador foi atualizado para 'Ativo'.",
+      });
+      setIsDetailOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro",
+        description: "Falha ao encerrar férias.",
+        variant: "destructive"
+      });
     }
-    
-    await refetch(); // Atualiza a lista de colaboradores para garantir o status 'active'
-    toast({
-      title: "Férias encerradas",
-      description: "O colaborador foi atualizado para 'Ativo'.",
-    });
-    setIsDetailOpen(false);
   };
 
   const handlePasswordClick = (employee: Employee) => {
@@ -215,13 +234,24 @@ export default function Employees() {
   const confirmTerminate = async () => {
     if (!employeeToTerminate) return;
     
-    await deleteEmployee(employeeToTerminate.id);
+    try {
+      // Altera o status para 'terminated' em vez de deletar o registro
+      const { error } = await updateEmployee(employeeToTerminate.id, { status: 'terminated' });
 
-    toast({
-      title: "Colaborador Removido",
-      description: `O colaborador ${employeeToTerminate.name} foi removido do banco de dados.`,
-      variant: "destructive"
-    });
+      if (error) throw error;
+
+      await refetch();
+      toast({
+        title: "Colaborador Desligado",
+        description: `O colaborador ${employeeToTerminate.name} foi desligado com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao desligar",
+        description: "Não foi possível realizar o desligamento. Tente novamente.",
+        variant: "destructive"
+      });
+    }
     setEmployeeToTerminate(null);
   };
 
@@ -447,14 +477,14 @@ export default function Employees() {
         <AlertDialog open={!!employeeToTerminate} onOpenChange={(open) => !open && setEmployeeToTerminate(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar desligamento</AlertDialogTitle>
+              <AlertDialogTitle>Confirmar Desligamento</AlertDialogTitle>
               <AlertDialogDescription>
-                Você tem certeza que deseja remover o colaborador <strong>{employeeToTerminate?.name}</strong>? Esta ação apagará os dados permanentemente do banco de dados.
+                Você tem certeza que deseja desligar o colaborador <strong>{employeeToTerminate?.name}</strong>? Esta ação alterará o status para "Desligado", mantendo o histórico no sistema.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setEmployeeToTerminate(null)}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmTerminate} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction>
+              <AlertDialogAction onClick={confirmTerminate} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Confirmar</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

@@ -16,24 +16,35 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LogIn, LogOut, User, ArrowLeft, Megaphone, Pin } from 'lucide-react';
+import { LogIn, LogOut, User, ArrowLeft, Megaphone, Pin, Building2 } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { useCommunication } from '@/hooks/useCommunication';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { supabase } from '@/lib/supabase';
 
 export default function ClockInPage() {
   const { employees, validateEmployeeLogin } = useEmployees();
-  const { entries: clockEvents, addEntry } = useTimeEntries();
+  const { entries: clockEvents } = useTimeEntries();
   const { announcements } = useCommunication();
 
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
+  const [isClockingIn, setIsClockingIn] = useState(false);
   const [error, setError] = useState('');
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [companySettings, setCompanySettings] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      const { data } = await supabase.from('settings').select('company_name, cnpj').maybeSingle();
+      if (data) setCompanySettings(data);
+    }
+    fetchSettings();
+  }, []);
 
   const handleSelectEmployee = (employee: Employee) => {
     setSelectedEmployee(employee);
@@ -44,6 +55,7 @@ export default function ClockInPage() {
 
   const handleClockAction = async (type: 'in' | 'out') => {
     if (!selectedEmployee) return;
+    setIsClockingIn(true);
 
     // Valida a senha diretamente no banco de dados
     const isValid = await validateEmployeeLogin(selectedEmployee.id, pin);
@@ -51,20 +63,72 @@ export default function ClockInPage() {
     if (!isValid) {
       setError('Senha incorreta. Tente novamente.');
       setPin('');
+      setIsClockingIn(false);
       return;
     }
 
-    const { error } = await addEntry({
+    // Captura Geolocalização
+    let locationData: { latitude?: number; longitude?: number } = {};
+    
+    toast({
+       title: "Obtendo localização...",
+       description: "Aguarde enquanto capturamos sua posição GPS.",
+       duration: 4000,
+    });
+
+    try {
+      if (!("geolocation" in navigator)) {
+        toast({ title: "Erro", description: "Geolocalização não é suportada neste navegador. Não é possível registrar o ponto.", variant: "destructive" });
+        setIsClockingIn(false);
+        return;
+      }
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000, // Aumentado para 10s
+        });
+      });
+      locationData = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+      toast({ title: "Sucesso", description: "Localização obtida!" });
+    } catch (error) {
+      let errorMessage = "Localização não obtida. É necessário ativar o GPS para registrar o ponto.";
+      if (error.code === 1) { // PERMISSION_DENIED
+        errorMessage = "Permissão de localização negada. Ative a localização no navegador para continuar.";
+      } else if (error.code === 2) { // POSITION_UNAVAILABLE
+        errorMessage = "Sinal de GPS indisponível. Verifique se o GPS está ativado.";
+      } else if (error.code === 3) { // TIMEOUT
+        errorMessage = "Tempo esgotado ao buscar localização. Tente novamente.";
+      }
+      console.error("Erro ao obter localização:", error);
+      toast({ title: "Erro de Localização", description: errorMessage, variant: "destructive" });
+      setIsClockingIn(false);
+      return;
+    }
+
+    // Inserção direta via Supabase para garantir envio dos campos de localização
+    const { error } = await supabase.from('time_entries').insert({
       employee_id: selectedEmployee.id,
       timestamp: new Date().toISOString(),
       type,
+      ...locationData,
     });
+
+    if (error) {
+        toast({ title: "Erro", description: "Falha ao registrar ponto.", variant: "destructive" });
+        setIsClockingIn(false);
+        return;
+    }
 
     toast({
       title: `Ponto registrado com sucesso!`,
       description: `${selectedEmployee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} às ${format(new Date(), 'HH:mm')}.`,
     });
 
+    setIsClockingIn(false);
     setIsPinDialogOpen(false);
     setSelectedEmployee(null);
     setPin('');
@@ -83,8 +147,19 @@ export default function ClockInPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-200">Ponto Eletrônico</h1>
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-3">
+              {companySettings?.company_name || 'Ponto Eletrônico'}
+            </h1>
+            {companySettings?.cnpj ? (
+              <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                <Building2 className="h-3 w-3" /> CNPJ: {companySettings.cnpj}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-1">Registro de Entrada e Saída</p>
+            )}
+          </div>
           <Button variant="outline" onClick={() => navigate('/login')}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Área Administrativa
           </Button>
@@ -186,19 +261,27 @@ export default function ClockInPage() {
                   size="lg"
                   className="bg-emerald-600 hover:bg-emerald-700"
                   onClick={() => handleClockAction('in')}
-                  disabled={lastEventForSelected?.type === 'in'}
+                  disabled={lastEventForSelected?.type === 'in' || isClockingIn}
                 >
-                  <LogIn className="mr-2 h-5 w-5" />
-                  Registrar Entrada
+                  {isClockingIn ? 'Registrando...' : (
+                    <>
+                      <LogIn className="mr-2 h-5 w-5" />
+                      Registrar Entrada
+                    </>
+                  )}
                 </Button>
                 <Button
                   size="lg"
                   variant="destructive"
                   onClick={() => handleClockAction('out')}
-                  disabled={!lastEventForSelected || lastEventForSelected.type === 'out'}
+                  disabled={!lastEventForSelected || lastEventForSelected.type === 'out' || isClockingIn}
                 >
-                  <LogOut className="mr-2 h-5 w-5" />
-                  Registrar Saída
+                  {isClockingIn ? 'Registrando...' : (
+                    <>
+                      <LogOut className="mr-2 h-5 w-5" />
+                      Registrar Saída
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
