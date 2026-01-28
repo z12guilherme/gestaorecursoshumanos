@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar as CalendarIcon, Check, X, Clock, Plus, Palmtree, Thermometer, User, KeyRound, Search, Undo2, BarChart3 } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, X, Clock, Plus, Palmtree, Thermometer, User, KeyRound, Search, Undo2, BarChart3, Paperclip, Download } from 'lucide-react';
 import { format, parseISO, differenceInDays, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +34,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { supabase } from '@/lib/supabase';
 
 const typeConfig = {
   vacation: { label: 'Férias', icon: Palmtree, color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
@@ -72,6 +73,7 @@ export default function TimeOff() {
     },
     reason: ''
   });
+  const [attachment, setAttachment] = useState<File | null>(null);
 
   const handleApprove = async (id: string) => {
     const request = requests.find(r => r.id === id);
@@ -124,12 +126,32 @@ export default function TimeOff() {
       return;
     }
 
+    let attachmentUrl = null;
+    if (attachment) {
+      const fileExt = attachment.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('time-off-attachments')
+        .upload(fileName, attachment);
+
+      if (uploadError) {
+        console.error(uploadError);
+        toast({ title: "Erro no upload", description: "Falha ao enviar o anexo.", variant: "destructive" });
+        return;
+      }
+
+      const { data } = supabase.storage.from('time-off-attachments').getPublicUrl(fileName);
+      attachmentUrl = data.publicUrl;
+    }
+
     const { error } = await addRequest({
       employee_id: newRequestData.employee_id,
       type: newRequestData.type,
       start_date: format(newRequestData.date_range.from, 'yyyy-MM-dd'),
       end_date: format(newRequestData.date_range.to || newRequestData.date_range.from, 'yyyy-MM-dd'),
       reason: newRequestData.reason,
+      attachment_url: attachmentUrl
     });
 
     if (error) {
@@ -145,6 +167,7 @@ export default function TimeOff() {
       date_range: undefined,
       reason: ''
     });
+    setAttachment(null);
   };
 
   // Mapeia os campos do banco para o que a UI espera
@@ -380,6 +403,11 @@ export default function TimeOff() {
                         <p className="text-sm text-muted-foreground mt-1">
                           {format(new Date(request.startDate + 'T00:00:00'), "dd 'de' MMM", { locale: ptBR })} - {format(new Date(request.endDate + 'T00:00:00'), "dd 'de' MMM", { locale: ptBR })}
                         </p>
+                        {(request as any).attachment_url && (
+                          <a href={(request as any).attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
+                            <Paperclip className="h-3 w-3" /> Ver Anexo
+                          </a>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -433,6 +461,11 @@ export default function TimeOff() {
                         <span>
                           {format(new Date(request.startDate + 'T00:00:00'), "dd/MM", { locale: ptBR })} - {format(new Date(request.endDate + 'T00:00:00'), "dd/MM", { locale: ptBR })}
                         </span>
+                        {(request as any).attachment_url && (
+                          <a href={(request as any).attachment_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:text-blue-800" title="Ver Anexo">
+                            <Paperclip className="h-3 w-3" />
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -519,6 +552,10 @@ export default function TimeOff() {
             <div className="grid gap-2">
               <Label htmlFor="reason">Motivo (Opcional)</Label>
               <Textarea id="reason" placeholder="Descreva o motivo da solicitação..." value={newRequestData.reason} onChange={(e) => setNewRequestData(prev => ({ ...prev, reason: e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="attachment">Anexo (Atestado/Comprovante)</Label>
+              <Input id="attachment" type="file" onChange={(e) => setAttachment(e.target.files?.[0] || null)} />
             </div>
           </div>
           <DialogFooter>

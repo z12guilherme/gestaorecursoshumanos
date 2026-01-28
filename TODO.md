@@ -33,7 +33,7 @@ Status do progresso de migração dos módulos para o backend real.
 - [x] Colocar escala de trabalho do funcionário
 - [x] Colocar comunicação com o RH através da aba de ponto
 - [x] Colocar média de avaliação por colaborador em avaliação e desempenho
-- [x] Anexar atestado a solicitação de férias e ausências (Backend pronto)
+- [x] Anexar atestado a solicitação de férias e ausências
 - [x] Incluir intervalo de horário de almoço no controle de ponto
 - [x] Colocar para anexar documentos ao funcionário e uma forma dele acessar esses documentos, como contra-cheque
 - [x] Deixar registro do mural de avisos
