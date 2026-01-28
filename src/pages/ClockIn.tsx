@@ -256,33 +256,37 @@ export default function ClockInPage() {
                 />
                 {error && <p className="text-sm text-destructive text-center">{error}</p>}
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  size="lg"
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                  onClick={() => handleClockAction('in')}
-                  disabled={lastEventForSelected?.type === 'in' || isClockingIn}
-                >
-                  {isClockingIn ? 'Registrando...' : (
-                    <>
-                      <LogIn className="mr-2 h-5 w-5" />
-                      Registrar Entrada
-                    </>
-                  )}
-                </Button>
-                <Button
-                  size="lg"
-                  variant="destructive"
-                  onClick={() => handleClockAction('out')}
-                  disabled={!lastEventForSelected || lastEventForSelected.type === 'out' || isClockingIn}
-                >
-                  {isClockingIn ? 'Registrando...' : (
-                    <>
-                      <LogOut className="mr-2 h-5 w-5" />
-                      Registrar Saída
-                    </>
-                  )}
-                </Button>
+              <div className="grid grid-cols-1 gap-4">
+                {(!lastEventForSelected || lastEventForSelected.type === 'out' || lastEventForSelected.type === 'lunch_start') ? (
+                  <Button
+                    size="lg"
+                    className="bg-emerald-600 hover:bg-emerald-700 w-full"
+                    onClick={() => handleClockAction('in')}
+                    disabled={isClockingIn}
+                  >
+                    {isClockingIn ? 'Registrando...' : (
+                      <>
+                        <LogIn className="mr-2 h-5 w-5" />
+                        Registrar Entrada
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => handleClockAction('out')}
+                    disabled={isClockingIn}
+                  >
+                    {isClockingIn ? 'Registrando...' : (
+                      <>
+                        <LogOut className="mr-2 h-5 w-5" />
+                        Registrar Saída
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
             <DialogFooter>

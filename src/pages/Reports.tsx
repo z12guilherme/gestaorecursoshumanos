@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeOff } from '@/hooks/useTimeOff';
 import { supabase } from '@/lib/supabase';
-import { Download, User, Calendar, Star, BarChart2, PieChart as PieChartIcon } from 'lucide-react';
+import { Download, User, Calendar, Star, BarChart2, PieChart as PieChartIcon, CheckCircle2, XCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, subMonths } from 'date-fns';
@@ -156,19 +156,26 @@ export default function Reports() {
     doc.setFontSize(14);
     doc.text('Avaliações de Desempenho', 14, finalY);
 
-    const reviewData = reviews.map(r => [
-        r.period,
-        Number(r.overall_score).toFixed(1),
-        format(new Date(r.created_at), 'dd/MM/yyyy')
-    ]);
+    const reviewData = reviews.map(r => {
+        const goalsMet = r.goals ? r.goals.filter((g: any) => g.achieved).length : 0;
+        const totalGoals = r.goals ? r.goals.length : 0;
+        return [
+            r.period,
+            Number(r.overall_score).toFixed(1),
+            `${goalsMet}/${totalGoals}`,
+            r.feedback || '',
+            format(new Date(r.created_at), 'dd/MM/yyyy')
+        ];
+    });
 
     if (reviewData.length > 0) {
         autoTable(doc, {
             startY: finalY + 5,
-            head: [['Período', 'Nota Geral', 'Data']],
+            head: [['Período', 'Nota', 'Metas', 'Feedback', 'Data']],
             body: reviewData,
             theme: 'striped',
-            headStyles: { fillColor: [41, 128, 185] }
+            headStyles: { fillColor: [41, 128, 185] },
+            columnStyles: { 3: { cellWidth: 70 } }
         });
     } else {
         doc.setFontSize(10);
@@ -254,6 +261,62 @@ export default function Reports() {
                                 </CardContent>
                             </Card>
                         </div>
+
+                        {/* Histórico Detalhado de Avaliações */}
+                        {reviews.length > 0 && (
+                            <div className="space-y-4 pt-4">
+                                <h3 className="text-lg font-semibold flex items-center gap-2">
+                                    <Star className="h-5 w-5 text-amber-500" />
+                                    Histórico de Avaliações
+                                </h3>
+                                <div className="grid gap-4">
+                                    {reviews.map((review) => (
+                                        <Card key={review.id} className="bg-card">
+                                            <CardContent className="p-4 space-y-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className="font-bold text-lg">{review.period}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Realizada em {format(new Date(review.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-full text-amber-700 dark:text-amber-400 font-bold">
+                                                        <Star className="h-4 w-4 fill-current" />
+                                                        {Number(review.overall_score).toFixed(1)}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div>
+                                                        <p className="text-sm font-medium mb-2 text-muted-foreground">Metas e Objetivos</p>
+                                                        <ul className="space-y-2">
+                                                            {review.goals?.map((g: any, i: number) => (
+                                                                <li key={i} className="text-sm flex items-start gap-2">
+                                                                    {g.achieved ? (
+                                                                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                                                                    ) : (
+                                                                        <XCircle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                                                                    )}
+                                                                    <span className={g.achieved ? "text-foreground" : "text-muted-foreground line-through decoration-border"}>
+                                                                        {g.description}
+                                                                    </span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium mb-2 text-muted-foreground">Feedback do Gestor</p>
+                                                        <div className="bg-secondary/30 p-3 rounded-md text-sm italic text-foreground/80">
+                                                            "{review.feedback || 'Sem feedback registrado.'}"
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </CardContent>
