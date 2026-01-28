@@ -184,12 +184,14 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>(11) 99999-9999</span>
+                <span>{employee.phone || 'Não informado'}</span>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>São Paulo, SP</span>
-              </div>
+              {(employee as any).unit && (
+                <div className="flex items-center gap-3 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{(employee as any).unit}</span>
+                </div>
+              )}
             </div>
           </div>
 

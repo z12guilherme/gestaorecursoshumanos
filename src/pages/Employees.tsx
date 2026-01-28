@@ -46,7 +46,7 @@ export default function Employees() {
     id: dbEmp.id,
     name: dbEmp.name,
     email: dbEmp.email,
-    position: dbEmp.role, // Mapeia role -> position
+    position: dbEmp.role || '', // Mapeia role -> position
     department: dbEmp.department,
     status: dbEmp.status as any, // Cast simples para o status da UI
     hireDate: dbEmp.admission_date, // Mapeia admission_date -> hireDate
@@ -58,7 +58,10 @@ export default function Employees() {
     manager: dbEmp.manager || '',
     workSchedule: dbEmp.work_schedule || '09:00 - 18:00',
     unit: dbEmp.unit || '',
-  }));
+    // Aliases para evitar ambiguidade em componentes que usam nomes diferentes
+    role: dbEmp.role || '',
+    admissionDate: dbEmp.admission_date,
+  } as unknown as Employee));
 
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
@@ -124,10 +127,10 @@ export default function Employees() {
       const dbPayload = {
         name: employeeData.name!,
         email: employeeData.email!,
-        role: employeeData.position!, // UI (position) -> DB (role)
+        role: employeeData.position || (employeeData as any).role || '', // UI (position) -> DB (role)
         department: employeeData.department!,
         status: employeeData.status || 'active',
-        admission_date: employeeData.hireDate || new Date().toISOString(),
+        admission_date: employeeData.hireDate || (employeeData as any).admissionDate || new Date().toISOString(),
         phone: employeeData.phone,
         contract_type: employeeData.contractType,
         birth_date: employeeData.birthDate,
