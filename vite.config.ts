@@ -7,10 +7,30 @@ export default defineConfig({
   server: {
     port: 8080,
   },
+  // 1. Added build configuration for code splitting
+  build: {
+    // Increases the warning limit so Vite doesn't complain about the vendor file
+    chunkSizeWarningLimit: 3000, 
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Creates a separate 'vendor' chunk for third-party packages
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // 2. Added workbox configuration to increase file size limit
+      workbox: {
+        maximumFileSizeToCacheInBytes: 3000000, // Increased to 3MB
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+      },
       manifest: {
         name: 'GestãoRH',
         short_name: 'GestãoRH',
