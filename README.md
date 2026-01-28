@@ -162,7 +162,7 @@ O sistema utiliza a autenticação do Supabase.
  - [x] **Backend Real**: Integração com Supabase/PostgreSQL para persistência de dados.
 - [x] **Autenticação**: Implementação de login seguro com JWT/OAuth.
 - [x] **Ponto Eletrônico**: Módulo para registro e espelho de ponto.
-- [ ] **App Mobile**: Versão responsiva otimizada ou app nativo.
+- [x] **App Mobile**: Versão responsiva otimizada (PWA).
 
 ## 📄 Licença
 
