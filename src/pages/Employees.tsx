@@ -340,7 +340,7 @@ export default function Employees() {
         {loading && <div className="text-sm text-muted-foreground">Carregando dados do servidor...</div>}
         
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">

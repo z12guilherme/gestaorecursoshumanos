@@ -145,7 +145,7 @@ export default function ClockInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-3 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div>
@@ -165,7 +165,7 @@ export default function ClockInPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
           <div className="lg:col-span-2">
              <p className="text-muted-foreground mb-4">Selecione seu perfil para registrar o ponto.</p>
           </div>
@@ -203,7 +203,7 @@ export default function ClockInPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
           {employees.filter(e => e.status !== 'terminated').map(employee => (
             <Card
               key={employee.id}

@@ -96,7 +96,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right Side - Form */}
-      <div className="flex items-center justify-center p-8 bg-background">
+      <div className="flex items-center justify-center p-4 md:p-8 bg-background">
         <div className="mx-auto w-full max-w-sm space-y-8">
           <div className="flex flex-col space-y-2 text-center lg:text-left">
             <div className="lg:hidden flex items-center justify-center gap-2 mb-4">
