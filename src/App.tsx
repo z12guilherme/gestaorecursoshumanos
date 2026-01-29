@@ -23,6 +23,8 @@ import ClockInPage from "./pages/ClockIn";
 import TimesheetPage from "./pages/Timesheet";
 import JobDetails from "./pages/JobDetails";
 import { ReloadPrompt } from "@/components/ReloadPrompt";
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 
 const queryClient = new QueryClient();
@@ -50,6 +52,8 @@ const App = () => {
               <Route path="/time-off" element={<ClockInPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/jobs/:jobId" element={<JobDetails />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/employees" element={<Employees />} />

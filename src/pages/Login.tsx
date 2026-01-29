@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,7 @@ import { LayoutDashboard, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { ManualModal } from "@/components/ManualModal";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("mguimarcos39@gmail.com");
@@ -173,15 +174,19 @@ export default function LoginPage() {
             <Button type="button" variant="secondary" className="w-full h-11" onClick={() => navigate('/time-off')}><Clock className="mr-2 h-4 w-4" /> Acessar Ponto Eletrônico</Button>
           </form>
 
+          <div className="flex justify-center pt-2">
+            <ManualModal />
+          </div>
+
           <p className="px-8 text-center text-sm text-muted-foreground">
             Ao clicar em continuar, você concorda com nossos{" "}
-            <a href="#" className="underline underline-offset-4 hover:text-primary">
+            <Link to="/terms" className="underline underline-offset-4 hover:text-primary">
               Termos de Serviço
-            </a>{" "}
+            </Link>{" "}
             e{" "}
-            <a href="#" className="underline underline-offset-4 hover:text-primary">
+            <Link to="/privacy" className="underline underline-offset-4 hover:text-primary">
               Política de Privacidade
-            </a>
+            </Link>
             .
           </p>
         </div>
