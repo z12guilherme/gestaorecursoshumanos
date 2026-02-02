@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LogIn, LogOut, User, ArrowLeft, Megaphone, Pin, Building2, FileText, Download } from 'lucide-react';
+import { LogIn, LogOut, User, ArrowLeft, Megaphone, Pin, Building2, FileText, Download, LifeBuoy, Search, Copy, Check, MessageSquare } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { useCommunication } from '@/hooks/useCommunication';
@@ -24,6 +24,9 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/lib/supabase';
 import { useDocuments } from '@/hooks/useDocuments';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 export default function ClockInPage() {
   const { employees, validateEmployeeLogin } = useEmployees();
@@ -40,6 +43,15 @@ export default function ClockInPage() {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [showDocuments, setShowDocuments] = useState(false);
   const { documents } = useDocuments(selectedEmployee?.id);
+  
+  // Support States
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [supportTab, setSupportTab] = useState('new');
+  const [newTicket, setNewTicket] = useState({ name: '', title: '', description: '' });
+  const [createdTicketNum, setCreatedTicketNum] = useState<string | null>(null);
+  const [trackTicketNum, setTrackTicketNum] = useState('');
+  const [trackedTicket, setTrackedTicket] = useState<any | null>(null);
+  const [loadingSupport, setLoadingSupport] = useState(false);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -151,6 +163,57 @@ export default function ClockInPage() {
     setShowDocuments(true);
   };
 
+  const handleCreateTicket = async () => {
+    if (!newTicket.name || !newTicket.title || !newTicket.description) {
+      toast({ title: "Campos obrigatórios", description: "Preencha todos os campos.", variant: "destructive" });
+      return;
+    }
+
+    setLoadingSupport(true);
+    const ticketNum = Math.random().toString(36).substr(2, 8).toUpperCase();
+
+    const { error } = await supabase.from('tickets').insert({
+      ticket_num: ticketNum,
+      employee_name: newTicket.name,
+      title: newTicket.title,
+      description: newTicket.description,
+      status: 'open',
+      priority: 'medium'
+    });
+
+    setLoadingSupport(false);
+
+    if (error) {
+      toast({ title: "Erro", description: "Falha ao abrir chamado.", variant: "destructive" });
+    } else {
+      setCreatedTicketNum(ticketNum);
+      setNewTicket({ name: '', title: '', description: '' });
+      toast({ title: "Chamado Aberto!", description: "Guarde seu número de protocolo." });
+    }
+  };
+
+  const handleTrackTicket = async () => {
+    if (!trackTicketNum) return;
+    setLoadingSupport(true);
+    
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('ticket_num', trackTicketNum.toUpperCase())
+      .maybeSingle();
+
+    setLoadingSupport(false);
+
+    if (error) {
+      toast({ title: "Erro", description: "Erro ao buscar chamado.", variant: "destructive" });
+    } else if (!data) {
+      toast({ title: "Não encontrado", description: "Nenhum chamado encontrado com este número.", variant: "destructive" });
+      setTrackedTicket(null);
+    } else {
+      setTrackedTicket(data);
+    }
+  };
+
   const lastEventForSelected = selectedEmployee
     ? clockEvents.filter(e => e.employee_id === selectedEmployee.id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
     : null;
@@ -177,9 +240,14 @@ export default function ClockInPage() {
               <p className="text-sm text-muted-foreground mt-1">Registro de Entrada e Saída</p>
             )}
           </div>
-          <Button variant="outline" onClick={() => navigate('/login')}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Área Administrativa
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setIsSupportOpen(true)}>
+              <LifeBuoy className="mr-2 h-4 w-4" /> Suporte RH
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/login')}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Área Administrativa
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
@@ -343,6 +411,104 @@ export default function ClockInPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Dialog de Suporte */}
+      <Dialog open={isSupportOpen} onOpenChange={setIsSupportOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Central de Atendimento ao Colaborador</DialogTitle>
+            <DialogDescription>Abra um chamado para o RH ou consulte o status de uma solicitação.</DialogDescription>
+          </DialogHeader>
+          
+          <Tabs value={supportTab} onValueChange={setSupportTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="new">Abrir Chamado</TabsTrigger>
+              <TabsTrigger value="track">Consultar Status</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="new" className="space-y-4 py-4">
+              {!createdTicketNum ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>Seu Nome</Label>
+                    <Input placeholder="Digite seu nome completo" value={newTicket.name} onChange={e => setNewTicket({...newTicket, name: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Assunto</Label>
+                    <Input placeholder="Ex: Dúvida sobre holerite" value={newTicket.title} onChange={e => setNewTicket({...newTicket, title: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Descrição</Label>
+                    <Textarea placeholder="Descreva sua solicitação..." value={newTicket.description} onChange={e => setNewTicket({...newTicket, description: e.target.value})} />
+                  </div>
+                  <Button className="w-full" onClick={handleCreateTicket} disabled={loadingSupport}>
+                    {loadingSupport ? 'Enviando...' : 'Abrir Chamado'}
+                  </Button>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 space-y-4 text-center">
+                  <div className="h-12 w-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+                    <Check className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">Chamado Aberto com Sucesso!</h3>
+                    <p className="text-sm text-muted-foreground">Guarde o número abaixo para consultar o status.</p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-secondary p-3 rounded-md border">
+                    <span className="text-xl font-mono font-bold tracking-wider">{createdTicketNum}</span>
+                    <Button size="icon" variant="ghost" onClick={() => { navigator.clipboard.writeText(createdTicketNum); toast({ title: "Copiado!" }); }}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button variant="outline" onClick={() => { setCreatedTicketNum(null); setSupportTab('track'); }}>
+                    Consultar Status
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="track" className="space-y-4 py-4">
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="Digite o número do protocolo (Ex: X7Y2Z9)" 
+                  value={trackTicketNum} 
+                  onChange={e => setTrackTicketNum(e.target.value)} 
+                  className="uppercase"
+                />
+                <Button onClick={handleTrackTicket} disabled={loadingSupport}>
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {trackedTicket && (
+                <div className="bg-secondary/20 border rounded-lg p-4 space-y-3 animate-in fade-in-50">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold">{trackedTicket.title}</h4>
+                      <p className="text-xs text-muted-foreground">Aberto em {format(new Date(trackedTicket.created_at), 'dd/MM/yyyy HH:mm')}</p>
+                    </div>
+                    <Badge variant={trackedTicket.status === 'resolved' ? 'default' : 'secondary'}>
+                      {trackedTicket.status === 'open' ? 'Aberto' : 
+                       trackedTicket.status === 'in_progress' ? 'Em Andamento' : 
+                       trackedTicket.status === 'resolved' ? 'Resolvido' : 'Fechado'}
+                    </Badge>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium text-muted-foreground">Sua mensagem:</span>
+                    <p className="mt-1">{trackedTicket.description}</p>
+                  </div>
+                  {trackedTicket.hr_notes && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-100 dark:border-blue-800 text-sm">
+                      <span className="font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Resposta do RH:</span>
+                      <p className="mt-1 text-blue-900 dark:text-blue-100">{trackedTicket.hr_notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

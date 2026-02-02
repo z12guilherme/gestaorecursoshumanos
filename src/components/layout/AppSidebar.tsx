@@ -15,7 +15,8 @@ import {
   Sun,
   Workflow,
   FileText,
-  Clock
+  Clock,
+  LifeBuoy
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,7 @@ const mainNavItems = [
   { title: 'Avaliações', url: '/performance', icon: Star },
   { title: 'Férias & Ausências', url: '/absences', icon: Calendar },
   { title: 'Controle de Ponto', url: '/timesheet', icon: Clock },
+  { title: 'Chamados', url: '/tickets', icon: LifeBuoy },
   { title: 'Relatórios', url: '/reports', icon: FileText },
   { title: 'Comunicação', url: '/communication', icon: MessageSquare },
 ];

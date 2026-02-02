@@ -22,6 +22,7 @@ import LoginPage from "./pages/Login";
 import ClockInPage from "./pages/ClockIn";
 import TimesheetPage from "./pages/Timesheet";
 import JobDetails from "./pages/JobDetails";
+import Support from "./pages/Support";
 import { ReloadPrompt } from "@/components/ReloadPrompt";
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -65,6 +66,7 @@ const App = () => {
                 <Route path="/communication" element={<Communication />} />
                 <Route path="/ai-assistant" element={<AIAssistant />} />
                 <Route path="/automations" element={<Automations />} />
+                <Route path="/tickets" element={<Support />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
