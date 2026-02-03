@@ -59,6 +59,7 @@ export interface TimeOffRequest {
   endDate: string;
   status: 'pending' | 'approved' | 'rejected';
   reason?: string;
+  attachmentUrl?: string;
 }
 
 export interface PerformanceReview {

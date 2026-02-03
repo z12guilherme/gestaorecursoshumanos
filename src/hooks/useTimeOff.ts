@@ -10,6 +10,7 @@ export interface TimeOffRequest {
   status: 'pending' | 'approved' | 'rejected';
   reason: string;
   created_at: string;
+  attachment_url?: string | null;
   // Campos virtuais (joins)
   employee_name?: string;
   employee_department?: string;

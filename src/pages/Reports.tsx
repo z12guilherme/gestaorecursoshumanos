@@ -3,43 +3,102 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeOff } from '@/hooks/useTimeOff';
 import { supabase } from '@/lib/supabase';
-import { Download, User, Calendar, Star, BarChart2, PieChart as PieChartIcon, CheckCircle2, XCircle } from 'lucide-react';
+import { Download, User, Calendar, Star, BarChart2, PieChart as PieChartIcon, CheckCircle2, XCircle, Users, Clock, Palmtree } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+const requestTypeLabels: Record<string, string> = {
+  vacation: 'Férias',
+  sick: 'Atestado',
+  personal: 'Pessoal',
+  maternity: 'Licença Maternidade',
+  paternity: 'Licença Paternidade',
+};
+
+const requestStatusLabels: Record<string, string> = {
+  pending: 'Pendente',
+  approved: 'Aprovado',
+  rejected: 'Rejeitado',
+};
+
+const requestStatusClasses: Record<string, string> = {
+  pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  approved: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};
 
 export default function Reports() {
   const { employees, loading: loadingEmp } = useEmployees();
-  const { requests } = useTimeOff();
+  const { requests, loading: loadingRequests } = useTimeOff();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [reviews, setReviews] = useState<any[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
   const [companySettings, setCompanySettings] = useState<any>(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const [departmentData, setDepartmentData] = useState<any[]>([]);
   const [headcountData, setHeadcountData] = useState<any[]>([]);
 
   useEffect(() => {
-    async function fetchData() {
-       // Busca configurações da empresa para o cabeçalho do PDF
-       const { data: settings } = await supabase.from('settings').select('*').maybeSingle();
-       setCompanySettings(settings);
+    let isMounted = true;
+    const fetchSettings = async () => {
+      try {
+        setLoadingSettings(true);
+        const { data: settings, error } = await supabase.from('settings').select('*').maybeSingle();
+        if (error) throw error;
+        if (isMounted) setCompanySettings(settings);
+      } catch (error) {
+        console.error('Erro ao buscar configurações:', error);
+      } finally {
+        if (isMounted) setLoadingSettings(false);
+      }
+    };
 
-       // Busca avaliações se um funcionário estiver selecionado
-       if (selectedEmployeeId) {
-         const { data: reviewsData } = await supabase
-            .from('performance_reviews')
-            .select('*')
-            .eq('employee_id', selectedEmployeeId)
-            .order('created_at', { ascending: false });
-         setReviews(reviewsData || []);
-       }
-    }
-    fetchData();
+    fetchSettings();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchReviews = async () => {
+      if (!selectedEmployeeId) {
+        setReviews([]);
+        setLoadingReviews(false);
+        return;
+      }
+
+      try {
+        setLoadingReviews(true);
+        const { data: reviewsData, error } = await supabase
+          .from('performance_reviews')
+          .select('*')
+          .eq('employee_id', selectedEmployeeId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (isMounted) setReviews(reviewsData || []);
+      } catch (error) {
+        console.error('Erro ao buscar avaliações:', error);
+      } finally {
+        if (isMounted) setLoadingReviews(false);
+      }
+    };
+
+    fetchReviews();
+    return () => {
+      isMounted = false;
+    };
   }, [selectedEmployeeId]);
 
   useEffect(() => {
@@ -79,11 +138,27 @@ export default function Reports() {
           months.push({ name: monthName, Total: cumulativeCount });
       }
       setHeadcountData(months);
+    } else {
+      setDepartmentData([]);
+      setHeadcountData([]);
     }
   }, [employees]);
 
+  const normalizeStatus = (value?: string) => (value || '').toLowerCase();
+  const totalEmployees = employees.length;
+  const totalEmployeesForPercent = totalEmployees || 1;
+  const activeEmployees = employees.filter((emp) => ['active', 'ativo'].includes(normalizeStatus(emp.status))).length;
+  const awayEmployees = employees.filter((emp) => ['vacation', 'leave', 'férias', 'afastado'].includes(normalizeStatus(emp.status))).length;
+  const pendingRequests = requests.filter(r => r.status === 'pending');
+  const isLoading = loadingEmp || loadingRequests || loadingSettings;
+
   const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
   const employeeRequests = requests.filter(r => r.employee_id === selectedEmployeeId);
+  const latestEmployeeRequests = employeeRequests.slice(0, 5);
+  const averageReviewScore = reviews.length
+    ? reviews.reduce((sum, review) => sum + Number(review.overall_score || 0), 0) / reviews.length
+    : null;
+  const latestReviewDate = reviews.length ? format(new Date(reviews[0].created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : null;
 
   const generatePDF = () => {
     if (!selectedEmployee) return;
@@ -131,16 +206,17 @@ export default function Reports() {
     doc.text('Histórico de Férias e Ausências', 14, finalY);
     
     const timeOffData = employeeRequests.map(r => [
-        r.type === 'vacation' ? 'Férias' : 'Ausência',
+        requestTypeLabels[r.type] || 'Ausência',
         format(new Date(r.start_date), 'dd/MM/yyyy'),
         format(new Date(r.end_date), 'dd/MM/yyyy'),
-        r.status === 'approved' ? 'Aprovado' : r.status === 'pending' ? 'Pendente' : 'Rejeitado'
+        requestStatusLabels[r.status] || r.status,
+        r.attachment_url ? 'Sim' : 'Não'
     ]);
 
     if (timeOffData.length > 0) {
         autoTable(doc, {
             startY: finalY + 5,
-            head: [['Tipo', 'Início', 'Fim', 'Status']],
+            head: [['Tipo', 'Início', 'Fim', 'Status', 'Anexo']],
             body: timeOffData,
             theme: 'striped',
             headStyles: { fillColor: [41, 128, 185] }
@@ -190,6 +266,63 @@ export default function Reports() {
   return (
     <AppLayout title="Relatórios" subtitle="Geração de documentos e análises">
        <div className="space-y-6">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+           {isLoading ? (
+             <>
+               <Skeleton className="h-24" />
+               <Skeleton className="h-24" />
+               <Skeleton className="h-24" />
+               <Skeleton className="h-24" />
+             </>
+           ) : (
+             <>
+               <Card>
+                 <CardContent className="flex items-center gap-3 p-4">
+                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                     <Users className="h-5 w-5" />
+                   </div>
+                   <div>
+                     <p className="text-2xl font-bold text-foreground">{totalEmployees}</p>
+                     <p className="text-xs text-muted-foreground">Colaboradores</p>
+                   </div>
+                 </CardContent>
+               </Card>
+               <Card>
+                 <CardContent className="flex items-center gap-3 p-4">
+                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
+                     <CheckCircle2 className="h-5 w-5" />
+                   </div>
+                   <div>
+                     <p className="text-2xl font-bold text-foreground">{activeEmployees}</p>
+                     <p className="text-xs text-muted-foreground">Ativos</p>
+                   </div>
+                 </CardContent>
+               </Card>
+               <Card>
+                 <CardContent className="flex items-center gap-3 p-4">
+                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600">
+                     <Palmtree className="h-5 w-5" />
+                   </div>
+                   <div>
+                     <p className="text-2xl font-bold text-foreground">{awayEmployees}</p>
+                     <p className="text-xs text-muted-foreground">Em férias/ausência</p>
+                   </div>
+                 </CardContent>
+               </Card>
+               <Card>
+                 <CardContent className="flex items-center gap-3 p-4">
+                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600">
+                     <Clock className="h-5 w-5" />
+                   </div>
+                   <div>
+                     <p className="text-2xl font-bold text-foreground">{pendingRequests.length}</p>
+                     <p className="text-xs text-muted-foreground">Solicitações pendentes</p>
+                   </div>
+                 </CardContent>
+               </Card>
+             </>
+           )}
+         </div>
          <Card>
             <CardHeader>
                 <CardTitle>Relatório Geral por Funcionário</CardTitle>
@@ -200,17 +333,21 @@ export default function Reports() {
                     <div className="w-full md:w-1/2 space-y-2">
                         <label className="text-sm font-medium">Colaborador</label>
                         <Select onValueChange={setSelectedEmployeeId} value={selectedEmployeeId}>
-                            <SelectTrigger>
+                            <SelectTrigger disabled={loadingEmp || employees.length === 0}>
                                 <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {employees.map(emp => (
-                                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                                ))}
+                                {employees.length === 0 ? (
+                                    <div className="px-3 py-2 text-sm text-muted-foreground">Nenhum colaborador encontrado.</div>
+                                ) : (
+                                    employees.map(emp => (
+                                        <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                                    ))
+                                )}
                             </SelectContent>
                         </Select>
                     </div>
-                    <Button disabled={!selectedEmployeeId} onClick={generatePDF}>
+                    <Button disabled={!selectedEmployeeId || loadingSettings} onClick={generatePDF}>
                         <Download className="mr-2 h-4 w-4" />
                         Baixar PDF
                     </Button>
@@ -258,6 +395,91 @@ export default function Reports() {
                                         <p className="text-sm text-muted-foreground">Avaliações</p>
                                         <p className="font-medium">{reviews.length} ciclos</p>
                                     </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm">Resumo de Avaliações</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {loadingReviews ? (
+                                        <p className="text-sm text-muted-foreground">Carregando avaliações...</p>
+                                    ) : reviews.length > 0 ? (
+                                        <>
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-muted-foreground">Média geral</span>
+                                                <span className="font-semibold">{averageReviewScore?.toFixed(1)}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-muted-foreground">Última avaliação</span>
+                                                <span className="font-semibold">{latestReviewDate}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-muted-foreground">Ciclos registrados</span>
+                                                <span className="font-semibold">{reviews.length}</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">Nenhuma avaliação registrada.</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm">Solicitações Recentes</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {latestEmployeeRequests.length > 0 ? (
+                                        <div className="rounded-md border">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Tipo</TableHead>
+                                                        <TableHead>Período</TableHead>
+                                                        <TableHead>Status</TableHead>
+                                                        <TableHead>Anexo</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {latestEmployeeRequests.map((request) => (
+                                                        <TableRow key={request.id}>
+                                                            <TableCell className="text-xs font-medium">
+                                                                {requestTypeLabels[request.type] || 'Ausência'}
+                                                            </TableCell>
+                                                            <TableCell className="text-xs text-muted-foreground">
+                                                                {format(new Date(request.start_date), 'dd/MM/yy')} - {format(new Date(request.end_date), 'dd/MM/yy')}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge className={requestStatusClasses[request.status] || ''}>
+                                                                    {requestStatusLabels[request.status] || request.status}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-xs">
+                                                                {request.attachment_url ? (
+                                                                    <a
+                                                                        href={request.attachment_url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+                                                                    >
+                                                                        <Download className="h-3 w-3" />
+                                                                        Baixar
+                                                                    </a>
+                                                                ) : (
+                                                                    <span className="text-muted-foreground">—</span>
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">Sem solicitações registradas.</p>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
@@ -330,39 +552,51 @@ export default function Reports() {
             <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
                 <div className="space-y-2">
                     <h3 className="font-medium text-center text-sm text-muted-foreground flex items-center justify-center gap-2"><PieChartIcon className="h-4 w-4" /> Distribuição por Departamento</h3>
-                    <div style={{ width: '100%', height: 300 }}>
-                        <ResponsiveContainer>
-                            <PieChart>
-                                <Pie data={departmentData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                                    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                                    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-                                    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-                                    return (percent as number) > 0.05 ? <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central">{(percent * 100).toFixed(0)}%</text> : null;
-                                }}>
-                                    {departmentData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip formatter={(value) => `${value} (${((value as number) / employees.length * 100).toFixed(1)}%)`} />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
+                    {departmentData.length === 0 ? (
+                        <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+                            Nenhum dado de departamento disponível.
+                        </div>
+                    ) : (
+                        <div style={{ width: '100%', height: 300 }}>
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <Pie data={departmentData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                                        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                                        const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+                                        const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+                                        return (percent as number) > 0.05 ? <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central">{(percent * 100).toFixed(0)}%</text> : null;
+                                    }}>
+                                        {departmentData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value) => `${value} (${((value as number) / totalEmployeesForPercent * 100).toFixed(1)}%)`} />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
                 </div>
                 <div className="space-y-2">
                     <h3 className="font-medium text-center text-sm text-muted-foreground flex items-center justify-center gap-2"><BarChart2 className="h-4 w-4" /> Crescimento do Headcount (Últimos 6 Meses)</h3>
-                     <div style={{ width: '100%', height: 300 }}>
-                        <ResponsiveContainer>
-                            <BarChart data={headcountData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                                <Tooltip />
-                                <Legend wrapperStyle={{ fontSize: '14px' }} />
-                                <Bar dataKey="Total" fill="hsl(var(--primary))" name="Total de Colaboradores" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                    {headcountData.length === 0 ? (
+                        <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+                            Nenhum dado de admissões disponível.
+                        </div>
+                    ) : (
+                        <div style={{ width: '100%', height: 300 }}>
+                            <ResponsiveContainer>
+                                <BarChart data={headcountData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                                    <Tooltip />
+                                    <Legend wrapperStyle={{ fontSize: '14px' }} />
+                                    <Bar dataKey="Total" fill="hsl(var(--primary))" name="Total de Colaboradores" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
                 </div>
             </CardContent>
          </Card>

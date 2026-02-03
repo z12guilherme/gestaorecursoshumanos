@@ -171,7 +171,7 @@ export default function LoginPage() {
               </div>
               <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou</span></div>
             </div>
-            <Button type="button" variant="secondary" className="w-full h-11" onClick={() => navigate('/time-off')}><Clock className="mr-2 h-4 w-4" /> Acessar Ponto Eletrônico</Button>
+            <Button type="button" variant="secondary" className="w-full h-11" onClick={() => navigate('/clock-in')}><Clock className="mr-2 h-4 w-4" /> Terminal de Ponto</Button>
           </form>
 
           <div className="flex justify-center pt-2">

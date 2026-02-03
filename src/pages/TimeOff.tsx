@@ -59,6 +59,7 @@ export default function TimeOff() {
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const { toast } = useToast();
+  const [isSavingRequest, setIsSavingRequest] = useState(false);
   const [newRequestData, setNewRequestData] = useState<{
     employee_id: string;
     type: string;
@@ -74,6 +75,21 @@ export default function TimeOff() {
     reason: ''
   });
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [attachmentInputKey, setAttachmentInputKey] = useState(0);
+
+  const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024; // 5MB
+  const ALLOWED_ATTACHMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+
+  const formatFileSize = (size: number) => {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const clearAttachment = () => {
+    setAttachment(null);
+    setAttachmentInputKey((prev) => prev + 1);
+  };
 
   const handleApprove = async (id: string) => {
     const request = requests.find(r => r.id === id);
@@ -126,18 +142,53 @@ export default function TimeOff() {
       return;
     }
 
+    if (newRequestData.type === 'sick' && !attachment) {
+      toast({
+        title: "Atestado obrigatório",
+        description: "Para solicitações de atestado, anexe o comprovante.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (attachment) {
+      if (!ALLOWED_ATTACHMENT_TYPES.includes(attachment.type)) {
+        toast({
+          title: "Formato inválido",
+          description: "Envie um arquivo PDF, JPG ou PNG.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (attachment.size > MAX_ATTACHMENT_SIZE) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O anexo deve ter no máximo 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setIsSavingRequest(true);
     let attachmentUrl = null;
     if (attachment) {
-      const fileExt = attachment.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      
+      const safeName = attachment.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const fileName = `${newRequestData.employee_id}/${Date.now()}_${safeName}`;
+
       const { error: uploadError } = await supabase.storage
         .from('time-off-attachments')
-        .upload(fileName, attachment);
+        .upload(fileName, attachment, {
+          contentType: attachment.type || undefined,
+          cacheControl: '3600',
+          upsert: false,
+        });
 
       if (uploadError) {
         console.error(uploadError);
         toast({ title: "Erro no upload", description: "Falha ao enviar o anexo.", variant: "destructive" });
+        setIsSavingRequest(false);
         return;
       }
 
@@ -156,6 +207,7 @@ export default function TimeOff() {
 
     if (error) {
       toast({ title: "Erro", description: "Falha ao criar solicitação.", variant: "destructive" });
+      setIsSavingRequest(false);
       return;
     }
 
@@ -167,7 +219,8 @@ export default function TimeOff() {
       date_range: undefined,
       reason: ''
     });
-    setAttachment(null);
+    clearAttachment();
+    setIsSavingRequest(false);
   };
 
   // Mapeia os campos do banco para o que a UI espera
@@ -182,6 +235,8 @@ export default function TimeOff() {
   const processedRequests = mappedRequests.filter(r => r.status !== 'pending');
 
   const employeesOnVacation = employees.filter(e => e.status === 'vacation' || e.status === 'Férias');
+  const todayKey = format(new Date(), 'yyyy-MM-dd');
+  const sickTodayCount = mappedRequests.filter(r => r.type === 'sick' && r.status === 'approved' && r.startDate <= todayKey && r.endDate >= todayKey).length;
 
   const getRemainingInDept = (department: string) => {
     return employees.filter(e => e.department === department && (e.status === 'active' || e.status === 'Ativo')).length;
@@ -240,7 +295,7 @@ export default function TimeOff() {
                 <Thermometer className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">3</p>
+                <p className="text-2xl font-bold text-foreground">{sickTodayCount}</p>
                 <p className="text-xs text-muted-foreground">Atestados hoje</p>
               </div>
             </CardContent>
@@ -405,7 +460,7 @@ export default function TimeOff() {
                         </p>
                         {(request as any).attachment_url && (
                           <a href={(request as any).attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
-                            <Paperclip className="h-3 w-3" /> Ver Anexo
+                            <Download className="h-3 w-3" /> Baixar anexo
                           </a>
                         )}
                       </div>
@@ -462,8 +517,9 @@ export default function TimeOff() {
                           {format(new Date(request.startDate + 'T00:00:00'), "dd/MM", { locale: ptBR })} - {format(new Date(request.endDate + 'T00:00:00'), "dd/MM", { locale: ptBR })}
                         </span>
                         {(request as any).attachment_url && (
-                          <a href={(request as any).attachment_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:text-blue-800" title="Ver Anexo">
-                            <Paperclip className="h-3 w-3" />
+                          <a href={(request as any).attachment_url} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs" title="Baixar anexo">
+                            <Download className="h-3 w-3" />
+                            Baixar
                           </a>
                         )}
                       </div>
@@ -555,12 +611,36 @@ export default function TimeOff() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="attachment">Anexo (Atestado/Comprovante)</Label>
-              <Input id="attachment" type="file" onChange={(e) => setAttachment(e.target.files?.[0] || null)} />
+              <Input
+                key={attachmentInputKey}
+                id="attachment"
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                disabled={isSavingRequest}
+              />
+              {newRequestData.type === 'sick' && (
+                <p className="text-xs text-muted-foreground">Obrigatório anexar atestado para solicitações de afastamento médico.</p>
+              )}
+              {attachment && (
+                <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Paperclip className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-foreground">{attachment.name}</span>
+                    <span className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</span>
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" onClick={clearAttachment} disabled={isSavingRequest}>
+                    Remover
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveNewRequest}>Salvar Solicitação</Button>
+            <Button onClick={handleSaveNewRequest} disabled={isSavingRequest}>
+              {isSavingRequest ? 'Salvando...' : 'Salvar Solicitação'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

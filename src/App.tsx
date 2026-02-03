@@ -50,7 +50,7 @@ const App = () => {
             }}
           >
             <Routes>
-              <Route path="/time-off" element={<ClockInPage />} />
+              <Route path="/clock-in" element={<ClockInPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/jobs/:jobId" element={<JobDetails />} />
               <Route path="/terms" element={<TermsOfService />} />
@@ -60,7 +60,7 @@ const App = () => {
                 <Route path="/employees" element={<Employees />} />
                 <Route path="/recruitment" element={<Recruitment />} />
                 <Route path="/performance" element={<Performance />} />
-                <Route path="/absences" element={<TimeOff />} />
+                <Route path="/time-off" element={<TimeOff />} />
                 <Route path="/timesheet" element={<TimesheetPage />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/communication" element={<Communication />} />

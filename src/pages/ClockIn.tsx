@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Employee } from '@/types/hr';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LogIn, LogOut, User, ArrowLeft, Megaphone, Pin, Building2, FileText, Download, LifeBuoy, Search, Copy, Check, MessageSquare } from 'lucide-react';
+import { LogIn, LogOut, User, ArrowLeft, Megaphone, Pin, Building2, FileText, Download, LifeBuoy, Search, Copy, Check, MessageSquare, KeyRound } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { useCommunication } from '@/hooks/useCommunication';
@@ -29,20 +29,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
 export default function ClockInPage() {
-  const { employees, validateEmployeeLogin } = useEmployees();
-  const { entries: clockEvents } = useTimeEntries();
+  const { employees } = useEmployees();
   const { announcements } = useCommunication();
 
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
-  const [isClockingIn, setIsClockingIn] = useState(false);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [companySettings, setCompanySettings] = useState<any>(null);
-  const [showDocuments, setShowDocuments] = useState(false);
-  const { documents } = useDocuments(selectedEmployee?.id);
+  
+  // Documents State
+  const [showDocumentsDialog, setShowDocumentsDialog] = useState(false);
+  const [identifiedEmployee, setIdentifiedEmployee] = useState<Employee | null>(null);
+  const { documents } = useDocuments(identifiedEmployee?.id);
   
   // Support States
   const [isSupportOpen, setIsSupportOpen] = useState(false);
@@ -61,26 +60,37 @@ export default function ClockInPage() {
     fetchSettings();
   }, []);
 
-  const handleSelectEmployee = (employee: Employee) => {
-    setSelectedEmployee(employee);
-    setIsPinDialogOpen(true);
-    setError('');
-    setPin('');
-    setShowDocuments(false);
+  const findEmployeeByPin = (inputPin: string) => {
+    const employee = employees.find(e => e.password === inputPin);
+    if (!employee) {
+      toast({
+        title: "Acesso Negado",
+        description: "Senha não encontrada. Verifique suas credenciais.",
+        variant: "destructive"
+      });
+      return null;
+    }
+    const duplicates = employees.filter(e => e.password === inputPin);
+    if (duplicates.length > 1) {
+       toast({
+        title: "Conflito de Senha",
+        description: "Existem múltiplos funcionários com esta senha. Contate o RH.",
+        variant: "destructive"
+      });
+      return null;
+    }
+    return employee;
   };
 
   const handleClockAction = async (type: 'in' | 'out') => {
-    if (!selectedEmployee) return;
-    setIsClockingIn(true);
+    if (!pin) return;
+    setLoading(true);
 
-    // Valida a senha diretamente no banco de dados
-    const isValid = await validateEmployeeLogin(selectedEmployee.id, pin);
-
-    if (!isValid) {
-      setError('Senha incorreta. Tente novamente.');
-      setPin('');
-      setIsClockingIn(false);
-      return;
+    const employee = findEmployeeByPin(pin);
+    if (!employee) {
+        setLoading(false);
+        setPin("");
+        return;
     }
 
     // Captura Geolocalização
@@ -89,45 +99,40 @@ export default function ClockInPage() {
     toast({
        title: "Obtendo localização...",
        description: "Aguarde enquanto capturamos sua posição GPS.",
-       duration: 4000,
+       duration: 2000,
     });
 
     try {
       if (!("geolocation" in navigator)) {
-        toast({ title: "Erro", description: "Geolocalização não é suportada neste navegador. Não é possível registrar o ponto.", variant: "destructive" });
-        setIsClockingIn(false);
+        toast({ title: "Erro", description: "Geolocalização não é suportada neste navegador.", variant: "destructive" });
+        setLoading(false);
         return;
       }
 
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 10000, // Aumentado para 10s
+          timeout: 10000,
         });
       });
       locationData = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       };
-      toast({ title: "Sucesso", description: "Localização obtida!" });
-    } catch (error) {
-      let errorMessage = "Localização não obtida. É necessário ativar o GPS para registrar o ponto.";
-      if (error.code === 1) { // PERMISSION_DENIED
-        errorMessage = "Permissão de localização negada. Ative a localização no navegador para continuar.";
-      } else if (error.code === 2) { // POSITION_UNAVAILABLE
-        errorMessage = "Sinal de GPS indisponível. Verifique se o GPS está ativado.";
-      } else if (error.code === 3) { // TIMEOUT
-        errorMessage = "Tempo esgotado ao buscar localização. Tente novamente.";
-      }
+    } catch (error: any) {
+      let errorMessage = "Localização não obtida. É necessário ativar o GPS.";
+      if (error.code === 1) errorMessage = "Permissão de localização negada.";
+      else if (error.code === 2) errorMessage = "Sinal de GPS indisponível.";
+      else if (error.code === 3) errorMessage = "Tempo esgotado ao buscar localização.";
+      
       console.error("Erro ao obter localização:", error);
       toast({ title: "Erro de Localização", description: errorMessage, variant: "destructive" });
-      setIsClockingIn(false);
+      setLoading(false);
       return;
     }
 
-    // Inserção direta via Supabase para garantir envio dos campos de localização
     const { error } = await supabase.from('time_entries').insert({
-      employee_id: selectedEmployee.id,
+      employee_id: employee.id,
       timestamp: new Date().toISOString(),
       type,
       ...locationData,
@@ -135,32 +140,26 @@ export default function ClockInPage() {
 
     if (error) {
         toast({ title: "Erro", description: "Falha ao registrar ponto.", variant: "destructive" });
-        setIsClockingIn(false);
-        return;
+    } else {
+        toast({
+            title: `Ponto Registrado!`,
+            description: `${employee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} às ${format(new Date(), 'HH:mm')}.`,
+            className: "bg-green-600 text-white border-none"
+        });
     }
 
-    toast({
-      title: `Ponto registrado com sucesso!`,
-      description: `${selectedEmployee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} às ${format(new Date(), 'HH:mm')}.`,
-    });
-
-    setIsClockingIn(false);
-    setIsPinDialogOpen(false);
-    setSelectedEmployee(null);
+    setLoading(false);
     setPin('');
   };
 
-  const handleViewDocuments = async () => {
-    if (!selectedEmployee) return;
-    
-    const isValid = await validateEmployeeLogin(selectedEmployee.id, pin);
-    if (!isValid) {
-      setError('Senha incorreta.');
-      setPin('');
-      return;
-    }
-    
-    setShowDocuments(true);
+  const handleAccessDocuments = () => {
+      if (!pin) return;
+      const employee = findEmployeeByPin(pin);
+      if (employee) {
+          setIdentifiedEmployee(employee);
+          setShowDocumentsDialog(true);
+          setPin('');
+      }
   };
 
   const handleCreateTicket = async () => {
@@ -214,19 +213,9 @@ export default function ClockInPage() {
     }
   };
 
-  const lastEventForSelected = selectedEmployee
-    ? clockEvents.filter(e => e.employee_id === selectedEmployee.id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
-    : null;
-
-  const priorityConfig = {
-    low: { label: 'Baixa', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
-    medium: { label: 'Média', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-    high: { label: 'Alta', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-3 sm:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-3 sm:p-6 lg:p-8 flex flex-col">
+      <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-3">
@@ -250,167 +239,146 @@ export default function ClockInPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
-          <div className="lg:col-span-2">
-             <p className="text-muted-foreground mb-4">Selecione seu perfil para registrar o ponto.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 flex-1">
+          {/* Main Clock In Area */}
+          <div className="lg:col-span-2 flex items-center justify-center">
+             <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
+                <CardHeader className="text-center space-y-2 pb-2">
+                  <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-2">
+                    <KeyRound className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle className="text-2xl">Registro de Ponto</CardTitle>
+                  <p className="text-muted-foreground">Digite sua senha (PIN) para registrar</p>
+                </CardHeader>
+                
+                <CardContent className="space-y-6 pt-4">
+                  <div className="flex justify-center">
+                    <Input
+                      type="password"
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value)}
+                      className="text-center text-3xl tracking-[0.5em] h-16 w-48 font-mono border-2 focus-visible:ring-primary"
+                      maxLength={4}
+                      placeholder="----"
+                      autoFocus
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button 
+                      size="lg" 
+                      className="h-14 text-lg bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-95"
+                      onClick={() => handleClockAction('in')}
+                      disabled={loading || pin.length < 4}
+                    >
+                      <LogIn className="mr-2 h-6 w-6" />
+                      Entrada
+                    </Button>
+                    
+                    <Button 
+                      size="lg" 
+                      variant="destructive"
+                      className="h-14 text-lg transition-all active:scale-95"
+                      onClick={() => handleClockAction('out')}
+                      disabled={loading || pin.length < 4}
+                    >
+                      <LogOut className="mr-2 h-6 w-6" />
+                      Saída
+                    </Button>
+                  </div>
+
+                  <div className="pt-2">
+                     <Button 
+                        variant="outline" 
+                        className="w-full" 
+                        onClick={handleAccessDocuments}
+                        disabled={loading || pin.length < 4}
+                     >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Acessar Meus Documentos
+                     </Button>
+                  </div>
+                </CardContent>
+             </Card>
           </div>
           
-          {/* Mural de Avisos Simplificado */}
-          <Card className="lg:col-span-1 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Megaphone className="h-4 w-4 text-primary" />
-                Mural de Avisos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[150px] pr-4">
-                <div className="space-y-4">
-                  {announcements.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum aviso no momento.</p>
-                  ) : (
-                    announcements.slice(0, 3).map(announcement => (
-                      <div key={announcement.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-sm flex items-center gap-2">
-                            {announcement.priority === 'high' && <Pin className="h-3 w-3 text-red-500" />}
-                            {announcement.title}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">{format(new Date(announcement.created_at), 'dd/MM')}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{announcement.content}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-          {employees.filter(e => e.status !== 'terminated').map(employee => (
-            <Card
-              key={employee.id}
-              onClick={() => handleSelectEmployee(employee)}
-              className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors text-center p-4 flex flex-col items-center justify-center"
-            >
-              <Avatar className="h-16 w-16 mb-3">
-                <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                  {employee.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-              <p className="font-medium text-sm text-foreground">{employee.name}</p>
-              <p className="text-xs text-muted-foreground">{employee.position}</p>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {selectedEmployee && (
-        <Dialog open={isPinDialogOpen} onOpenChange={setIsPinDialogOpen}>
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <Avatar className="h-20 w-20">
-                  <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-                    {selectedEmployee.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              <DialogTitle className="text-xl">{selectedEmployee.name}</DialogTitle>
-              <DialogDescription>
-                {lastEventForSelected ? (
-                  `Último registro: ${lastEventForSelected.type === 'in' ? 'Entrada' : 'Saída'} em ${format(new Date(lastEventForSelected.timestamp), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`
-                ) : (
-                  'Nenhum registro encontrado hoje.'
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-              {!showDocuments ? (
-              <>
-              <div className="space-y-2">
-                <label htmlFor="pin" className="text-center block">Digite sua Senha</label>
-                <Input
-                  id="pin"
-                  type="password"
-                  maxLength={4}
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value)}
-                  className="text-center text-2xl tracking-[0.5em]"
-                  autoFocus
-                />
-                {error && <p className="text-sm text-destructive text-center">{error}</p>}
-              </div>
-              <div className="grid grid-cols-1 gap-4">
-                {(!lastEventForSelected || lastEventForSelected.type === 'out' || lastEventForSelected.type === 'lunch_start') ? (
-                  <Button
-                    size="lg"
-                    className="bg-emerald-600 hover:bg-emerald-700 w-full"
-                    onClick={() => handleClockAction('in')}
-                    disabled={isClockingIn}
-                  >
-                    {isClockingIn ? 'Registrando...' : (
-                      <>
-                        <LogIn className="mr-2 h-5 w-5" />
-                        Registrar Entrada
-                      </>
-                    )}
-                  </Button>
-                ) : (
-                  <Button
-                    size="lg"
-                    variant="destructive"
-                    className="w-full"
-                    onClick={() => handleClockAction('out')}
-                    disabled={isClockingIn}
-                  >
-                    {isClockingIn ? 'Registrando...' : (
-                      <>
-                        <LogOut className="mr-2 h-5 w-5" />
-                        Registrar Saída
-                      </>
-                    )}
-                  </Button>
-                )}
-                <Button variant="outline" className="w-full" onClick={handleViewDocuments}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Meus Documentos
-                </Button>
-              </div>
-              </>
-              ) : (
-                <div className="space-y-3">
-                  <h3 className="font-medium text-center text-sm">Documentos Disponíveis</h3>
-                  <ScrollArea className="h-[200px] pr-2">
-                    {documents.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum documento encontrado.</p>
+          {/* Mural de Avisos */}
+          <div className="lg:col-span-1">
+            <Card className="h-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm flex flex-col">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Megaphone className="h-4 w-4 text-primary" />
+                  Mural de Avisos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full pr-4 max-h-[400px]">
+                  <div className="space-y-4">
+                    {announcements.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">Nenhum aviso no momento.</p>
                     ) : (
-                      documents.map(doc => (
-                        <div key={doc.id} className="flex items-center justify-between p-3 mb-2 rounded-md border bg-secondary/20">
-                          <span className="text-sm truncate max-w-[180px]" title={doc.name}>{doc.name}</span>
-                          <Button size="sm" variant="ghost" onClick={() => window.open(doc.url, '_blank')}>
-                            <Download className="h-4 w-4" />
-                          </Button>
+                      announcements.map(announcement => (
+                        <div key={announcement.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-sm flex items-center gap-2">
+                              {announcement.priority === 'high' && <Pin className="h-3 w-3 text-red-500" />}
+                              {announcement.title}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                                {format(new Date(announcement.created_at), 'dd/MM')}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{announcement.content}</p>
                         </div>
                       ))
                     )}
-                  </ScrollArea>
-                  <Button variant="ghost" className="w-full" onClick={() => setShowDocuments(false)}>
-                    Voltar
-                  </Button>
-                </div>
-              )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Dialog de Documentos */}
+      <Dialog open={showDocumentsDialog} onOpenChange={setShowDocumentsDialog}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>Documentos de {identifiedEmployee?.name}</DialogTitle>
+                <DialogDescription>Visualize ou baixe seus documentos.</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <ScrollArea className="h-[300px] pr-4">
+                    {documents.length === 0 ? (
+                        <div className="text-center py-10 text-muted-foreground">
+                            <FileText className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                            <p>Nenhum documento disponível.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {documents.map(doc => (
+                                <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <div className="bg-primary/10 p-2 rounded-md">
+                                            <FileText className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <span className="text-sm font-medium truncate">{doc.name}</span>
+                                    </div>
+                                    <Button size="sm" variant="ghost" onClick={() => window.open(doc.url, '_blank')}>
+                                        <Download className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </ScrollArea>
             </div>
             <DialogFooter>
-              <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setIsPinDialogOpen(false)}>
-                Cancelar
-              </Button>
+                <Button onClick={() => setShowDocumentsDialog(false)}>Fechar</Button>
             </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de Suporte */}
       <Dialog open={isSupportOpen} onOpenChange={setIsSupportOpen}>
