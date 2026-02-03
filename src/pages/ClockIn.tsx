@@ -93,6 +93,31 @@ export default function ClockInPage() {
         return;
     }
 
+    // Validação de sequência de ponto
+    const { data: lastEntry } = await supabase
+      .from('time_entries')
+      .select('type')
+      .eq('employee_id', employee.id)
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lastEntry) {
+      const isLastIn = lastEntry.type === 'in' || lastEntry.type === 'lunch_end';
+      const isLastOut = lastEntry.type === 'out' || lastEntry.type === 'lunch_start';
+
+      if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
+        toast({
+          title: "Ação Inválida",
+          description: type === 'in' ? "Você já registrou entrada. Registre a saída primeiro." : "Você já registrou saída. Registre a entrada primeiro.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        setPin('');
+        return;
+      }
+    }
+
     // Captura Geolocalização
     let locationData: { latitude?: number; longitude?: number } = {};
     
