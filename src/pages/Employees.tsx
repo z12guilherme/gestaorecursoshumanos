@@ -152,7 +152,7 @@ export default function Employees() {
 
       toast({ 
         title: "Sucesso", 
-        description: selectedEmployee ? "Colaborador atualizado." : "Colaborador criado." 
+        description: selectedEmployee ? "Colaborador atualizado" : "Colaborador criado" 
       });
       setIsFormOpen(false);
     } catch (error: any) {
