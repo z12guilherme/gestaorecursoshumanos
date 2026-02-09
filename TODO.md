@@ -55,5 +55,5 @@ Status do progresso de migração dos módulos para o backend real.
   - [x] Cadastrar carga horária (quantidade de horas) por funcionário.
   - [x] **Relatórios:** Gerar relatório de folha mensal detalhado.
 - [ ] **Infraestrutura e Design:**
-  - [ ] Configurar domínio `registro.br`.
+  - [ ] Configurar domínio `registro.br`
   - [ ] Inserir logomarca do sistema no Web e PWA (Solicitar a Bruno).
