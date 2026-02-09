@@ -386,12 +386,8 @@ export default function Reports() {
                                 <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {employees.length === 0 ? (
-                                    <div className="px-3 py-2 text-sm text-muted-foreground">Nenhum colaborador encontrado.</div>
-                                ) : (
-                                    employees.map(emp => (
-                                        <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                                    ))
+                                {employees.length === 0 && (
+                                    <SelectItem value="none" disabled>Nenhum colaborador encontrado.</SelectItem>
                                 )}
                                 {employees.map(emp => (
                                     <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
