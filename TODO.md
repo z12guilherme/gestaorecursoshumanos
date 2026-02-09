@@ -44,3 +44,16 @@ Status do progresso de migração dos módulos para o backend real.
 - [x] Colocar observação de ponto
 - [x] Colocar informações da empresa na aba de ponto
 - [x] Separar funcionários por unidade
+
+## 🚀 Novas Solicitações (Prioridade)
+- [x] **Correção de Bug:** Ajustar rota da categoria "Férias e Ausências" (link incorreto).
+- [x] **Gestão de Salários e Pagamentos (Folha):**
+  - [x] Adicionar campos de Salário e Descontos no cadastro de funcionários.
+  - [x] Criar nova categoria/aba de "Salários e Pagamentos".
+  - [x] Implementar cálculo de folha (Salário + Adicionais - Descontos).
+  - [x] Adicionar campos para adicionais: Insalubridade, Adicional Noturno, Hora Extra.
+  - [x] Cadastrar carga horária (quantidade de horas) por funcionário.
+  - [x] **Relatórios:** Gerar relatório de folha mensal detalhado.
+- [ ] **Infraestrutura e Design:**
+  - [ ] Configurar domínio `registro.br`.
+  - [ ] Inserir logomarca do sistema no Web e PWA (Solicitar a Bruno).

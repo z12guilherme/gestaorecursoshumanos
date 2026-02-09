@@ -39,6 +39,11 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
     status: 'active',
     hireDate: '',
     birthDate: '',
+    baseSalary: 0,
+    fixedDiscounts: 0,
+    contractedHours: 220,
+    hasInsalubrity: false,
+    hasNightShift: false,
   });
 
   useEffect(() => {
@@ -55,6 +60,11 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
         status: 'active',
         hireDate: '',
         birthDate: '',
+        baseSalary: 0,
+        fixedDiscounts: 0,
+        contractedHours: 220,
+        hasInsalubrity: false,
+        hasNightShift: false,
       });
     }
   }, [employee]);
@@ -166,6 +176,72 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                 required
               />
+            </div>
+            
+            {/* Novos Campos Financeiros */}
+            <div className="col-span-2 border-t pt-4 mt-2">
+              <h4 className="text-sm font-medium mb-4 text-muted-foreground">Dados Financeiros & Folha</h4>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="baseSalary">Salário Base (R$)</Label>
+              <Input
+                id="baseSalary"
+                type="number"
+                step="0.01"
+                value={formData.baseSalary}
+                onChange={(e) => setFormData({ ...formData, baseSalary: parseFloat(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fixedDiscounts">Descontos Fixos (R$)</Label>
+              <Input
+                id="fixedDiscounts"
+                type="number"
+                step="0.01"
+                value={formData.fixedDiscounts}
+                onChange={(e) => setFormData({ ...formData, fixedDiscounts: parseFloat(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contractedHours">Carga Horária Mensal</Label>
+              <Input
+                id="contractedHours"
+                type="number"
+                value={formData.contractedHours}
+                onChange={(e) => setFormData({ ...formData, contractedHours: parseInt(e.target.value) })}
+                placeholder="Ex: 220"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hasInsalubrity">Insalubridade</Label>
+              <Select
+                value={formData.hasInsalubrity ? "yes" : "no"}
+                onValueChange={(value) => setFormData({ ...formData, hasInsalubrity: value === "yes" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no">Não</SelectItem>
+                  <SelectItem value="yes">Sim</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hasNightShift">Adicional Noturno</Label>
+              <Select
+                value={formData.hasNightShift ? "yes" : "no"}
+                onValueChange={(value) => setFormData({ ...formData, hasNightShift: value === "yes" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no">Não</SelectItem>
+                  <SelectItem value="yes">Sim</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

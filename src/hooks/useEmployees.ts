@@ -11,6 +11,19 @@ export interface Employee {
   admission_date: string; // No banco chamamos de admission_date
   password?: string; // Senha para o ponto eletrônico
   created_at?: string;
+  // Campos adicionais de cadastro
+  phone?: string;
+  contract_type?: string;
+  birth_date?: string;
+  manager?: string;
+  work_schedule?: string;
+  unit?: string;
+  // Campos financeiros (Folha de Pagamento)
+  base_salary?: number;
+  fixed_discounts?: number;
+  has_insalubrity?: boolean;
+  has_night_shift?: boolean;
+  contracted_hours?: number;
 }
 
 export function useEmployees() {

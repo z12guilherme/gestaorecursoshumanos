@@ -61,6 +61,12 @@ export default function Employees() {
     // Aliases para evitar ambiguidade em componentes que usam nomes diferentes
     role: dbEmp.role || '',
     admissionDate: dbEmp.admission_date,
+    // Campos Financeiros (Mapeamento)
+    baseSalary: dbEmp.base_salary || 0,
+    fixedDiscounts: dbEmp.fixed_discounts || 0,
+    hasInsalubrity: dbEmp.has_insalubrity || false,
+    hasNightShift: dbEmp.has_night_shift || false,
+    contractedHours: dbEmp.contracted_hours || 220,
   } as unknown as Employee));
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -139,6 +145,12 @@ export default function Employees() {
         work_schedule: employeeData.workSchedule,
         unit: employeeData.unit,
         password: '1234', // Senha padrão para novos colaboradores
+        // Campos Financeiros
+        base_salary: (employeeData as any).baseSalary,
+        fixed_discounts: (employeeData as any).fixedDiscounts,
+        has_insalubrity: (employeeData as any).hasInsalubrity,
+        has_night_shift: (employeeData as any).hasNightShift,
+        contracted_hours: (employeeData as any).contractedHours,
       };
 
       let result;

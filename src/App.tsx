@@ -14,6 +14,7 @@ import Performance from "./pages/Performance";
 import TimeOff from "./pages/TimeOff";
 import Reports from "./pages/Reports";
 import Communication from "./pages/Communication";
+import Payroll from "./pages/Payroll";
 import AIAssistant from "./pages/AIAssistant";
 import Automations from "./pages/Automations";
 import Settings from "./pages/Settings";
@@ -60,7 +61,8 @@ const App = () => {
                 <Route path="/employees" element={<Employees />} />
                 <Route path="/recruitment" element={<Recruitment />} />
                 <Route path="/performance" element={<Performance />} />
-                <Route path="/time-off" element={<TimeOff />} />
+                <Route path="/absences" element={<TimeOff />} />
+                <Route path="/payroll" element={<Payroll />} />
                 <Route path="/timesheet" element={<TimesheetPage />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/communication" element={<Communication />} />
