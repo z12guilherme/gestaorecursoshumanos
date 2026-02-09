@@ -393,6 +393,9 @@ export default function Reports() {
                                         <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
                                     ))
                                 )}
+                                {employees.map(emp => (
+                                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
