@@ -1,6 +1,6 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, UserCheck, Calendar, Briefcase, Clock, UserPlus, Sparkles, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Users, UserCheck, Calendar, Briefcase, Clock, UserPlus, Sparkles, TrendingUp, AlertTriangle, DollarSign, Thermometer, Moon } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useRecruitment } from '@/hooks/useRecruitment';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
@@ -10,11 +10,20 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
 export default function Dashboard() {
-  const { employees, loading: loadingEmployees } = useEmployees();
+  const { employees: dbEmployees, loading: loadingEmployees } = useEmployees();
   const { jobs, loading: loadingJobs } = useRecruitment();
   const { entries: timeEntries, loading: loadingTime } = useTimeEntries();
 
   const loading = loadingEmployees || loadingJobs || loadingTime;
+
+  // Mapeia os dados do banco para o formato da UI
+  const employees = dbEmployees.map((emp: any) => ({
+    ...emp,
+    baseSalary: emp.base_salary || 0,
+    hasInsalubrity: emp.has_insalubrity || false,
+    hasNightShift: emp.has_night_shift || false,
+    vacationDueDate: emp.vacation_due_date,
+  }));
 
   const stats = {
     total: employees.length,
@@ -22,6 +31,31 @@ export default function Dashboard() {
     vacation: employees.filter(e => ['vacation', 'Férias'].includes(e.status)).length,
     openJobs: jobs.filter(j => ['open', 'Aberta'].includes(j.status)).length,
   };
+
+  // Cálculos Financeiros e Operacionais
+  const financialStats = employees.reduce((acc, emp) => {
+    // Ignora demitidos
+    if (['terminated', 'Desligado'].includes(emp.status)) return acc;
+
+    const base = Number(emp.baseSalary) || 0;
+    // Estimativas: Insalubridade (20% do mínimo 1412) e Noturno (20% do base)
+    const insalubrityValue = emp.hasInsalubrity ? 1412 * 0.20 : 0;
+    const nightShiftValue = emp.hasNightShift ? base * 0.20 : 0;
+
+    acc.payroll += base + insalubrityValue + nightShiftValue;
+    if (emp.hasInsalubrity) acc.insalubrityCount++;
+    if (emp.hasNightShift) acc.nightShiftCount++;
+
+    if (emp.vacationDueDate) {
+      const due = new Date(emp.vacationDueDate);
+      const today = new Date();
+      const diffTime = due.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays <= 90) acc.vacationDueCount++; // Alerta para 3 meses
+    }
+
+    return acc;
+  }, { payroll: 0, insalubrityCount: 0, nightShiftCount: 0, vacationDueCount: 0 });
 
   // Pega os 5 últimos registros de ponto
   const recentActivity = timeEntries.slice(0, 5).map(entry => {
@@ -102,6 +136,52 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Vagas Abertas</p>
                 <h3 className="text-2xl font-bold">{loading ? '-' : stats.openJobs}</h3>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Seção Financeira e Operacional */}
+        <h3 className="text-lg font-semibold text-foreground mt-8 mb-4">Financeiro & Operacional</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                <DollarSign className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Folha Estimada (Mensal)</p>
+                <h3 className="text-2xl font-bold">
+                  {loading ? '-' : `R$ ${financialStats.payroll.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                </h3>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Férias a Vencer (90 dias)</p>
+                <h3 className="text-2xl font-bold">{loading ? '-' : financialStats.vacationDueCount}</h3>
+                <p className="text-xs text-muted-foreground">Colaboradores em alerta</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+                <Thermometer className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Adicionais Ativos</p>
+                <div className="flex gap-3 text-sm font-medium mt-1">
+                  <span className="flex items-center gap-1"><Thermometer className="h-3 w-3" /> {financialStats.insalubrityCount} Insalub.</span>
+                  <span className="flex items-center gap-1"><Moon className="h-3 w-3" /> {financialStats.nightShiftCount} Noturno</span>
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -13,6 +13,15 @@ export interface Employee {
   avatar?: string;
   salary?: number;
   pin?: string;
+  baseSalary?: number;
+  fixedDiscounts?: number;
+  contractedHours?: number;
+  hasInsalubrity?: boolean;
+  hasNightShift?: boolean;
+  pisPasep?: string;
+  pixKey?: string;
+  vacationDueDate?: string;
+  vacationLimitDate?: string;
 }
 
 export interface JobPosting {

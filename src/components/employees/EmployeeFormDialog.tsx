@@ -44,6 +44,10 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
     contractedHours: 220,
     hasInsalubrity: false,
     hasNightShift: false,
+    pisPasep: '',
+    pixKey: '',
+    vacationDueDate: '',
+    vacationLimitDate: '',
   });
 
   useEffect(() => {
@@ -65,6 +69,10 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
         contractedHours: 220,
         hasInsalubrity: false,
         hasNightShift: false,
+        pisPasep: '',
+        pixKey: '',
+        vacationDueDate: '',
+        vacationLimitDate: '',
       });
     }
   }, [employee]);
@@ -85,8 +93,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
         <DialogHeader>
           <DialogTitle>{employee ? 'Editar Colaborador' : 'Novo Colaborador'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto px-2 py-1">
             <div className="space-y-2">
               <Label htmlFor="name">Nome completo</Label>
               <Input
@@ -243,8 +251,50 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Novos Campos de Documentação */}
+            <div className="col-span-2 border-t pt-4 mt-2">
+              <h4 className="text-sm font-medium mb-4 text-muted-foreground">Documentação & Prazos</h4>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pisPasep">PIS/PASEP</Label>
+              <Input
+                id="pisPasep"
+                value={formData.pisPasep || ''}
+                onChange={(e) => setFormData({ ...formData, pisPasep: e.target.value })}
+                placeholder="000.00000.00-0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pixKey">Chave PIX</Label>
+              <Input
+                id="pixKey"
+                value={formData.pixKey || ''}
+                onChange={(e) => setFormData({ ...formData, pixKey: e.target.value })}
+                placeholder="CPF, Email ou Aleatória"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vacationDueDate">Vencimento Férias</Label>
+              <Input
+                id="vacationDueDate"
+                type="date"
+                value={formData.vacationDueDate || ''}
+                onChange={(e) => setFormData({ ...formData, vacationDueDate: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vacationLimitDate">Limite para Gozo</Label>
+              <Input
+                id="vacationLimitDate"
+                type="date"
+                value={formData.vacationLimitDate || ''}
+                onChange={(e) => setFormData({ ...formData, vacationLimitDate: e.target.value })}
+              />
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>

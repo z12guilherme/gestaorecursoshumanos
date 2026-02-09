@@ -13,9 +13,19 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function Payroll() {
-  const { employees, loading } = useEmployees();
+  const { employees: dbEmployees, loading } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Mapeia os dados do banco (snake_case) para o formato esperado (camelCase)
+  const employees = dbEmployees.map((emp: any) => ({
+    ...emp,
+    baseSalary: emp.base_salary || 0,
+    contractedHours: emp.contracted_hours || 220,
+    hasInsalubrity: emp.has_insalubrity || false,
+    hasNightShift: emp.has_night_shift || false,
+    fixedDiscounts: emp.fixed_discounts || 0,
+  }));
+
   // Estado local para horas extras (simulação de input mensal)
   const [overtimeData, setOvertimeData] = useState<Record<string, number>>({});
 

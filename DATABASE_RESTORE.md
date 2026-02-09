@@ -35,6 +35,15 @@ CREATE TABLE public.employees (
   manager text,
   work_schedule text DEFAULT '09:00 - 18:00'::text,
   password text DEFAULT '1234'::text, -- Senha utilizada para o Ponto Eletrônico
+  pis_pasep text,
+  pix_key text,
+  vacation_due_date date,
+  vacation_limit_date date,
+  base_salary numeric,
+  fixed_discounts numeric,
+  contracted_hours numeric,
+  has_insalubrity boolean DEFAULT false,
+  has_night_shift boolean DEFAULT false,
   CONSTRAINT employees_pkey PRIMARY KEY (id)
 );
 
@@ -267,4 +276,16 @@ CREATE TABLE IF NOT EXISTS public.employee_documents (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT employee_documents_pkey PRIMARY KEY (id)
 );
+
+-- Adicionar campos financeiros e de documentação (PIS, PIX, Férias)
+ALTER TABLE public.employees 
+ADD COLUMN IF NOT EXISTS pis_pasep text,
+ADD COLUMN IF NOT EXISTS pix_key text,
+ADD COLUMN IF NOT EXISTS vacation_due_date date,
+ADD COLUMN IF NOT EXISTS vacation_limit_date date,
+ADD COLUMN IF NOT EXISTS base_salary numeric,
+ADD COLUMN IF NOT EXISTS fixed_discounts numeric,
+ADD COLUMN IF NOT EXISTS contracted_hours numeric,
+ADD COLUMN IF NOT EXISTS has_insalubrity boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS has_night_shift boolean DEFAULT false;
 ```

@@ -54,6 +54,17 @@ Status do progresso de migração dos módulos para o backend real.
   - [x] Adicionar campos para adicionais: Insalubridade, Adicional Noturno, Hora Extra.
   - [x] Cadastrar carga horária (quantidade de horas) por funcionário.
   - [x] **Relatórios:** Gerar relatório de folha mensal detalhado.
+- [x] **Atualização Cadastral (Novos Campos):**
+  - [x] Número do PIS/PASEP.
+  - [x] Chave PIX para Pagamento.
+  - [x] Vencimento Férias.
+  - [x] Limite para Gozo.
+- [x] **Dashboard e KPIs (Novos Indicadores):**
+  - [x] Alerta de Férias a Vencer.
+  - [x] Custo Total da Folha de Pagamento.
+  - [x] Indicadores de Adicionais (Insalubridade/Noturno).
+  - [x] Resumo de Carga Horária.
+  - [x] Atualizar Relatórios com essas informações.
 - [ ] **Infraestrutura e Design:**
   - [ ] Configurar domínio `registro.br`
   - [ ] Inserir logomarca do sistema no Web e PWA (Solicitar a Bruno).

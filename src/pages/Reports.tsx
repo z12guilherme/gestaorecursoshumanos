@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useTimeOff } from '@/hooks/useTimeOff';
 import { supabase } from '@/lib/supabase';
-import { Download, User, Calendar, Star, BarChart2, PieChart as PieChartIcon, CheckCircle2, XCircle, Users, Clock, Palmtree } from 'lucide-react';
+import { Download, User, Calendar, Star, BarChart2, PieChart as PieChartIcon, CheckCircle2, XCircle, Users, Clock, Palmtree, DollarSign, AlertTriangle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, subMonths } from 'date-fns';
@@ -38,7 +38,7 @@ const requestStatusClasses: Record<string, string> = {
 };
 
 export default function Reports() {
-  const { employees, loading: loadingEmp } = useEmployees();
+  const { employees: dbEmployees, loading: loadingEmp } = useEmployees();
   const { requests, loading: loadingRequests } = useTimeOff();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [reviews, setReviews] = useState<any[]>([]);
@@ -47,6 +47,15 @@ export default function Reports() {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [departmentData, setDepartmentData] = useState<any[]>([]);
   const [headcountData, setHeadcountData] = useState<any[]>([]);
+
+  // Mapeia os dados do banco para o formato da UI
+  const employees = dbEmployees.map((emp: any) => ({
+    ...emp,
+    baseSalary: emp.base_salary || 0,
+    hasInsalubrity: emp.has_insalubrity || false,
+    hasNightShift: emp.has_night_shift || false,
+    vacationDueDate: emp.vacation_due_date,
+  }));
 
   useEffect(() => {
     let isMounted = true;
@@ -160,6 +169,24 @@ export default function Reports() {
     : null;
   const latestReviewDate = reviews.length ? format(new Date(reviews[0].created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : null;
 
+  // Cálculos Financeiros para Relatórios
+  const financialStats = employees.reduce((acc, emp) => {
+    if (['terminated', 'Desligado'].includes(emp.status)) return acc;
+    const base = Number(emp.baseSalary) || 0;
+    const insalubrityValue = emp.hasInsalubrity ? 1412 * 0.20 : 0;
+    const nightShiftValue = emp.hasNightShift ? base * 0.20 : 0;
+    acc.payroll += base + insalubrityValue + nightShiftValue;
+    
+    if (emp.vacationDueDate) {
+        const due = new Date(emp.vacationDueDate);
+        const today = new Date();
+        const diffTime = due.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays <= 90) acc.vacationDueCount++;
+    }
+    return acc;
+  }, { payroll: 0, vacationDueCount: 0 });
+
   const generatePDF = () => {
     if (!selectedEmployee) return;
 
@@ -266,7 +293,7 @@ export default function Reports() {
   return (
     <AppLayout title="Relatórios" subtitle="Geração de documentos e análises">
        <div className="space-y-6">
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
            {isLoading ? (
              <>
                <Skeleton className="h-24" />
@@ -317,6 +344,28 @@ export default function Reports() {
                    <div>
                      <p className="text-2xl font-bold text-foreground">{pendingRequests.length}</p>
                      <p className="text-xs text-muted-foreground">Solicitações pendentes</p>
+                   </div>
+                 </CardContent>
+               </Card>
+               <Card>
+                 <CardContent className="flex items-center gap-3 p-4">
+                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600">
+                     <DollarSign className="h-5 w-5" />
+                   </div>
+                   <div>
+                     <p className="text-lg font-bold text-foreground">R$ {(financialStats.payroll / 1000).toFixed(1)}k</p>
+                     <p className="text-xs text-muted-foreground">Folha Est.</p>
+                   </div>
+                 </CardContent>
+               </Card>
+               <Card>
+                 <CardContent className="flex items-center gap-3 p-4">
+                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600">
+                     <AlertTriangle className="h-5 w-5" />
+                   </div>
+                   <div>
+                     <p className="text-2xl font-bold text-foreground">{financialStats.vacationDueCount}</p>
+                     <p className="text-xs text-muted-foreground">Férias Vencendo</p>
                    </div>
                  </CardContent>
                </Card>

@@ -67,6 +67,10 @@ export default function Employees() {
     hasInsalubrity: dbEmp.has_insalubrity || false,
     hasNightShift: dbEmp.has_night_shift || false,
     contractedHours: dbEmp.contracted_hours || 220,
+    pisPasep: dbEmp.pis_pasep || '',
+    pixKey: dbEmp.pix_key || '',
+    vacationDueDate: dbEmp.vacation_due_date || '',
+    vacationLimitDate: dbEmp.vacation_limit_date || '',
   } as unknown as Employee));
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -151,6 +155,10 @@ export default function Employees() {
         has_insalubrity: (employeeData as any).hasInsalubrity,
         has_night_shift: (employeeData as any).hasNightShift,
         contracted_hours: (employeeData as any).contractedHours,
+        pis_pasep: (employeeData as any).pisPasep,
+        pix_key: (employeeData as any).pixKey,
+        vacation_due_date: (employeeData as any).vacationDueDate,
+        vacation_limit_date: (employeeData as any).vacationLimitDate,
       };
 
       let result;
@@ -278,7 +286,11 @@ export default function Employees() {
         "Cargo": "Desenvolvedor",
         "Departamento": "Tecnologia",
         "Telefone": "(11) 99999-9999",
-        "Data de Admissão": "2024-01-15"
+        "Data de Admissão": "2024-01-15",
+        "PIS/PASEP": "123.45678.90-0",
+        "Chave PIX": "email@pix.com.br",
+        "Vencimento Férias": "2025-01-15",
+        "Limite Férias": "2025-12-15"
       },
       {
         "Nome": "Maria Santos",
@@ -286,7 +298,11 @@ export default function Employees() {
         "Cargo": "Analista de RH",
         "Departamento": "Recursos Humanos",
         "Telefone": "(11) 98888-8888",
-        "Data de Admissão": "2024-02-01"
+        "Data de Admissão": "2024-02-01",
+        "PIS/PASEP": "",
+        "Chave PIX": "",
+        "Vencimento Férias": "",
+        "Limite Férias": ""
       }
     ];
 
@@ -315,6 +331,10 @@ export default function Employees() {
           status: 'active',
           admission_date: row['Data de Admissão'] || new Date().toISOString(),
           password: '1234',
+          pis_pasep: row['PIS/PASEP'] || '',
+          pix_key: row['Chave PIX'] || '',
+          vacation_due_date: row['Vencimento Férias'] || '',
+          vacation_limit_date: row['Limite Férias'] || '',
         });
         count++;
       }
