@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -49,13 +49,13 @@ export default function Reports() {
   const [headcountData, setHeadcountData] = useState<any[]>([]);
 
   // Mapeia os dados do banco para o formato da UI
-  const employees = dbEmployees.map((emp: any) => ({
+  const employees = useMemo(() => dbEmployees.map((emp: any) => ({
     ...emp,
     baseSalary: emp.base_salary || 0,
     hasInsalubrity: emp.has_insalubrity || false,
     hasNightShift: emp.has_night_shift || false,
     vacationDueDate: emp.vacation_due_date,
-  }));
+  })), [dbEmployees]);
 
   useEffect(() => {
     let isMounted = true;
