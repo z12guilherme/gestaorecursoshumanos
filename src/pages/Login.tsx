@@ -70,7 +70,7 @@ export default function LoginPage() {
                         <input
                           type="email"
                           id="form2Example11"
-                          className="peer w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-indigo-500 placeholder-transparent"
+                          className="peer w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-indigo-500 placeholder-transparent text-black"
                           placeholder="Phone number or email address"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -88,7 +88,7 @@ export default function LoginPage() {
                         <input
                           type="password"
                           id="form2Example22"
-                          className="peer w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-indigo-500 placeholder-transparent"
+                          className="peer w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-indigo-500 placeholder-transparent text-black"
                           placeholder="Password"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
@@ -115,8 +115,16 @@ export default function LoginPage() {
                         </a>
                       </div>
 
-                     
-                      
+                      <div className="flex items-center justify-center mb-4">
+                        <button
+                          type="button"
+                          className="text-sm font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
+                          onClick={() => navigate('/clock-in')}
+                        >
+                          Acessar Terminal de Ponto
+                        </button>
+                      </div>
+
                       <div className="flex justify-center mt-2">
                          <ManualModal />
                       </div>
