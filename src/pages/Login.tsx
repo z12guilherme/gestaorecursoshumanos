@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from '@/components/ui/label';
-import { LayoutDashboard, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,7 +14,6 @@ export default function LoginPage() {
   const { session } = useAuth();
 
   useEffect(() => {
-    // Se já estiver logado, redireciona para o dashboard
     if (session) {
       navigate("/");
     }
@@ -37,8 +32,6 @@ export default function LoginPage() {
       if (error) {
         throw error;
       }
-
-      // O AuthProvider no App.tsx detectará a sessão e o redirecionamento acontecerá
       navigate("/");
     } catch (error: any) {
       toast({
@@ -51,146 +44,101 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full lg:grid lg:grid-cols-2">
-      {/* Left Side - Hero/Branding */}
-      <div className="hidden lg:flex flex-col justify-between bg-zinc-900 p-10 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-zinc-900">
-           {/* Abstract Pattern */}
-           <div className="absolute top-0 left-0 w-full h-full opacity-20">
-              <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary blur-[100px]" />
-              <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600 blur-[100px]" />
-           </div>
-        </div>
-        
-        <div className="relative z-10 flex items-center gap-2 text-lg font-medium">
-          <img 
-            src="/icone.png" 
-            alt="Logo" 
-            className="h-8 w-8 rounded-lg object-contain"
-          />
-          GestaoRH
-        </div>
+    <section className="min-h-screen bg-gray-200 flex items-center justify-center py-10">
+      <div className="container mx-auto px-4 h-full">
+        <div className="flex justify-center items-center h-full">
+          <div className="w-full max-w-5xl">
+            <div className="bg-white rounded-lg shadow-xl overflow-hidden">
+              <div className="flex flex-wrap">
+                {/* Left Column */}
+                <div className="w-full lg:w-1/2">
+                  <div className="p-8 md:px-12 md:py-10">
+                    <div className="text-center mb-8">
+                      <img
+                        src="/icone.png"
+                        style={{ width: "285px" }}
+                        alt="logo"
+                        className="mx-auto"
+                      />
+                      <h4 className="mt-4 mb-5 pb-1 text-xl font-semibold">Gestão de Recursos Humanos REDE DMI</h4>
+                    </div>
 
-        <div className="relative z-10 space-y-6 max-w-lg">
-          <h1 className="text-4xl font-bold tracking-tight">
-            Transforme a gestão de pessoas da sua empresa.
-          </h1>
-          <div className="space-y-4 text-zinc-300">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-              <span>Controle completo de colaboradores e férias</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-              <span>Processos de recrutamento simplificados</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-              <span>Análises inteligentes com IA</span>
-            </div>
-          </div>
-        </div>
+                    <form onSubmit={handleLogin}>
+                      
 
-        <div className="relative z-10 text-sm text-zinc-400">
-          &copy; 2026 GestaoRH Inc.
-        </div>
-      </div>
+                      <div className="mb-4 relative">
+                        <input
+                          type="email"
+                          id="form2Example11"
+                          className="peer w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-indigo-500 placeholder-transparent"
+                          placeholder="Phone number or email address"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                        <label 
+                          htmlFor="form2Example11"
+                          className="absolute left-3 -top-2.5 bg-white px-1 text-xs text-gray-600 transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-500"
+                        >
+                          Username
+                        </label>
+                      </div>
 
-      {/* Right Side - Form */}
-      <div className="flex items-center justify-center p-4 md:p-8 bg-background">
-        <div className="mx-auto w-full max-w-sm space-y-8">
-          <div className="flex flex-col space-y-2 text-center lg:text-left">
-            <div className="lg:hidden flex items-center justify-center gap-2 mb-4">
-              <img 
-                src="/icone.png" 
-                alt="Logo" 
-                className="h-10 w-10 rounded-lg object-contain"
-              />
-              <span className="font-semibold text-xl">GestaoRH</span>
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Acesso Administrativo
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Área restrita para gestores e RH.
-            </p>
-          </div>
+                      <div className="mb-4 relative">
+                        <input
+                          type="password"
+                          id="form2Example22"
+                          className="peer w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-indigo-500 placeholder-transparent"
+                          placeholder="Password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                        />
+                        <label 
+                          htmlFor="form2Example22"
+                          className="absolute left-3 -top-2.5 bg-white px-1 text-xs text-gray-600 transition-all peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-500"
+                        >
+                          Password
+                        </label>
+                      </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail corporativo</Label>
-                <Input
-                  id="email"
-                  placeholder="nome@empresa.com"
-                  type="email"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  autoCorrect="off"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Senha</Label>
-                  <a href="#" className="text-xs font-medium text-primary hover:underline">
-                    Esqueceu a senha?
-                  </a>
+                      <div className="text-center pt-1 mb-5 pb-1 flex flex-col items-center">
+                        <button
+                          className="w-full px-4 py-3 text-white rounded shadow-md mb-3 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 hover:shadow-lg transition-all"
+                          type="submit"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? "Logging in..." : "Log in"}
+                        </button>
+                        <a className="text-gray-500 hover:text-gray-700 text-sm" href="#!">
+                          Esqueceu a Senha?
+                        </a>
+                      </div>
+
+                     
+                      
+                      <div className="flex justify-center mt-2">
+                         <ManualModal />
+                      </div>
+                    </form>
+                  </div>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="h-11"
-                />
+
+                {/* Right Column */}
+                <div className="w-full lg:w-1/2 flex items-center bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500">
+                  <div className="text-white px-8 py-10 md:p-12 mx-auto">
+                    <h4 className="mb-4 text-xl font-semibold">REDE DMI</h4>
+                    <p className="text-sm mb-0 leading-relaxed">
+                     Cuidado integral e acessível para todos
+                    Serviços médicos de excelência para sua saúde e bem-estar.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <Button 
-              type="submit" 
-              className="w-full h-11 group" 
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                "Entrando..."
-              ) : (
-                <>
-                  Entrar no Sistema
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </>
-              )}
-            </Button>
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Ou</span></div>
-            </div>
-            <Button type="button" variant="secondary" className="w-full h-11" onClick={() => navigate('/clock-in')}><Clock className="mr-2 h-4 w-4" /> Terminal de Ponto</Button>
-          </form>
-
-          <div className="flex justify-center pt-2">
-            <ManualModal />
           </div>
-
-          <p className="px-8 text-center text-sm text-muted-foreground">
-            Ao clicar em continuar, você concorda com nossos{" "}
-            <Link to="/terms" className="underline underline-offset-4 hover:text-primary">
-              Termos de Serviço
-            </Link>{" "}
-            e{" "}
-            <Link to="/privacy" className="underline underline-offset-4 hover:text-primary">
-              Política de Privacidade
-            </Link>
-            .
-          </p>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

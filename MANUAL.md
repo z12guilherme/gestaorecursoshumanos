@@ -14,7 +14,8 @@ Bem-vindo ao **GestãoRH**, a plataforma integrada para administração de recur
 6.  [Avaliação de Desempenho](#6-avaliação-de-desempenho)
 7.  [Comunicação Interna](#7-comunicação-interna)
 8.  [🤖 Manual do Assistente IA](#8-manual-do-assistente-ia)
-9.  [Configurações](#9-configurações)
+9.  [⚙️ Automações](#9-automações-scripts-python)
+10. [Configurações](#10-configurações)
 
 ---
 
@@ -145,7 +146,25 @@ Publique avisos no mural da empresa instantaneamente.
 
 ---
 
-## 9. Configurações
+## 9. ⚙️ Automações (Scripts Python)
+
+O módulo de **Automações** permite gerar scripts em Python para executar tarefas repetitivas fora do sistema.
+
+### Funcionalidades:
+*   **Templates Prontos:** Modelos pré-configurados para tarefas comuns (ex: E-mails de Aniversário, Relatório de Ponto, Setup de Onboarding).
+*   **Criar com IA:** Descreva uma tarefa personalizada e a Inteligência Artificial escreverá o código para você.
+*   **Biblioteca:** Salve seus scripts gerados para uso futuro.
+
+### Como usar:
+1.  Acesse o menu **Automações**.
+2.  Escolha um template ou use a aba **"Criar com IA"**.
+3.  Preencha os parâmetros ou descreva a tarefa.
+4.  Clique em **Gerar Script**.
+5.  Copie o código ou faça o download do arquivo `.py` para executar em sua máquina.
+
+---
+
+## 10. Configurações
 
 No menu **Configurações**, você pode personalizar o sistema:
 

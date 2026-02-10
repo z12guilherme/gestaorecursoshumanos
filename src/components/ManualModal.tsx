@@ -156,6 +156,22 @@ export function ManualModal() {
 
           <hr className="border-border" />
 
+          {/* 9. Automações */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground">9. Automações (Scripts)</h3>
+              <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+            <p>Gere scripts Python para automatizar tarefas externas.</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Templates:</strong> Scripts prontos para E-mails de Aniversário, Relatórios e Onboarding.</li>
+              <li><strong>Criar com IA:</strong> Descreva uma tarefa e a IA gera o código Python para você.</li>
+              <li><strong>Biblioteca:</strong> Salve e gerencie seus scripts personalizados.</li>
+            </ul>
+          </section>
+
+          <hr className="border-border" />
+
           {/* Suporte */}
           <section className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg flex gap-3 items-start">
             <HelpCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
