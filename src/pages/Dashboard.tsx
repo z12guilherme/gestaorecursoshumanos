@@ -41,8 +41,12 @@ export default function Dashboard() {
     // Usa os valores reais cadastrados ou 0
     const insalubrityValue = Number(emp.insalubrity_amount) || 0;
     const nightShiftValue = Number(emp.night_shift_amount) || 0;
+    const familySalary = Number(emp.family_salary_amount) || 0;
+    const overtime = Number(emp.overtime_amount) || 0;
+    const vacation = Number(emp.vacation_amount) || 0;
+    const vacationThird = Number(emp.vacation_third_amount) || 0;
 
-    acc.payroll += base + insalubrityValue + nightShiftValue;
+    acc.payroll += base + insalubrityValue + nightShiftValue + familySalary + overtime + vacation + vacationThird;
     if (emp.hasInsalubrity) acc.insalubrityCount++;
     if (emp.hasNightShift) acc.nightShiftCount++;
 

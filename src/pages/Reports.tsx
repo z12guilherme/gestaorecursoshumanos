@@ -177,7 +177,12 @@ export default function Reports() {
     const base = Number(emp.baseSalary) || 0;
     const insalubrityValue = Number(emp.insalubrity_amount) || 0;
     const nightShiftValue = Number(emp.night_shift_amount) || 0;
-    acc.payroll += base + insalubrityValue + nightShiftValue;
+    const familySalary = Number(emp.family_salary_amount) || 0;
+    const overtime = Number(emp.overtime_amount) || 0;
+    const vacation = Number(emp.vacation_amount) || 0;
+    const vacationThird = Number(emp.vacation_third_amount) || 0;
+
+    acc.payroll += base + insalubrityValue + nightShiftValue + familySalary + overtime + vacation + vacationThird;
     
     if (emp.vacationDueDate) {
         const due = new Date(emp.vacationDueDate);
@@ -229,8 +234,34 @@ export default function Reports() {
         columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } }
     });
 
-    // 2. Histórico de Férias
+    // 1.5 Dados Financeiros
     let finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.text('Dados Financeiros', 14, finalY);
+
+    const financialData = [
+        ['Salário Base:', `R$ ${Number(selectedEmployee.baseSalary).toFixed(2)}`],
+        ['Insalubridade:', selectedEmployee.hasInsalubrity ? `Sim (R$ ${Number(selectedEmployee.insalubrity_amount || 0).toFixed(2)})` : 'Não'],
+        ['Adicional Noturno:', selectedEmployee.hasNightShift ? `Sim (R$ ${Number(selectedEmployee.night_shift_amount || 0).toFixed(2)})` : 'Não'],
+        ['Salário Família:', `R$ ${Number(selectedEmployee.family_salary_amount || 0).toFixed(2)}`],
+        ['Horas Extras:', `R$ ${Number(selectedEmployee.overtime_amount || 0).toFixed(2)}`],
+        ['Férias (Valor):', `R$ ${Number(selectedEmployee.vacation_amount || 0).toFixed(2)}`],
+        ['1/3 Férias:', `R$ ${Number(selectedEmployee.vacation_third_amount || 0).toFixed(2)}`],
+        ['Descontos Fixos:', `R$ ${Number(selectedEmployee.fixed_discounts || 0).toFixed(2)}`],
+        ['Chave PIX:', selectedEmployee.pix_key || '-']
+    ];
+
+    autoTable(doc, {
+        startY: finalY + 5,
+        head: [],
+        body: financialData,
+        theme: 'plain',
+        styles: { fontSize: 10, cellPadding: 1.5 },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
+    });
+
+    // 2. Histórico de Férias
+    finalY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(14);
     doc.text('Histórico de Férias e Ausências', 14, finalY);
     
