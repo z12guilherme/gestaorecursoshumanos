@@ -38,9 +38,9 @@ export default function Dashboard() {
     if (['terminated', 'Desligado'].includes(emp.status)) return acc;
 
     const base = Number(emp.baseSalary) || 0;
-    // Estimativas: Insalubridade (20% do mínimo 1412) e Noturno (20% do base)
-    const insalubrityValue = emp.hasInsalubrity ? 1412 * 0.20 : 0;
-    const nightShiftValue = emp.hasNightShift ? base * 0.20 : 0;
+    // Usa os valores reais cadastrados ou 0
+    const insalubrityValue = Number(emp.insalubrity_amount) || 0;
+    const nightShiftValue = Number(emp.night_shift_amount) || 0;
 
     acc.payroll += base + insalubrityValue + nightShiftValue;
     if (emp.hasInsalubrity) acc.insalubrityCount++;

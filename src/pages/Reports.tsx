@@ -16,6 +16,8 @@ import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PayrollReport from '@/components/reports/PayrollReport';
+import TimeSheetReport from '@/components/reports/TimeSheetReport';
 
 const requestTypeLabels: Record<string, string> = {
   vacation: 'Férias',
@@ -173,8 +175,8 @@ export default function Reports() {
   const financialStats = employees.reduce((acc, emp) => {
     if (['terminated', 'Desligado'].includes(emp.status)) return acc;
     const base = Number(emp.baseSalary) || 0;
-    const insalubrityValue = emp.hasInsalubrity ? 1412 * 0.20 : 0;
-    const nightShiftValue = emp.hasNightShift ? base * 0.20 : 0;
+    const insalubrityValue = Number(emp.insalubrity_amount) || 0;
+    const nightShiftValue = Number(emp.night_shift_amount) || 0;
     acc.payroll += base + insalubrityValue + nightShiftValue;
     
     if (emp.vacationDueDate) {
@@ -372,6 +374,10 @@ export default function Reports() {
              </>
            )}
          </div>
+
+         <PayrollReport />
+         <TimeSheetReport />
+
          <Card>
             <CardHeader>
                 <CardTitle>Relatório Geral por Funcionário</CardTitle>

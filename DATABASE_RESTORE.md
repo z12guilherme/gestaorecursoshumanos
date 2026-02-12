@@ -61,6 +61,16 @@ CREATE TABLE public.jobs (
   CONSTRAINT jobs_pkey PRIMARY KEY (id)
 );
 
+-- 11. Tabela de Sugestões (Ouvidoria)
+CREATE TABLE public.suggestions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  customer_name text,
+  contact_info text,
+  content text NOT NULL,
+  status text DEFAULT 'Nova'::text, -- Nova, Lida, Arquivada
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT suggestions_pkey PRIMARY KEY (id)
+);
 -- 3. Tabela de Candidatos (Depende de Jobs)
 CREATE TABLE public.candidates (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -288,4 +298,14 @@ ADD COLUMN IF NOT EXISTS fixed_discounts numeric,
 ADD COLUMN IF NOT EXISTS contracted_hours numeric,
 ADD COLUMN IF NOT EXISTS has_insalubrity boolean DEFAULT false,
 ADD COLUMN IF NOT EXISTS has_night_shift boolean DEFAULT false;
+
+-- Adicionar campos financeiros detalhados (V3)
+ALTER TABLE public.employees
+ADD COLUMN IF NOT EXISTS family_salary_amount numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS insalubrity_amount numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS night_shift_amount numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS overtime_amount numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS vacation_amount numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS vacation_third_amount numeric DEFAULT 0,
+ADD COLUMN IF NOT EXISTS variable_discounts jsonb DEFAULT '[]'::jsonb;
 ```

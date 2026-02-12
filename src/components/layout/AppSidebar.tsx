@@ -16,7 +16,8 @@ import {
   Workflow,
   FileText,
   Clock,
-  LifeBuoy
+  LifeBuoy,
+  MessageCircle
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -51,6 +52,7 @@ const mainNavItems = [
   { title: 'Chamados', url: '/tickets', icon: LifeBuoy },
   { title: 'Relatórios', url: '/reports', icon: FileText },
   { title: 'Comunicação', url: '/communication', icon: MessageSquare },
+  { title: 'Ouvidoria', url: '/suggestions', icon: MessageCircle },
 ];
 
 const toolsNavItems = [

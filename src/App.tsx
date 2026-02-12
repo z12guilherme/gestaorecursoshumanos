@@ -27,6 +27,8 @@ import Support from "./pages/Support";
 import { ReloadPrompt } from "@/components/ReloadPrompt";
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Suggestions from "@/pages/Suggestions";
+import PublicSuggestion from "@/pages/PublicSuggestion";
 
 
 const queryClient = new QueryClient();
@@ -56,6 +58,7 @@ const App = () => {
               <Route path="/jobs/:jobId" element={<JobDetails />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/sugestoes-publico" element={<PublicSuggestion />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/employees" element={<Employees />} />
@@ -66,6 +69,7 @@ const App = () => {
                 <Route path="/timesheet" element={<TimesheetPage />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/communication" element={<Communication />} />
+                <Route path="/suggestions" element={<Suggestions />} />
                 <Route path="/ai-assistant" element={<AIAssistant />} />
                 <Route path="/automations" element={<Automations />} />
                 <Route path="/tickets" element={<Support />} />

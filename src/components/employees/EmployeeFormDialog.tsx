@@ -236,6 +236,18 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 </SelectContent>
               </Select>
             </div>
+            {formData.hasInsalubrity && (
+              <div className="space-y-2">
+                <Label htmlFor="insalubrityAmount">Valor Insalubridade (R$)</Label>
+                <Input
+                  id="insalubrityAmount"
+                  type="number"
+                  step="0.01"
+                  value={(formData as any).insalubrityAmount || ''}
+                  onChange={(e) => setFormData({ ...formData, insalubrityAmount: parseFloat(e.target.value) } as any)}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="hasNightShift">Adicional Noturno</Label>
               <Select
@@ -251,6 +263,18 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 </SelectContent>
               </Select>
             </div>
+            {formData.hasNightShift && (
+              <div className="space-y-2">
+                <Label htmlFor="nightShiftAmount">Valor Adicional Noturno (R$)</Label>
+                <Input
+                  id="nightShiftAmount"
+                  type="number"
+                  step="0.01"
+                  value={(formData as any).nightShiftAmount || ''}
+                  onChange={(e) => setFormData({ ...formData, nightShiftAmount: parseFloat(e.target.value) } as any)}
+                />
+              </div>
+            )}
 
             {/* Novos Campos de Documentação */}
             <div className="col-span-2 border-t pt-4 mt-2">
