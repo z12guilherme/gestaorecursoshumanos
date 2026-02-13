@@ -17,7 +17,8 @@ import {
   FileText,
   Clock,
   LifeBuoy,
-  MessageCircle
+  MessageCircle,
+  DollarSign
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -45,6 +46,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Colaboradores', url: '/employees', icon: Users },
+  { title: 'Salários e Pagamentos', url: '/payroll', icon: DollarSign },
   { title: 'Recrutamento', url: '/recruitment', icon: Briefcase },
   { title: 'Avaliações', url: '/performance', icon: Star },
   { title: 'Férias & Ausências', url: '/absences', icon: Calendar },

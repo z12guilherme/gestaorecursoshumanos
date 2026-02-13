@@ -38,6 +38,7 @@ O módulo de colaboradores é o coração do sistema.
 *   **Importação:** Utilize o botão de importação para carregar planilhas Excel com múltiplos funcionários de uma vez.
 *   **Perfil Detalhado:** Clique em um nome para ver o histórico completo, alterar senha do ponto ou editar dados.
 *   **Desligamento:** Processo de demissão que altera o status para "Desligado" e arquiva o histórico.
+*   **Holerite:** Gere o recibo de pagamento em PDF com base nos dados financeiros cadastrados.
 
 ---
 

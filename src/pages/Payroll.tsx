@@ -11,6 +11,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PayslipButton } from '@/components/PayslipButton';
 
 export default function Payroll() {
   const { employees: dbEmployees, loading } = useEmployees();
@@ -88,11 +89,11 @@ export default function Payroll() {
       return [
         emp.name,
         emp.role,
-        `R$ ${calc.baseSalary.toFixed(2)}`,
-        `R$ ${calc.insalubrity.toFixed(2)}`,
-        `R$ ${calc.overtimeValue.toFixed(2)}`,
-        `R$ ${calc.totalDiscounts.toFixed(2)}`,
-        `R$ ${calc.netSalary.toFixed(2)}`
+        calc.baseSalary.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        calc.insalubrity.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        calc.overtimeValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        calc.totalDiscounts.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        calc.netSalary.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
       ];
     });
 
@@ -145,6 +146,7 @@ export default function Payroll() {
                   <TableHead>Horas Extras</TableHead>
                   <TableHead>Descontos</TableHead>
                   <TableHead className="text-right">Salário Líquido</TableHead>
+                  <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -188,6 +190,16 @@ export default function Payroll() {
                         <TableCell className="text-red-600">- R$ {calc.totalDiscounts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-right font-bold text-emerald-600">
                           R$ {calc.netSalary.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <PayslipButton 
+                            employee={{
+                              ...emp,
+                              insalubrity_amount: calc.insalubrity,
+                              night_shift_amount: calc.nightShift,
+                              overtime_amount: calc.overtimeValue
+                            }} 
+                          />
                         </TableCell>
                       </TableRow>
                     );
