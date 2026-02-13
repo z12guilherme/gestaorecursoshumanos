@@ -33,8 +33,8 @@ interface PayslipButtonProps {
 
 export const PayslipButton: React.FC<PayslipButtonProps> = ({
   employee,
-  companyName = "Empresa Modelo Ltda", // Você pode puxar isso do contexto de Settings futuramente
-  companyCNPJ = "00.000.000/0001-00",
+  companyName = "HOSPITAL DMI LTDA", // Você pode puxar isso do contexto de Settings futuramente
+  companyCNPJ = "30.882.426/0001-87",
   referenceDate = new Date()
 }) => {
 
@@ -46,43 +46,50 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     const doc = new jsPDF();
 
     // --- Cabeçalho ---
-    doc.setFontSize(14);
+    // Lado Esquerdo: Empresa
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text(companyName, 14, 15);
     
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text(`CNPJ: ${companyCNPJ}`, 14, 20);
     
-    doc.setFontSize(16);
+    // Lado Direito: Título e Referência
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("RECIBO DE PAGAMENTO DE SALÁRIO", 105, 15, { align: "center" });
+    doc.text("RECIBO DE PAGAMENTO", 196, 15, { align: "right" });
 
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     const period = format(referenceDate, "MMMM 'de' yyyy", { locale: ptBR }).toUpperCase();
-    doc.text(`Referência: ${period}`, 195, 20, { align: "right" });
+    doc.text(`Referência: ${period}`, 196, 20, { align: "right" });
 
     // --- Caixa de Dados do Funcionário ---
+    const boxY = 25;
     doc.setDrawColor(0);
-    doc.setFillColor(245, 245, 245);
-    doc.rect(14, 25, 182, 15, "F"); // Fundo
-    doc.rect(14, 25, 182, 15); // Borda
+    doc.setFillColor(250, 250, 250);
+    doc.rect(14, boxY, 182, 14, "F"); // Fundo
+    doc.rect(14, boxY, 182, 14); // Borda
 
-    doc.setFontSize(8);
+    // Rótulos
+    doc.setFontSize(7);
     doc.setTextColor(100);
-    doc.text("CÓDIGO", 16, 29);
-    doc.text("NOME DO FUNCIONÁRIO", 40, 29);
-    doc.text("CARGO", 120, 29);
-    doc.text("DEPARTAMENTO", 160, 29);
+    doc.text("CÓDIGO", 16, boxY + 4);
+    doc.text("NOME DO FUNCIONÁRIO", 35, boxY + 4);
+    doc.text("CARGO", 115, boxY + 4);
+    doc.text("DEPARTAMENTO", 160, boxY + 4);
 
-    doc.setFontSize(10);
+    // Valores
+    doc.setFontSize(9);
     doc.setTextColor(0);
     doc.setFont("helvetica", "bold");
-    doc.text(employee.id.substring(0, 6).toUpperCase(), 16, 35); // Código fictício usando parte do ID
-    doc.text(employee.name.toUpperCase(), 40, 35);
-    doc.text(employee.role?.toUpperCase() || "-", 120, 35);
-    doc.text(employee.department?.toUpperCase() || "-", 160, 35);
+    
+    // Usando substring para evitar sobreposição se o texto for muito longo
+    doc.text(employee.id.substring(0, 6).toUpperCase(), 16, boxY + 10);
+    doc.text(employee.name.toUpperCase().substring(0, 35), 35, boxY + 10);
+    doc.text((employee.role?.toUpperCase() || "-").substring(0, 25), 115, boxY + 10);
+    doc.text((employee.department?.toUpperCase() || "-").substring(0, 15), 160, boxY + 10);
 
     // --- Preparação dos Dados Financeiros ---
     const earnings = [
@@ -122,15 +129,29 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
     // --- Tabela ---
     autoTable(doc, {
-      startY: 45,
+      startY: boxY + 18,
       head: [['Cód.', 'Descrição', 'Ref.', 'Vencimentos', 'Descontos']],
       body: rows,
-      theme: 'plain',
-      styles: { fontSize: 9, cellPadding: 1.5 },
-      headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
+      theme: 'grid',
+      styles: { 
+        fontSize: 8, 
+        cellPadding: 2,
+        lineColor: [220, 220, 220],
+        lineWidth: 0.1,
+      },
+      headStyles: { 
+        fillColor: [240, 240, 240], 
+        textColor: 20, 
+        fontStyle: 'bold',
+        lineWidth: 0.1,
+        lineColor: [200, 200, 200]
+      },
       columnStyles: {
-        0: { cellWidth: 15 }, 1: { cellWidth: 80 }, 2: { cellWidth: 15 },
-        3: { cellWidth: 35, halign: 'right' }, 4: { cellWidth: 35, halign: 'right' },
+        0: { cellWidth: 12 }, 
+        1: { cellWidth: 'auto' }, 
+        2: { cellWidth: 15, halign: 'center' },
+        3: { cellWidth: 30, halign: 'right' }, 
+        4: { cellWidth: 30, halign: 'right' },
       },
       margin: { left: 14, right: 14 }
     });
@@ -138,33 +159,46 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     const finalY = (doc as any).lastAutoTable.finalY;
 
     // --- Rodapé e Totais ---
+    // Caixa de Totais
     doc.setDrawColor(0);
-    doc.line(14, finalY + 2, 196, finalY + 2);
-    doc.setFontSize(9);
+    doc.setFillColor(240, 240, 240);
+    doc.rect(14, finalY, 182, 8, "F");
+    doc.rect(14, finalY, 182, 8);
+
+    doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     
-    doc.text("Total Vencimentos", 110, finalY + 8);
-    doc.text(formatCurrency(totalEarnings), 145, finalY + 8, { align: "right" });
+    doc.text("TOTAIS", 120, finalY + 5.5);
     
-    doc.text("Total Descontos", 160, finalY + 8);
-    doc.text(formatCurrency(totalDiscounts), 195, finalY + 8, { align: "right" });
+    // Alinhamento manual com as colunas da tabela (margem direita 14, col 4 width 30, col 3 width 30)
+    // Coluna Descontos termina em 196 (210 - 14). Centro ~181.
+    // Coluna Vencimentos termina em 166. Centro ~151.
+    doc.text(formatCurrency(totalEarnings), 164, finalY + 5.5, { align: "right" });
+    doc.text(formatCurrency(totalDiscounts), 194, finalY + 5.5, { align: "right" });
 
     // Caixa Líquido
-    doc.setFillColor(230, 230, 230);
-    doc.rect(140, finalY + 12, 56, 12, "F");
-    doc.rect(140, finalY + 12, 56, 12);
-    doc.setFontSize(11);
-    doc.text("LÍQUIDO A RECEBER", 142, finalY + 20);
-    doc.text(formatCurrency(netPay), 194, finalY + 20, { align: "right" });
+    const netY = finalY + 12;
+    doc.setFillColor(255, 255, 255);
+    doc.rect(14, netY, 182, 12); // Caixa transparente ou branca
+    
+    doc.setFontSize(9);
+    doc.text("LÍQUIDO A RECEBER", 16, netY + 8);
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(formatCurrency(netPay), 194, netY + 8, { align: "right" });
 
-    // Assinatura
-    const pageHeight = doc.internal.pageSize.height;
+    // Assinatura e Declaração
+    const footerY = netY + 25;
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text(`Declaramos ter recebido a importância líquida de ${formatCurrency(netPay)}`, 14, pageHeight - 40);
-    doc.text(`Data: ____/____/________`, 14, pageHeight - 30);
-    doc.line(100, pageHeight - 30, 190, pageHeight - 30);
-    doc.text("Assinatura do Funcionário", 145, pageHeight - 25, { align: "center" });
+    
+    doc.text(`Declaramos ter recebido a importância líquida de ${formatCurrency(netPay)}, referente ao pagamento do salário do mês acima.`, 14, footerY);
+    
+    doc.text(`Data: ____/____/________`, 14, footerY + 15);
+    
+    doc.line(100, footerY + 15, 190, footerY + 15);
+    doc.text("Assinatura do Funcionário", 145, footerY + 20, { align: "center" });
 
     doc.save(`Holerite_${employee.name.replace(/\s+/g, '_')}_${format(referenceDate, 'MM-yyyy')}.pdf`);
   };
