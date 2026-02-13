@@ -7,9 +7,10 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Coffee, LogIn, LogOut, MapPin, MessageSquare, Download, Clock } from 'lucide-react';
+import { CheckCircle2, XCircle, Coffee, LogIn, LogOut, MapPin, MessageSquare, Download, Clock, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
 import {
   Dialog,
   DialogContent,
@@ -139,8 +140,31 @@ export default function Timesheet() {
     XLSX.writeFile(wb, `Espelho_Ponto_${selectedDate}.xlsx`);
   };
 
+  const handleDownloadCodeOfEthics = () => {
+    const doc = new jsPDF();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("CÓDIGO DE ÉTICA E CONDUTA", 105, 20, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Este documento estabelece os princípios éticos da nossa empresa.", 20, 40);
+    doc.text("1. Respeito mútuo e diversidade.", 20, 50);
+    doc.text("2. Integridade e transparência nas ações.", 20, 60);
+    doc.text("3. Compromisso com a qualidade e segurança.", 20, 70);
+    doc.text("4. Confidencialidade das informações.", 20, 80);
+    
+    doc.save("Codigo_de_Etica.pdf");
+  };
+
   return (
     <AppLayout title="Controle de Ponto" subtitle="Registros de entrada e saída dos colaboradores">
+      <div className="mb-4">
+        <Button variant="outline" size="sm" onClick={handleDownloadCodeOfEthics} className="gap-2">
+          <FileText className="h-4 w-4" />
+          Baixar Código de Ética
+        </Button>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Coluna de Status Diário */}
         <div className="lg:col-span-1 space-y-4">
