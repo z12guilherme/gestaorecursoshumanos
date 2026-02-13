@@ -184,7 +184,7 @@ export default function Payroll() {
                               min="0"
                               onChange={(e) => handleOvertimeChange(emp.id, e.target.value)}
                             />
-                            <span className="text-xs text-muted-foreground">R$ {calc.overtimeValue.toFixed(2)}</span>
+                            <span className="text-xs text-muted-foreground">{calc.overtimeValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-red-600">- R$ {calc.totalDiscounts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
