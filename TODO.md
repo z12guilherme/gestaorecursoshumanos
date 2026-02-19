@@ -1,6 +1,23 @@
-## 🎯 Sprint Atual (Melhorias Solicitadas)
+## 🎯 Sprint Atual (Novas Funcionalidades)
 
-### 💰 Financeiro e Folha de Pagamento
+###  Gestão de Documentos (Digitalização)
+- [x] **Módulo de Arquivos no Perfil:**
+  - [x] Criar aba "Documentos" na edição do colaborador.
+  - [x] Implementar Upload para o Supabase Storage (Bucket `documents`).
+  - [x] Listagem e Download de arquivos (CNH, Contrato, Atestados).
+  - [x] Permissão de exclusão (apenas Admin/RH).
+
+### 📊 Dashboard Gerencial (Analytics)
+- [x] **Gráficos e Indicadores:**
+  - [x] Gráfico de Pizza: Distribuição de Custo de Folha por Departamento.
+  - [x] Gráfico de Barras: Total de Horas Extras por Mês.
+  - [x] Card de KPI: Taxa de Rotatividade (Turnover).
+
+---
+
+## ✅ Sprint Anterior (Concluída)
+
+### 💰 Financeiro e Folha
 - [x] **Dados Financeiros no Cadastro (Edição de Colaborador):**
   - [x] Campos de Valores: Salário Família, Hora Extra, Férias, 1/3 de Férias.
   - [x] Insalubridade e Adicional Noturno: Opção Sim/Não + Campo para digitar o valor monetário.
@@ -13,7 +30,7 @@
   - [x] Incluir Chave PIX no relatório.
   - [x] Exportação para Excel/Planilha.
 
-### 🗣️ Ouvidoria e Sugestões (Novo Módulo)
+### 🗣️ Ouvidoria e Sugestões
 - [x] **Banco de Dados:** Criar tabela de sugestões.
  - [x] **Página Pública:** Formulário acessível via QR Code (sem login) para clientes enviarem sugestões.
  - [x] **Painel Interno:** Aba no sistema para o RH visualizar as sugestões recebidas.
@@ -21,3 +38,5 @@
 
 ### 🕒 Ponto e Relatórios
 - [x] **Relatório de Ponto Mensal:** Exportação com cálculo de horas trabalhadas vs contratadas (Saldo de horas).
+- [x] **Geolocalização:** Registro de latitude/longitude no ponto.
+- [x] **Tema Escuro:** Implementação de Dark Mode.

@@ -91,16 +91,12 @@ export function EmployeeTable({ employees, onView, onEdit, onDelete, onEndVacati
                         Alterar Senha
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onView(employee)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver detalhes
+                        <Eye className="mr-2 h-4 w-4 text-blue-600" />
+                        Abrir Prontuário
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onEndVacation(employee.id)} disabled={employee.status !== 'vacation'}>
                         <Undo2 className="mr-2 h-4 w-4" />
                         Encerrar Férias
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(employee)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="text-destructive" onClick={() => onDelete(employee)} disabled={employee.status === 'terminated'}>

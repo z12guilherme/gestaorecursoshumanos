@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Employee, TimeOffRequest } from '@/types/hr';
 import {
   Sheet,
@@ -13,11 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User, Undo2, KeyRound, FileText, Upload, Trash2, Download } from "lucide-react";
+import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User, Undo2, KeyRound } from "lucide-react";
 import { format, differenceInDays, addDays, differenceInYears, addYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useDocuments } from '@/hooks/useDocuments';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmployeeDocuments } from "./EmployeeDocuments";
 
 interface EmployeeDetailSheetProps {
   employee: Employee | null;
@@ -32,26 +33,7 @@ interface EmployeeDetailSheetProps {
 export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenChange, onEdit, onEndVacation, onChangePassword }: EmployeeDetailSheetProps) {
   if (!employee) return null;
 
-  const { documents, uploadDocument, deleteDocument } = useDocuments(employee.id);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    const { error } = await uploadDocument(file, file.name);
-    setIsUploading(false);
-
-    if (error) {
-      toast({ title: "Erro no upload", description: "Não foi possível salvar o documento.", variant: "destructive" });
-    } else {
-      toast({ title: "Sucesso", description: "Documento anexado à ficha do colaborador." });
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
   const statusConfig: Record<string, { label: string; className: string }> = {
     active: { label: 'Ativo', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
@@ -124,13 +106,20 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
                 </Badge>
               </div>
             </div>
-            <Button variant="outline" size="icon" onClick={onEdit}>
+            <Button variant="outline" size="sm" onClick={onEdit} className="gap-2">
               <Edit className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar Dados</span>
             </Button>
           </div>
         </SheetHeader>
 
-        <div className="space-y-6">
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="details">Dados Cadastrais</TabsTrigger>
+            <TabsTrigger value="documents">Documentos</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details" className="space-y-6">
           {/* Vacation Status Card */}
           {employee.status === 'vacation' && (
             <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 space-y-4">
@@ -251,50 +240,12 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
             </div>
           </div>
 
-          <Separator />
+          </TabsContent>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Documentos & Laudos</h4>
-              <div className="relative">
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  ref={fileInputRef} 
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                />
-                <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                  <Upload className="h-3 w-3 mr-2" />
-                  {isUploading ? 'Enviando...' : 'Anexar'}
-                </Button>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              {documents.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">Nenhum documento anexado.</p>
-              ) : (
-                documents.map(doc => (
-                  <div key={doc.id} className="flex items-center justify-between p-2 rounded-md border bg-background hover:bg-accent/50 transition-colors">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <FileText className="h-4 w-4 text-blue-500 shrink-0" />
-                      <span className="text-sm truncate max-w-[180px]" title={doc.name}>{doc.name}</span>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(doc.url, '_blank')}>
-                        <Download className="h-3 w-3" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => deleteDocument(doc.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
+          <TabsContent value="documents">
+            <EmployeeDocuments employeeId={employee.id} />
+          </TabsContent>
+        </Tabs>
       </SheetContent>
     </Sheet>
   );
