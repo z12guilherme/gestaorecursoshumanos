@@ -1,5 +1,11 @@
 ## 🎯 Sprint Atual (Novas Funcionalidades)
 
+*(Aguardando novas tarefas)*
+
+---
+
+## ✅ Sprint Anterior (Concluída)
+
 ###  Gestão de Documentos (Digitalização)
 - [x] **Módulo de Arquivos no Perfil:**
   - [x] Criar aba "Documentos" na edição do colaborador.
@@ -12,10 +18,6 @@
   - [x] Gráfico de Pizza: Distribuição de Custo de Folha por Departamento.
   - [x] Gráfico de Barras: Total de Horas Extras por Mês.
   - [x] Card de KPI: Taxa de Rotatividade (Turnover).
-
----
-
-## ✅ Sprint Anterior (Concluída)
 
 ### 💰 Financeiro e Folha
 - [x] **Dados Financeiros no Cadastro (Edição de Colaborador):**
