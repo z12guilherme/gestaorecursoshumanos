@@ -7,7 +7,7 @@ import { ManualModal } from "@/components/ManualModal";
 import hsfBg from "@/assets/hsf.jpeg";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("mguimarcos39@gmail.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
