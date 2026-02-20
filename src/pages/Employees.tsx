@@ -133,15 +133,43 @@ export default function Employees() {
     setIsFormOpen(true);
   };
 
-  const handleSave = async (employeeData: Partial<Employee>) => {
+    const handleSave = async (employeeData: Partial<Employee>, photoFile?: File) => {
     try {
+      let avatarUrl = employeeData.avatar;
+
+      // Se houver nova foto, comprime e faz upload
+      if (photoFile) {
+        try {
+          const compressedFile = await compressImage(photoFile);
+          const fileExt = 'jpg'; // Forçamos jpg devido à compressão
+          const fileName = `employees/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+          const { data, error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, compressedFile, { upsert: true });
+
+          if (uploadError) throw uploadError;
+
+          const { data: publicUrlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+            
+          avatarUrl = publicUrlData.publicUrl;
+        } catch (imgError) {
+          console.error("Erro no upload da imagem:", imgError);
+          toast({ title: "Aviso", description: "Erro ao salvar foto, mas os dados serão salvos.", variant: "warning" });
+        }
+      }
+
       // Prepara o objeto para o formato do Banco de Dados
+      // NOTA: Não incluímos 'password' aqui para evitar sobrescrever na edição
       const dbPayload = {
         name: employeeData.name!,
         email: employeeData.email!,
         role: employeeData.position || (employeeData as any).role || '', // UI (position) -> DB (role)
         department: employeeData.department!,
         status: employeeData.status || 'active',
+        avatar_url: avatarUrl,
         admission_date: employeeData.hireDate || (employeeData as any).admissionDate || new Date().toISOString(),
         phone: employeeData.phone,
         contract_type: employeeData.contractType,
@@ -166,8 +194,10 @@ export default function Employees() {
 
       let result;
       if (selectedEmployee) {
+        // Na edição, enviamos apenas os dados acima (sem senha)
         result = await updateEmployee(selectedEmployee.id, dbPayload);
       } else {
+        // Na criação, adicionamos a senha padrão '1234'
         result = await addEmployee({ ...dbPayload, password: '1234' });
       }
 
@@ -187,6 +217,7 @@ export default function Employees() {
       });
     }
   };
+
 
   const handleEndVacation = async (employeeId: string) => {
     try {
