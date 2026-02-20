@@ -150,7 +150,6 @@ export default function Employees() {
         manager: employeeData.manager,
         work_schedule: employeeData.workSchedule,
         unit: employeeData.unit,
-        password: '1234', // Senha padrão para novos colaboradores
         // Campos Financeiros
         base_salary: (employeeData as any).baseSalary,
         fixed_discounts: (employeeData as any).fixedDiscounts,
@@ -169,7 +168,7 @@ export default function Employees() {
       if (selectedEmployee) {
         result = await updateEmployee(selectedEmployee.id, dbPayload);
       } else {
-        result = await addEmployee(dbPayload);
+        result = await addEmployee({ ...dbPayload, password: '1234' });
       }
 
       if (result.error) throw result.error;
