@@ -13,9 +13,10 @@ Bem-vindo ao **GestãoRH**, a plataforma integrada para administração de recur
 5.  [Ponto Eletrônico](#5-ponto-eletrônico)
 6.  [Avaliação de Desempenho](#6-avaliação-de-desempenho)
 7.  [Comunicação Interna](#7-comunicação-interna)
-8.  [🤖 Manual do Assistente IA](#8-manual-do-assistente-ia)
-9.  [⚙️ Automações](#9-automações-scripts-python)
-10. [Configurações](#10-configurações)
+8.  [Ouvidoria e Sugestões](#8-ouvidoria-e-sugestões)
+9.  [🤖 Manual do Assistente IA](#9-manual-do-assistente-ia)
+10. [⚙️ Automações](#10-automações-scripts-python)
+11. [Configurações](#11-configurações)
 
 ---
 
@@ -35,10 +36,12 @@ O módulo de colaboradores é o coração do sistema.
 ### Funcionalidades:
 *   **Listagem:** Visualize todos os funcionários com filtros por departamento e status.
 *   **Cadastro:** Adicione novos colaboradores manualmente preenchendo o formulário completo (Dados Pessoais, Cargo, Salário, etc.).
+*   **Documentos:** Na aba "Documentos" do perfil, faça upload de arquivos digitalizados (PDF/Imagens) como CNH, Contrato de Trabalho e Atestados.
+*   **Financeiro:** Configure adicionais (Insalubridade, Noturno), salário família e descontos variáveis para cálculo preciso da folha.
 *   **Importação:** Utilize o botão de importação para carregar planilhas Excel com múltiplos funcionários de uma vez.
 *   **Perfil Detalhado:** Clique em um nome para ver o histórico completo, alterar senha do ponto ou editar dados.
 *   **Desligamento:** Processo de demissão que altera o status para "Desligado" e arquiva o histórico.
-*   **Holerite:** Gere o recibo de pagamento em PDF com base nos dados financeiros cadastrados.
+*   **Holerite:** Gere o recibo de pagamento em PDF com base nos dados financeiros cadastrados, incluindo chave PIX.
 
 ---
 
@@ -67,7 +70,7 @@ Controle o calendário de folgas da equipe.
 O sistema possui dois modos de controle de ponto:
 
 1.  **Terminal de Ponto (Para o Funcionário):** Uma interface simplificada onde o colaborador seleciona seu nome e digita sua senha (PIN) para registrar entrada ou saída.
-2.  **Relatório de Ponto (Para o RH):** O gestor visualiza o espelho de ponto, com horários de entrada e saída, podendo filtrar por data e funcionário.
+2.  **Relatório de Ponto (Para o RH):** O gestor visualiza o espelho de ponto, com horários de entrada e saída, localização no mapa e cálculo de saldo de horas.
 
 ---
 
@@ -88,7 +91,17 @@ Mantenha a empresa informada através do **Mural de Avisos**.
 
 ---
 
-## 8. 🤖 Manual do Assistente IA
+## 8. Ouvidoria e Sugestões
+
+Gerencie o feedback recebido de clientes ou colaboradores externos.
+
+*   **Acesso Público:** O sistema gera uma página externa onde qualquer pessoa pode enviar sugestões.
+*   **QR Code:** No menu de Ouvidoria, clique em "Gerar QR Code" para imprimir um cartaz de divulgação.
+*   **Gestão:** O RH visualiza as mensagens recebidas, podendo marcá-las como lidas ou arquivadas.
+
+---
+
+## 9. 🤖 Manual do Assistente IA
 
 O **Assistente Virtual** é uma ferramenta poderosa para agilizar tarefas repetitivas. Você pode conversar com ele naturalmente ou usar comandos numéricos.
 
@@ -147,7 +160,7 @@ Publique avisos no mural da empresa instantaneamente.
 
 ---
 
-## 9. ⚙️ Automações (Scripts Python)
+## 10. ⚙️ Automações (Scripts Python)
 
 O módulo de **Automações** permite gerar scripts em Python para executar tarefas repetitivas fora do sistema.
 
@@ -165,7 +178,7 @@ O módulo de **Automações** permite gerar scripts em Python para executar tare
 
 ---
 
-## 10. Configurações
+## 11. Configurações
 
 No menu **Configurações**, você pode personalizar o sistema:
 

@@ -42,6 +42,8 @@ Visão panorâmica da empresa com métricas em tempo real.
 Controle total sobre o quadro de funcionários.
 - **Listagem e Busca**: Filtros avançados por departamento e status.
 - **CRUD Completo**: Adição, edição e visualização de detalhes.
+- **Gestão de Documentos**: Upload e armazenamento seguro de documentos (CNH, Contratos, Atestados).
+- **Financeiro Detalhado**: Cadastro de adicionais (Noturno, Insalubridade), descontos variáveis e geração de holerite.
 - **Ações Rápidas**: Concessão de férias, desligamento e alteração de status.
 - **Importação em Massa**: Suporte para importação de dados via arquivos Excel/CSV.
 
@@ -65,12 +67,20 @@ Interface pública para que os colaboradores registrem suas horas.
 ### 📋 Controle de Ponto
 Acompanhamento detalhado dos registros de ponto.
 - **Relatório Completo**: Lista com todos os eventos de entrada e saída dos funcionários.
+- **Geolocalização**: Visualização no mapa do local exato onde o ponto foi registrado.
+- **Saldo de Horas**: Cálculo automático de horas trabalhadas vs contratadas.
 - **Visualização Rápida**: Badges para identificar o tipo de registro.
 
 ### 📢 Comunicação Interna
 Canal direto com a equipe.
 - **Mural de Avisos**: Publicação de comunicados com níveis de prioridade (Alta, Média, Baixa).
 - **Histórico**: Registro de mensagens enviadas.
+
+### 🗣️ Ouvidoria & Sugestões
+Canal para feedback de clientes e colaboradores.
+- **Página Pública**: Formulário acessível via QR Code para envio de sugestões anônimas ou identificadas.
+- **Gestão de Tickets**: Painel interno para o RH visualizar e gerenciar as mensagens recebidas.
+- **Gerador de QR Code**: Ferramenta integrada para imprimir cartazes de divulgação.
 
 ### 🤖 Automações & IA
 Suporte inteligente para o gestor de RH.
