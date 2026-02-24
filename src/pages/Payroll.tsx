@@ -197,7 +197,11 @@ export default function Payroll() {
                               ...emp,
                               insalubrity_amount: calc.insalubrity,
                               night_shift_amount: calc.nightShift,
-                              overtime_amount: calc.overtimeValue
+                              overtime_amount: calc.overtimeValue,
+                              variable_discounts: [
+                                ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
+                                { description: "INSS / ENCARGOS", value: calc.baseSalary * 0.08 }
+                              ]
                             }} 
                           />
                         </TableCell>

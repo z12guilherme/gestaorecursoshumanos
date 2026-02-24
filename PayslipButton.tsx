@@ -22,6 +22,7 @@ interface Employee {
   vacation_third_amount: number;
   fixed_discounts: number;
   variable_discounts: any; // jsonb no banco
+  estimated_tax?: number;
 }
 
 interface PayslipButtonProps {
@@ -99,17 +100,33 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       { desc: "DESCONTOS FIXOS (INSS/VT)", value: Number(employee.fixed_discounts) }
     ];
 
+    if (employee.estimated_tax && employee.estimated_tax > 0) {
+      discounts.push({ desc: "INSS / ENCARGOS", value: Number(employee.estimated_tax) });
+    }
+
     // Processar descontos variáveis (JSONB)
     let varDiscounts: any[] = [];
-    if (Array.isArray(employee.variable_discounts)) {
-        varDiscounts = employee.variable_discounts;
-    } else if (typeof employee.variable_discounts === 'string') {
-        try { varDiscounts = JSON.parse(employee.variable_discounts); } catch (e) { varDiscounts = []; }
+    try {
+        if (Array.isArray(employee.variable_discounts)) {
+            varDiscounts = employee.variable_discounts;
+        } else if (typeof employee.variable_discounts === 'string') {
+            varDiscounts = JSON.parse(employee.variable_discounts);
+        }
+    } catch (e) {
+        varDiscounts = [];
     }
     
-    varDiscounts.forEach((d: any) => {
-        if (d.value > 0) discounts.push({ desc: d.description || "DIVERSOS", value: Number(d.value) });
-    });
+    if (Array.isArray(varDiscounts)) {
+        varDiscounts.forEach((d: any) => {
+            const val = Number(d.value);
+            if (!isNaN(val) && val > 0) {
+                discounts.push({ 
+                    desc: d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS", 
+                    value: val 
+                });
+            }
+        });
+    }
 
     // Montar linhas da tabela
     const rows: any[] = [];
@@ -161,7 +178,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     const pageHeight = doc.internal.pageSize.height;
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text(`Declaramos ter recebido a importância líquida de ${formatCurrency(netPay)}`, 14, pageHeight - 40);
+    doc.text(`Declaro ter recebido a importância líquida de ${formatCurrency(netPay)}`, 14, pageHeight - 40);
     doc.text(`Data: ____/____/________`, 14, pageHeight - 30);
     doc.line(100, pageHeight - 30, 190, pageHeight - 30);
     doc.text("Assinatura do Funcionário", 145, pageHeight - 25, { align: "center" });

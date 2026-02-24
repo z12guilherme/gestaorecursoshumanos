@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { departments } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
+import { Plus, Trash2 } from 'lucide-react';
 
 interface EmployeeFormDialogProps {
   open: boolean;
@@ -48,6 +49,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
     pixKey: '',
     vacationDueDate: '',
     vacationLimitDate: '',
+    variable_discounts: [],
   });
 
   useEffect(() => {
@@ -73,6 +75,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
         pixKey: '',
         vacationDueDate: '',
         vacationLimitDate: '',
+        variable_discounts: [],
       });
     }
   }, [employee]);
@@ -211,6 +214,77 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 onChange={(e) => setFormData({ ...formData, fixedDiscounts: parseFloat(e.target.value) })}
               />
             </div>
+
+            {/* Descontos Variáveis */}
+            <div className="col-span-2 space-y-3 border p-4 rounded-md bg-slate-50 dark:bg-slate-900/50">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm text-slate-700 dark:text-slate-300">Descontos Variáveis / Eventuais</h4>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const current = (formData as any).variable_discounts || [];
+                    setFormData({ 
+                      ...formData, 
+                      variable_discounts: [...current, { description: "", value: 0 }] 
+                    } as any);
+                  }}
+                  className="h-7 text-xs gap-1"
+                >
+                  <Plus className="h-3 w-3" /> Adicionar
+                </Button>
+              </div>
+              
+              {((formData as any).variable_discounts || []).length === 0 && (
+                <p className="text-xs text-muted-foreground italic">Nenhum desconto variável adicionado.</p>
+              )}
+
+              {((formData as any).variable_discounts || []).map((discount: any, index: number) => (
+                <div key={index} className="flex gap-2 items-end animate-in fade-in slide-in-from-top-1">
+                  <div className="flex-1">
+                    <Label className="text-[10px] uppercase text-muted-foreground">Descrição</Label>
+                    <Input
+                      value={discount.description}
+                      onChange={(e) => {
+                        const newDiscounts = [...((formData as any).variable_discounts || [])];
+                        newDiscounts[index].description = e.target.value;
+                        setFormData({ ...formData, variable_discounts: newDiscounts } as any);
+                      }}
+                      placeholder="Ex: Farmácia"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="w-28">
+                    <Label className="text-[10px] uppercase text-muted-foreground">Valor (R$)</Label>
+                    <Input
+                      type="number"
+                      value={discount.value}
+                      onChange={(e) => {
+                        const newDiscounts = [...((formData as any).variable_discounts || [])];
+                        newDiscounts[index].value = Number(e.target.value);
+                        setFormData({ ...formData, variable_discounts: newDiscounts } as any);
+                      }}
+                      placeholder="0.00"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      const newDiscounts = ((formData as any).variable_discounts || []).filter((_: any, i: number) => i !== index);
+                      setFormData({ ...formData, variable_discounts: newDiscounts } as any);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="contractedHours">Carga Horária Mensal</Label>
               <Input

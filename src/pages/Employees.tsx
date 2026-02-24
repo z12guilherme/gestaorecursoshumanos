@@ -73,6 +73,7 @@ export default function Employees() {
     pixKey: dbEmp.pix_key || '',
     vacationDueDate: dbEmp.vacation_due_date || '',
     vacationLimitDate: dbEmp.vacation_limit_date || '',
+    variable_discounts: dbEmp.variable_discounts || [],
   } as unknown as Employee));
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -190,6 +191,7 @@ export default function Employees() {
         pix_key: (employeeData as any).pixKey,
         vacation_due_date: (employeeData as any).vacationDueDate,
         vacation_limit_date: (employeeData as any).vacationLimitDate,
+        variable_discounts: (employeeData as any).variable_discounts,
       };
 
       let result;
