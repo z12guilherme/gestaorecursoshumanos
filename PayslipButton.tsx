@@ -97,7 +97,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     ].filter(item => item.value > 0);
 
     const discounts = [
-      { desc: "DESCONTOS FIXOS (INSS/VT)", value: Number(employee.fixed_discounts) }
+      { desc: "DESCONTOS FIXOS (PS/VT)", value: Number(employee.fixed_discounts) }
     ];
 
     if (employee.estimated_tax && employee.estimated_tax > 0) {
