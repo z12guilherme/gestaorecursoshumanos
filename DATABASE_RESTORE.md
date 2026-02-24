@@ -44,6 +44,14 @@ CREATE TABLE public.employees (
   contracted_hours numeric,
   has_insalubrity boolean DEFAULT false,
   has_night_shift boolean DEFAULT false,
+  family_salary_amount numeric DEFAULT 0,
+  insalubrity_amount numeric DEFAULT 0,
+  night_shift_amount numeric DEFAULT 0,
+  overtime_amount numeric DEFAULT 0,
+  vacation_amount numeric DEFAULT 0,
+  vacation_third_amount numeric DEFAULT 0,
+  variable_discounts jsonb DEFAULT '[]'::jsonb,
+  variable_additions jsonb DEFAULT '[]'::jsonb,
   CONSTRAINT employees_pkey PRIMARY KEY (id)
 );
 
@@ -181,6 +189,15 @@ CREATE TABLE public.settings (
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT settings_pkey PRIMARY KEY (id)
 );
+
+-- 12. Configurações de Folha (Tabelas Dinâmicas INSS/IRRF)
+CREATE TABLE public.payroll_configurations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  key text NOT NULL UNIQUE, -- Ex: 'inss_table'
+  value jsonb NOT NULL,     -- O array com as faixas
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payroll_configurations_pkey PRIMARY KEY (id)
+);
 ```
 
 ## 3. Configuração de Segurança (RLS)
@@ -309,4 +326,13 @@ ADD COLUMN IF NOT EXISTS vacation_amount numeric DEFAULT 0,
 ADD COLUMN IF NOT EXISTS vacation_third_amount numeric DEFAULT 0,
 ADD COLUMN IF NOT EXISTS variable_discounts jsonb DEFAULT '[]'::jsonb,
 ADD COLUMN IF NOT EXISTS variable_additions jsonb DEFAULT '[]'::jsonb;
+
+-- Tabela de Configurações de Folha (INSS/IRRF)
+CREATE TABLE IF NOT EXISTS public.payroll_configurations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  key text NOT NULL UNIQUE,
+  value jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payroll_configurations_pkey PRIMARY KEY (id)
+);
 ```

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,20 +12,32 @@ import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PayslipButton } from '@/components/PayslipButton';
+import { supabase } from '@/lib/supabase';
 
 export default function Payroll() {
   const { employees: dbEmployees, loading } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
   
   // Mapeia os dados do banco (snake_case) para o formato esperado (camelCase)
-  const employees = dbEmployees.map((emp: any) => ({
-    ...emp,
-    baseSalary: emp.base_salary || 0,
-    contractedHours: emp.contracted_hours || 220,
-    hasInsalubrity: emp.has_insalubrity || false,
-    hasNightShift: emp.has_night_shift || false,
-    fixedDiscounts: emp.fixed_discounts || 0,
-  }));
+  const employees = dbEmployees.map((emp: any) => {
+    // Garante que os campos JSON sejam arrays, mesmo se vierem como string do banco
+    let varDiscounts = [];
+    try { varDiscounts = typeof emp.variable_discounts === 'string' ? JSON.parse(emp.variable_discounts) : (emp.variable_discounts || []); } catch { varDiscounts = []; }
+
+    let varAdditions = [];
+    try { varAdditions = typeof emp.variable_additions === 'string' ? JSON.parse(emp.variable_additions) : (emp.variable_additions || []); } catch { varAdditions = []; }
+
+    return {
+      ...emp,
+      baseSalary: emp.base_salary || 0,
+      contractedHours: emp.contracted_hours || 220,
+      hasInsalubrity: emp.has_insalubrity || false,
+      hasNightShift: emp.has_night_shift || false,
+      fixedDiscounts: emp.fixed_discounts || 0,
+      variable_discounts: varDiscounts,
+      variable_additions: varAdditions
+    };
+  });
 
   // Estado local para horas extras (simulação de input mensal)
   const [overtimeData, setOvertimeData] = useState<Record<string, number>>({});
@@ -38,6 +50,49 @@ export default function Payroll() {
   const MINIMUM_WAGE = 1412.00; // Salário Mínimo 2024
   const INSALUBRITY_RATE = 0.20; // 20% (Grau Médio)
   const NIGHT_SHIFT_RATE = 0.20; // 20%
+
+  // Estado para armazenar a tabela do INSS (pode vir do banco)
+  const [inssTable, setInssTable] = useState([
+    { limit: 1621.00, rate: 0.075 },
+    { limit: 2902.84, rate: 0.09 },
+    { limit: 4354.27, rate: 0.12 },
+    { limit: 8475.55, rate: 0.14 }
+  ]);
+
+  // Buscar tabela atualizada do banco ao carregar
+  useEffect(() => {
+    const fetchTaxTable = async () => {
+      const { data } = await supabase
+        .from('payroll_configurations')
+        .select('value')
+        .eq('key', 'inss_table')
+        .single();
+      
+      if (data && Array.isArray(data.value)) {
+        setInssTable(data.value);
+      }
+    };
+    fetchTaxTable();
+  }, []);
+
+  // Função para cálculo progressivo do INSS (Dinâmica)
+  const calculateINSS = (grossSalary: number) => {
+    let discount = 0;
+    let previousLimit = 0;
+
+    for (const range of inssTable) {
+      if (grossSalary > previousLimit) {
+        // Calcula a parcela do salário que cai nesta faixa
+        const salaryInThisRange = Math.min(grossSalary, range.limit) - previousLimit;
+        discount += salaryInThisRange * range.rate;
+        previousLimit = range.limit;
+      } else {
+        break;
+      }
+    }
+
+    return discount;
+  };
 
   const calculatePayroll = (employee: any) => {
     const baseSalary = Number(employee.baseSalary) || 0;
@@ -54,19 +109,26 @@ export default function Payroll() {
 
     // Descontos
     const discounts = Number(employee.fixedDiscounts) || 0;
-    // INSS/IRRF simplificado (apenas placeholder, ideal seria tabela progressiva)
-    const estimatedTax = baseSalary * 0.08; 
 
     // Adicionais Variáveis
     let variableAdditionsTotal = 0;
     try {
       const additions = Array.isArray(employee.variable_additions) ? employee.variable_additions : [];
-      variableAdditionsTotal = additions.reduce((acc: number, curr: any) => acc + (Number(curr.value) || 0), 0);
+      variableAdditionsTotal = additions.reduce((acc: number, curr: any) => {
+        let val = Number(curr.value);
+        if (isNaN(val) && typeof curr.value === 'string') { val = Number(curr.value.replace(',', '.')); }
+        return acc + (val || 0);
+      }, 0);
     } catch (e) {
       variableAdditionsTotal = 0;
     }
 
     const totalAdditions = insalubrity + nightShift + overtimeValue + variableAdditionsTotal;
+    
+    // Base de Cálculo do INSS (Salário Base + Adicionais)
+    const inssBase = baseSalary + totalAdditions;
+    const estimatedTax = calculateINSS(inssBase);
+
     const totalDiscounts = discounts + estimatedTax;
     const netSalary = baseSalary + totalAdditions - totalDiscounts;
 
@@ -76,7 +138,8 @@ export default function Payroll() {
       nightShift,
       overtimeValue,
       totalDiscounts,
-      netSalary
+      netSalary,
+      estimatedTax
     };
   };
 
@@ -210,7 +273,7 @@ export default function Payroll() {
                               variable_additions: emp.variable_additions || [],
                               variable_discounts: [
                                 ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
-                                { description: "INSS / ENCARGOS", value: calc.baseSalary * 0.08 }
+                                { description: "INSS (2026)", value: calc.estimatedTax }
                               ]
                             }} 
                           />

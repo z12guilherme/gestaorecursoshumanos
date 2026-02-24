@@ -37,7 +37,7 @@ O módulo de colaboradores é o coração do sistema.
 *   **Listagem:** Visualize todos os funcionários com filtros por departamento e status.
 *   **Cadastro:** Adicione novos colaboradores manualmente preenchendo o formulário completo (Dados Pessoais, Cargo, Salário, etc.).
 *   **Documentos:** Na aba "Documentos" do perfil, faça upload de arquivos digitalizados (PDF/Imagens) como CNH, Contrato de Trabalho e Atestados.
-*   **Financeiro:** Configure adicionais (Insalubridade, Noturno), salário família e descontos variáveis para cálculo preciso da folha.
+*   **Financeiro:** Configure adicionais fixos (Insalubridade, Noturno), lançamentos variáveis (Gratificações, Bônus) e descontos eventuais (Farmácia, Adiantamentos) para cálculo preciso da folha. O sistema utiliza a tabela progressiva do INSS (2026) automaticamente.
 *   **Importação:** Utilize o botão de importação para carregar planilhas Excel com múltiplos funcionários de uma vez.
 *   **Perfil Detalhado:** Clique em um nome para ver o histórico completo, alterar senha do ponto ou editar dados.
 *   **Desligamento:** Processo de demissão que altera o status para "Desligado" e arquiva o histórico.

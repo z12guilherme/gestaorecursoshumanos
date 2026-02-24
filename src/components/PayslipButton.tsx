@@ -133,15 +133,30 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
     // Processar descontos variáveis (JSONB)
     let varDiscounts: any[] = [];
-    if (Array.isArray(employee.variable_discounts)) {
-        varDiscounts = employee.variable_discounts;
-    } else if (typeof employee.variable_discounts === 'string') {
-        try { varDiscounts = JSON.parse(employee.variable_discounts); } catch (e) { varDiscounts = []; }
+    try {
+        if (Array.isArray(employee.variable_discounts)) {
+            varDiscounts = employee.variable_discounts;
+        } else if (typeof employee.variable_discounts === 'string') {
+            varDiscounts = JSON.parse(employee.variable_discounts);
+            // Proteção extra para strings aninhadas
+            if (typeof varDiscounts === 'string') { varDiscounts = JSON.parse(varDiscounts); }
+        }
+    } catch (e) {
+        varDiscounts = [];
     }
     
-    varDiscounts.forEach((d: any) => {
-        if (d.value > 0) discounts.push({ desc: d.description || "DIVERSOS", value: Number(d.value) });
-    });
+    if (Array.isArray(varDiscounts)) {
+        varDiscounts.forEach((d: any) => {
+            let val = Number(d.value);
+            if (isNaN(val) && typeof d.value === 'string') { val = Number(d.value.replace(',', '.')); }
+            if (!isNaN(val) && val > 0) {
+                discounts.push({ 
+                    desc: d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS", 
+                    value: val 
+                });
+            }
+        });
+    }
 
     // Montar linhas da tabela
     const rows: any[] = [];
@@ -151,6 +166,10 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     const totalEarnings = earnings.reduce((acc, curr) => acc + curr.value, 0);
     const totalDiscounts = discounts.reduce((acc, curr) => acc + curr.value, 0);
     const netPay = totalEarnings - totalDiscounts;
+    
+    // Cálculo das Bases (Excluindo Salário Família que não incide FGTS/INSS)
+    const nonIncidentalValue = Number(employee.family_salary_amount) || 0;
+    const calculationBase = Math.max(0, totalEarnings - nonIncidentalValue);
 
     // --- Tabela ---
     autoTable(doc, {
@@ -184,46 +203,67 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     const finalY = (doc as any).lastAutoTable.finalY;
 
     // --- Rodapé e Totais ---
-    // Caixa de Totais
+    // Linha de Totais
     doc.setDrawColor(0);
-    doc.setFillColor(240, 240, 240);
-    doc.rect(14, finalY, 182, 8, "F");
-    doc.rect(14, finalY, 182, 8);
+    doc.setLineWidth(0.1);
+    doc.line(14, finalY, 196, finalY);
 
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
+    doc.text("TOTAIS", 120, finalY + 6);
     
-    doc.text("TOTAIS", 120, finalY + 5.5);
-    
-    // Alinhamento manual com as colunas da tabela (margem direita 14, col 4 width 30, col 3 width 30)
-    // Coluna Descontos termina em 196 (210 - 14). Centro ~181.
-    // Coluna Vencimentos termina em 166. Centro ~151.
-    doc.text(formatCurrency(totalEarnings), 164, finalY + 5.5, { align: "right" });
-    doc.text(formatCurrency(totalDiscounts), 194, finalY + 5.5, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.text(formatCurrency(totalEarnings), 164, finalY + 6, { align: "right" });
+    doc.text(formatCurrency(totalDiscounts), 194, finalY + 6, { align: "right" });
 
     // Caixa Líquido
-    const netY = finalY + 12;
-    doc.setFillColor(255, 255, 255);
-    doc.rect(14, netY, 182, 12); // Caixa transparente ou branca
+    const netY = finalY + 10;
+    doc.setFillColor(245, 245, 245);
+    doc.rect(14, netY, 182, 12, "F");
+    doc.rect(14, netY, 182, 12);
     
-    doc.setFontSize(9);
-    doc.text("LÍQUIDO A RECEBER", 16, netY + 8);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("LÍQUIDO A RECEBER", 16, netY + 7.5);
     
     doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(netPay), 194, netY + 8, { align: "right" });
+    doc.text(formatCurrency(netPay), 194, netY + 7.5, { align: "right" });
+
+    // --- Rodapé Informativo (Bases de Cálculo) ---
+    const footerInfoY = netY + 16;
+    const boxWidth = 182 / 4; // 4 colunas
+    
+    doc.setFontSize(6);
+    doc.setFont("helvetica", "normal");
+    
+    // Dados estimados para compor o visual (em um cenário real, viriam do cálculo exato)
+    const bases = [
+        { label: "Salário Base", value: formatCurrency(Number(employee.base_salary)) },
+        { label: "Sal. Contr. INSS", value: formatCurrency(calculationBase) },
+        { label: "Base Cálc. FGTS", value: formatCurrency(calculationBase) },
+        { label: "FGTS do Mês (8%)", value: formatCurrency(calculationBase * 0.08) },
+    ];
+
+    bases.forEach((item, index) => {
+        const x = 14 + (index * boxWidth);
+        doc.rect(x, footerInfoY, boxWidth, 10);
+        doc.text(item.label, x + 2, footerInfoY + 3);
+        doc.setFont("helvetica", "bold");
+        doc.text(item.value, x + boxWidth - 2, footerInfoY + 8, { align: "right" });
+        doc.setFont("helvetica", "normal");
+    });
 
     // Assinatura e Declaração
-    const footerY = netY + 25;
+    const footerY = footerInfoY + 20;
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     
     doc.text(`Declaramos ter recebido a importância líquida de ${formatCurrency(netPay)}, referente ao pagamento do salário do mês acima.`, 14, footerY);
     
-    doc.text(`Data: ____/____/________`, 14, footerY + 15);
+    doc.text(`Data: ____/____/________`, 14, footerY + 12);
     
-    doc.line(100, footerY + 15, 190, footerY + 15);
-    doc.text("Assinatura do Funcionário", 145, footerY + 20, { align: "center" });
+    doc.line(100, footerY + 12, 190, footerY + 12);
+    doc.text("Assinatura do Funcionário", 145, footerY + 16, { align: "center" });
 
     doc.save(`Holerite_${employee.name.replace(/\s+/g, '_')}_${format(referenceDate, 'MM-yyyy')}.pdf`);
   };

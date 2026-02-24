@@ -43,7 +43,7 @@ Controle total sobre o quadro de funcionários.
 - **Listagem e Busca**: Filtros avançados por departamento e status.
 - **CRUD Completo**: Adição, edição e visualização de detalhes.
 - **Gestão de Documentos**: Upload e armazenamento seguro de documentos (CNH, Contratos, Atestados).
-- **Financeiro Detalhado**: Cadastro de adicionais (Noturno, Insalubridade), descontos variáveis e geração de holerite.
+- **Financeiro Detalhado**: Cadastro de adicionais fixos e variáveis (Gratificações), descontos variáveis e geração de holerite com cálculo progressivo de INSS.
 - **Ações Rápidas**: Concessão de férias, desligamento e alteração de status.
 - **Importação em Massa**: Suporte para importação de dados via arquivos Excel/CSV.
 
@@ -159,6 +159,7 @@ O projeto utiliza o Supabase como backend. Certifique-se de criar as seguintes t
 - `job_postings` (Vagas)
 - `time_off_requests` (Solicitações de Férias)
 - `settings` (Configurações do Sistema)
+- `payroll_configurations` (Tabelas de Impostos Dinâmicas)
 - `automation_scripts` (Scripts de Automação)
 
 ## 🔑 Acesso

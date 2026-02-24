@@ -138,7 +138,10 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     
     if (Array.isArray(varDiscounts)) {
         varDiscounts.forEach((d: any) => {
-            const val = Number(d.value);
+            let val = Number(d.value);
+            if (isNaN(val) && typeof d.value === 'string') {
+                val = Number(d.value.replace(',', '.'));
+            }
             if (!isNaN(val) && val > 0) {
                 discounts.push({ 
                     desc: d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS", 

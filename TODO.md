@@ -24,6 +24,8 @@
   - [x] Campos de Valores: Salário Família, Hora Extra, Férias, 1/3 de Férias.
   - [x] Insalubridade e Adicional Noturno: Opção Sim/Não + Campo para digitar o valor monetário.
   - [x] Descontos Variáveis: Lista dinâmica (Descrição e Valor) para descontos avulsos.
+  - [x] Adicionais Variáveis: Lista dinâmica para Gratificações e Bônus.
+  - [x] Cálculo de Impostos: Implementação da Tabela Progressiva INSS 2026.
 - [x] **Lógica de Fechamento Mensal:**
   - [x] Botão/Ação para "Fechar Mês" (Exportar dados e zerar variáveis, mantendo salário base).
   - [x] Alerta no último dia do mês para exportação.
