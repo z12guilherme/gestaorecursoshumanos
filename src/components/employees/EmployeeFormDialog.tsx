@@ -50,6 +50,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
     vacationDueDate: '',
     vacationLimitDate: '',
     variable_discounts: [],
+    variable_additions: [],
   });
 
   useEffect(() => {
@@ -76,6 +77,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
         vacationDueDate: '',
         vacationLimitDate: '',
         variable_discounts: [],
+        variable_additions: [],
       });
     }
   }, [employee]);
@@ -213,6 +215,76 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 value={formData.fixedDiscounts}
                 onChange={(e) => setFormData({ ...formData, fixedDiscounts: parseFloat(e.target.value) })}
               />
+            </div>
+
+            {/* Adicionais Variáveis */}
+            <div className="col-span-2 space-y-3 border p-4 rounded-md bg-emerald-50/50 dark:bg-emerald-900/10">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm text-emerald-700 dark:text-emerald-300">Adicionais / Gratificações</h4>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const current = (formData as any).variable_additions || [];
+                    setFormData({ 
+                      ...formData, 
+                      variable_additions: [...current, { description: "", value: 0 }] 
+                    } as any);
+                  }}
+                  className="h-7 text-xs gap-1 border-emerald-200 hover:bg-emerald-100 text-emerald-700"
+                >
+                  <Plus className="h-3 w-3" /> Adicionar
+                </Button>
+              </div>
+              
+              {((formData as any).variable_additions || []).length === 0 && (
+                <p className="text-xs text-muted-foreground italic">Nenhum adicional lançado.</p>
+              )}
+
+              {((formData as any).variable_additions || []).map((item: any, index: number) => (
+                <div key={index} className="flex gap-2 items-end animate-in fade-in slide-in-from-top-1">
+                  <div className="flex-1">
+                    <Label className="text-[10px] uppercase text-muted-foreground">Descrição</Label>
+                    <Input
+                      value={item.description}
+                      onChange={(e) => {
+                        const newItems = [...((formData as any).variable_additions || [])];
+                        newItems[index].description = e.target.value;
+                        setFormData({ ...formData, variable_additions: newItems } as any);
+                      }}
+                      placeholder="Ex: Bônus Meta"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="w-28">
+                    <Label className="text-[10px] uppercase text-muted-foreground">Valor (R$)</Label>
+                    <Input
+                      type="number"
+                      value={item.value}
+                      onChange={(e) => {
+                        const newItems = [...((formData as any).variable_additions || [])];
+                        newItems[index].value = Number(e.target.value);
+                        setFormData({ ...formData, variable_additions: newItems } as any);
+                      }}
+                      placeholder="0.00"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      const newItems = ((formData as any).variable_additions || []).filter((_: any, i: number) => i !== index);
+                      setFormData({ ...formData, variable_additions: newItems } as any);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
             {/* Descontos Variáveis */}

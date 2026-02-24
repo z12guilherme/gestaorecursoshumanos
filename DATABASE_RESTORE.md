@@ -307,5 +307,6 @@ ADD COLUMN IF NOT EXISTS night_shift_amount numeric DEFAULT 0,
 ADD COLUMN IF NOT EXISTS overtime_amount numeric DEFAULT 0,
 ADD COLUMN IF NOT EXISTS vacation_amount numeric DEFAULT 0,
 ADD COLUMN IF NOT EXISTS vacation_third_amount numeric DEFAULT 0,
-ADD COLUMN IF NOT EXISTS variable_discounts jsonb DEFAULT '[]'::jsonb;
+ADD COLUMN IF NOT EXISTS variable_discounts jsonb DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS variable_additions jsonb DEFAULT '[]'::jsonb;
 ```

@@ -74,6 +74,7 @@ export default function Employees() {
     vacationDueDate: dbEmp.vacation_due_date || '',
     vacationLimitDate: dbEmp.vacation_limit_date || '',
     variable_discounts: dbEmp.variable_discounts || [],
+    variable_additions: dbEmp.variable_additions || [],
   } as unknown as Employee));
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -192,6 +193,7 @@ export default function Employees() {
         vacation_due_date: (employeeData as any).vacationDueDate,
         vacation_limit_date: (employeeData as any).vacationLimitDate,
         variable_discounts: (employeeData as any).variable_discounts,
+        variable_additions: (employeeData as any).variable_additions,
       };
 
       let result;

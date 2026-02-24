@@ -57,7 +57,16 @@ export default function Payroll() {
     // INSS/IRRF simplificado (apenas placeholder, ideal seria tabela progressiva)
     const estimatedTax = baseSalary * 0.08; 
 
-    const totalAdditions = insalubrity + nightShift + overtimeValue;
+    // Adicionais Variáveis
+    let variableAdditionsTotal = 0;
+    try {
+      const additions = Array.isArray(employee.variable_additions) ? employee.variable_additions : [];
+      variableAdditionsTotal = additions.reduce((acc: number, curr: any) => acc + (Number(curr.value) || 0), 0);
+    } catch (e) {
+      variableAdditionsTotal = 0;
+    }
+
+    const totalAdditions = insalubrity + nightShift + overtimeValue + variableAdditionsTotal;
     const totalDiscounts = discounts + estimatedTax;
     const netSalary = baseSalary + totalAdditions - totalDiscounts;
 
@@ -198,6 +207,7 @@ export default function Payroll() {
                               insalubrity_amount: calc.insalubrity,
                               night_shift_amount: calc.nightShift,
                               overtime_amount: calc.overtimeValue,
+                              variable_additions: emp.variable_additions || [],
                               variable_discounts: [
                                 ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
                                 { description: "INSS / ENCARGOS", value: calc.baseSalary * 0.08 }
