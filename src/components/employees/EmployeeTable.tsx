@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,6 +41,9 @@ const statusConfig = {
 };
 
 export function EmployeeTable({ employees, onView, onEdit, onDelete, onEndVacation, onChangePassword }: EmployeeTableProps) {
+  // Função segura para gerar iniciais
+  const getInitials = (name: string) => (name || '').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
   return (
     <div className="rounded-lg border border-border bg-card">
       <Table>
@@ -55,15 +58,20 @@ export function EmployeeTable({ employees, onView, onEdit, onDelete, onEndVacati
           </TableRow>
         </TableHeader>
         <TableBody>
-          {employees.map((employee) => {
+          {Array.isArray(employees) && employees.map((employee) => {
             const status = statusConfig[employee.status as keyof typeof statusConfig] || { label: employee.status, variant: 'secondary', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' };
             return (
               <TableRow key={employee.id} className="group">
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
+                    <Avatar className="h-10 w-10 border border-gray-200 dark:border-gray-700">
+                      <AvatarImage 
+                        src={employee.avatar_url || ""} 
+                        alt={employee.name} 
+                        className="object-cover w-full h-full"
+                      />
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        {employee.name.split(' ').map(n => n[0]).join('')}
+                        {getInitials(employee.name)}
                       </AvatarFallback>
                     </Avatar>
                     <div>

@@ -1,7 +1,10 @@
 ## 🎯 Sprint Atual (Novas Funcionalidades)
 
-*(Aguardando novas tarefas)*
-
+### 👤 Perfis de Colaboradores
+- [ ] **Foto de Perfil:**
+  - [x] Adicionar campo `avatar_url` na tabela `employees`.
+  - [x] Criar componente de upload com compressão de imagem no formulário do colaborador.
+  - [x] Exibir a foto na listagem e no perfil detalhado.
 ---
 
 ## ✅ Sprint Anterior (Concluída)

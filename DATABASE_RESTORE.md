@@ -36,6 +36,7 @@ CREATE TABLE public.employees (
   work_schedule text DEFAULT '09:00 - 18:00'::text,
   password text DEFAULT '1234'::text, -- Senha utilizada para o Ponto Eletrônico
   pis_pasep text,
+  avatar_url text,
   pix_key text,
   vacation_due_date date,
   vacation_limit_date date,
@@ -307,6 +308,7 @@ CREATE TABLE IF NOT EXISTS public.employee_documents (
 -- Adicionar campos financeiros e de documentação (PIS, PIX, Férias)
 ALTER TABLE public.employees 
 ADD COLUMN IF NOT EXISTS pis_pasep text,
+ADD COLUMN IF NOT EXISTS avatar_url text,
 ADD COLUMN IF NOT EXISTS pix_key text,
 ADD COLUMN IF NOT EXISTS vacation_due_date date,
 ADD COLUMN IF NOT EXISTS vacation_limit_date date,

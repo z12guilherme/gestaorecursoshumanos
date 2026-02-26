@@ -84,6 +84,9 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
     }
   }
 
+  // Função segura para gerar iniciais
+  const getInitials = (name: string) => (name || '').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-md overflow-y-auto">
@@ -91,9 +94,13 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
           <div className="flex items-start justify-between">
             <div className="flex gap-4">
               <Avatar className="h-16 w-16 border-2 border-background shadow-sm">
-                <AvatarImage src={employee.avatar} />
+                <AvatarImage 
+                  src={employee.avatar_url || ""} 
+                  alt={employee.name} 
+                  className="object-cover w-full h-full"
+                />
                 <AvatarFallback className="text-lg bg-primary/10 text-primary">
-                  {employee.name.split(' ').map(n => n[0]).join('')}
+                  {getInitials(employee.name)}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-1">

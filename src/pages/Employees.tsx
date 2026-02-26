@@ -75,6 +75,7 @@ export default function Employees() {
     vacationLimitDate: dbEmp.vacation_limit_date || '',
     variable_discounts: dbEmp.variable_discounts || [],
     variable_additions: dbEmp.variable_additions || [],
+    avatar_url: dbEmp.avatar_url,
   } as unknown as Employee));
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -137,7 +138,7 @@ export default function Employees() {
 
     const handleSave = async (employeeData: Partial<Employee>, photoFile?: File) => {
     try {
-      let avatarUrl = employeeData.avatar;
+      let avatarUrl = employeeData.avatar_url;
 
       // Se houver nova foto, comprime e faz upload
       if (photoFile) {
@@ -171,7 +172,7 @@ export default function Employees() {
         role: employeeData.position || (employeeData as any).role || '', // UI (position) -> DB (role)
         department: employeeData.department!,
         status: employeeData.status || 'active',
-        avatar_url: avatarUrl,
+        avatar_url: employeeData.avatar_url,
         admission_date: employeeData.hireDate || (employeeData as any).admissionDate || new Date().toISOString(),
         phone: employeeData.phone,
         contract_type: employeeData.contractType,
@@ -198,10 +199,8 @@ export default function Employees() {
 
       let result;
       if (selectedEmployee) {
-        // Na edição, enviamos apenas os dados acima (sem senha)
         result = await updateEmployee(selectedEmployee.id, dbPayload);
       } else {
-        // Na criação, adicionamos a senha padrão '1234'
         result = await addEmployee({ ...dbPayload, password: '1234' });
       }
 
@@ -221,7 +220,6 @@ export default function Employees() {
       });
     }
   };
-
 
   const handleEndVacation = async (employeeId: string) => {
     try {

@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ import {
 import { departments } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2 } from 'lucide-react';
+import { AvatarUpload } from './AvatarUpload';
 
 interface EmployeeFormDialogProps {
   open: boolean;
@@ -51,6 +53,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
     vacationLimitDate: '',
     variable_discounts: [],
     variable_additions: [],
+    avatar_url: '',
   });
 
   useEffect(() => {
@@ -78,6 +81,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
         vacationLimitDate: '',
         variable_discounts: [],
         variable_additions: [],
+        avatar_url: '',
       });
     }
   }, [employee]);
@@ -97,8 +101,22 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{employee ? 'Editar Colaborador' : 'Novo Colaborador'}</DialogTitle>
+          <DialogDescription>
+            {employee ? 'Atualize os dados e a foto do colaborador.' : 'Insira as informações para cadastrar um novo colaborador.'}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
+          {employee?.id && (
+            <div className="flex justify-center pb-4 border-b mb-4">
+              <AvatarUpload
+                uid={employee.id}
+                url={formData.avatar_url}
+                onUpload={(url) => {
+                  setFormData(prev => ({ ...prev, avatar_url: url }));
+                }}
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto px-2 py-1">
             <div className="space-y-2">
               <Label htmlFor="name">Nome completo</Label>
