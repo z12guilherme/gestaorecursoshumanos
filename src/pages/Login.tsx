@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { ManualModal } from "@/components/ManualModal";
 import hsfBg from "@/assets/hsf.jpeg";
+import { Mail, Lock, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -45,123 +46,120 @@ export default function LoginPage() {
   };
 
   return (
-    <section className="min-h-screen bg-slate-100 flex items-center justify-center py-10">
-      <div className="container mx-auto px-4 h-full">
-        <div className="flex justify-center items-center h-full">
-          <div className="w-full max-w-5xl">
-            <div className="bg-white rounded-lg shadow-xl overflow-hidden">
-              <div className="flex flex-wrap">
-                {/* Left Column */}
-                <div className="w-full lg:w-1/2">
-                  <div className="p-8 md:px-12 md:py-10">
-                    <div className="text-center mb-8">
-                      <img
-                        src="/icone.png"
-                        className="mx-auto w-48 md:w-64"
-                        alt="logo"
-                      />
-                      <h4 className="mt-6 mb-2 text-xl font-semibold text-slate-700">Bem-vindo de volta</h4>
-                      <p className="text-sm text-slate-500">Gestão de Recursos Humanos REDE DMI</p>
-                    </div>
-
-                    <form onSubmit={handleLogin}>
-                      
-
-                      <div className="mb-4 relative">
-                        <input
-                          type="email"
-                          id="form2Example11"
-                          className="peer w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder-transparent text-slate-700 transition-all"
-                          placeholder="Phone number or email address"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                        />
-                        <label 
-                          htmlFor="form2Example11"
-                          className="absolute left-3 -top-2.5 bg-white px-1 text-xs text-gray-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-blue-600"
-                        >
-                          Email
-                        </label>
-                      </div>
-
-                      <div className="mb-4 relative">
-                        <input
-                          type="password"
-                          id="form2Example22"
-                          className="peer w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder-transparent text-slate-700 transition-all"
-                          placeholder="Password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                        />
-                        <label 
-                          htmlFor="form2Example22"
-                          className="absolute left-3 -top-2.5 bg-white px-1 text-xs text-gray-500 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-blue-600"
-                        >
-                          Senha
-                        </label>
-                      </div>
-
-                      <div className="text-center pt-1 mb-5 pb-1 flex flex-col items-center">
-                        <button
-                          className="w-full px-4 py-3 text-white font-medium rounded-lg shadow-md mb-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg transition-all transform hover:-translate-y-0.5"
-                          type="submit"
-                          disabled={isLoading}
-                        >
-                          {isLoading ? "Entrando..." : "Entrar"}
-                        </button>
-                        <a className="text-slate-500 hover:text-blue-600 text-sm transition-colors" href="#!">
-                          Esqueceu a Senha?
-                        </a>
-                      </div>
-
-                      <div className="flex items-center justify-center mb-4">
-                        <button
-                          type="button"
-                          className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-                          onClick={() => navigate('/clock-in')}
-                        >
-                          Acessar Terminal de Ponto
-                        </button>
-                      </div>
-
-                      <div className="flex justify-center mt-2">
-                         <ManualModal />
-                      </div>
-                    </form>
-                  </div>
+    <section className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 flex items-center justify-center p-4">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col-reverse lg:flex-row min-h-[600px]">
+        
+        {/* Left Column - Form */}
+        <div className="w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center relative animate-in fade-in slide-in-from-left-8 duration-700">
+            <div className="text-center mb-8">
+                <div className="inline-flex p-4 rounded-3xl bg-blue-50/50 mb-6 shadow-sm ring-1 ring-blue-100">
+                    <img src="/icone.png" className="w-12 h-12 object-contain" alt="logo" />
                 </div>
-
-                {/* Right Column */}
-                <div 
-                  className="w-full lg:w-1/2 flex items-center relative overflow-hidden bg-cover bg-center"
-                  style={{
-                    backgroundImage: `url(${hsfBg})`
-                  }}
-                >
-                  {/* Overlay com gradiente para garantir leitura do texto */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-600/70 to-indigo-900/70 z-0"></div>
-
-                  {/* Elementos decorativos sutis */}
-                  <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 opacity-30 pointer-events-none">
-                    <div className="absolute -top-24 -left-24 w-64 h-64 rounded-full bg-white blur-3xl mix-blend-overlay"></div>
-                    <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-blue-400 blur-3xl mix-blend-overlay"></div>
-                  </div>
-
-                  <div className="text-white px-8 py-12 md:p-16 mx-auto z-10 relative text-center lg:text-left">
-                    <h4 className="mb-6 text-4xl font-bold tracking-tight">REDE DMI</h4>
-                    <p className="text-lg mb-0 leading-relaxed font-light opacity-95">
-                      Cuidado integral e acessível para todos.
-                      <br className="hidden lg:block" />
-                      Serviços médicos de excelência para sua saúde e bem-estar.
-                    </p>
-                  </div>
-                </div>
-              </div>
+                <h4 className="text-3xl font-bold text-slate-900 tracking-tight">Bem-vindo de volta</h4>
+                <p className="text-slate-500 mt-3 text-sm">Acesse sua conta para gerenciar o RH</p>
             </div>
-          </div>
+
+            <form onSubmit={handleLogin} className="space-y-5 max-w-sm mx-auto w-full">
+                <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-600 ml-1">E-mail Corporativo</label>
+                    <div className="relative group">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                        <input
+                            type="email"
+                            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50/30 focus:bg-white placeholder:text-slate-400"
+                            placeholder="exemplo@rededmi.com.br"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-1">
+                    <div className="flex justify-between ml-1">
+                        <label className="text-xs font-medium text-slate-600">Senha</label>
+                        <a href="#!" className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline">Esqueceu?</a>
+                    </div>
+                    <div className="relative group">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                        <input
+                            type="password"
+                            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50/30 focus:bg-white placeholder:text-slate-400"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div className="pt-2">
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                    >
+                        {isLoading ? (
+                            "Autenticando..."
+                        ) : (
+                            <>
+                                Entrar no Sistema <ArrowRight className="h-5 w-5" />
+                            </>
+                        )}
+                    </button>
+                </div>
+            </form>
+
+            <div className="mt-8 relative flex items-center justify-center max-w-sm mx-auto w-full">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-slate-200"></span>
+                </div>
+                <span className="relative bg-white px-4 text-xs text-slate-400 uppercase tracking-wider font-medium">Acesso Rápido</span>
+            </div>
+
+            <div className="mt-6 space-y-4 max-w-sm mx-auto w-full">
+                <button
+                    type="submit"
+                    onClick={() => navigate('/clock-in')}
+                    className="w-full py-3 px-4 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 font-medium flex items-center justify-center gap-2 transition-all group"
+                >
+                    <div className="p-1.5 bg-white rounded-lg border border-slate-200 group-hover:border-blue-200 transition-colors">
+                        <Clock className="h-4 w-4" />
+                    </div>
+                    Terminal de Ponto
+                </button>
+                
+                <div className="flex justify-center">
+                   <ManualModal />
+                </div>
+            </div>
+            
+            <div className="absolute bottom-4 left-0 right-0 text-center">
+                <p className="text-[10px] text-slate-400">© 2026 Rede DMI. Todos os direitos reservados.</p>
+            </div>
         </div>
+
+        {/* Right Column - Image */}
+        <div className="w-full lg:w-1/2 relative hidden lg:block bg-slate-900">
+            <div className="absolute inset-0 bg-blue-600/20 mix-blend-overlay z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent z-20" />
+            <img 
+                src={hsfBg} 
+                alt="Hospital Santa Fé" 
+                className="absolute inset-0 w-full h-full object-cover opacity-90"
+            />
+            <div className="absolute bottom-0 left-0 right-0 p-12 z-30 text-white">
+                <div className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    <span>Sistema Operacional</span>
+                </div>
+                <h2 className="text-4xl font-bold mb-4 leading-tight">Excelência em Gestão de Pessoas</h2>
+                <p className="text-slate-200 text-lg leading-relaxed max-w-md">
+                    Plataforma integrada para otimizar os processos de RH da REDE DMI, garantindo eficiência e cuidado com nossos colaboradores.
+                </p>
+            </div>
+        </div>
+
       </div>
     </section>
   );
