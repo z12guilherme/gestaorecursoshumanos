@@ -78,7 +78,6 @@ export default function LoginPage() {
                 <div className="space-y-1">
                     <div className="flex justify-between ml-1">
                         <label className="text-xs font-medium text-slate-600">Senha</label>
-                        <a href="#!" className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline">Esqueceu?</a>
                     </div>
                     <div className="relative group">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
