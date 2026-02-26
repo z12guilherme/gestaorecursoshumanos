@@ -14,7 +14,7 @@ import autoTable from 'jspdf-autotable';
 import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PayrollReport from '@/components/reports/PayrollReport';
 import TimeSheetReport from '@/components/reports/TimeSheetReport';
@@ -53,6 +53,14 @@ export default function Reports() {
   // Mapeia os dados do banco para o formato da UI
   const employees = useMemo(() => dbEmployees.map((emp: any) => ({
     ...emp,
+    // Mapeamentos adicionais para o relatório
+    birthDate: emp.birth_date,
+    contractType: emp.contract_type,
+    workSchedule: emp.work_schedule,
+    manager: emp.manager,
+    pisPasep: emp.pis_pasep,
+    pixKey: emp.pix_key,
+    admissionDate: emp.admission_date,
     baseSalary: emp.base_salary || 0,
     hasInsalubrity: emp.has_insalubrity || false,
     hasNightShift: emp.has_night_shift || false,
@@ -194,61 +202,107 @@ export default function Reports() {
     return acc;
   }, { payroll: 0, vacationDueCount: 0 });
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     if (!selectedEmployee) return;
 
     const doc = new jsPDF();
-    
-    // Cabeçalho
-    doc.setFontSize(18);
-    doc.text(companySettings?.company_name || 'GestãoRH', 14, 20);
-    doc.setFontSize(12);
-    doc.text('Dossiê do Colaborador', 14, 28);
-    doc.setFontSize(10);
-    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 34);
+    const primaryColor = [41, 128, 185] as [number, number, number]; // Azul Institucional
 
-    // Linha divisória
-    doc.setDrawColor(200);
-    doc.line(14, 38, 196, 38);
+    // Função auxiliar para carregar imagem (avatar)
+    const getImageData = (url: string): Promise<string> => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.src = url;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                } else {
+                    resolve(''); // Fallback se falhar
+                }
+            };
+            img.onerror = () => resolve(''); // Fallback se erro
+        });
+    };
     
+    // --- Cabeçalho Visual ---
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, 210, 40, 'F'); // Barra azul no topo
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text(companySettings?.company_name || 'Hospital Santa Fé', 14, 18);
+    doc.setFontSize(14);
+    doc.text('Dossiê do Colaborador', 14, 28);
+    doc.setFontSize(9);
+    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 35);
+
+    // --- Foto do Colaborador ---
+    if (selectedEmployee.avatar_url) {
+        try {
+            const imgData = await getImageData(selectedEmployee.avatar_url);
+            if (imgData) {
+                // Desenha um círculo branco de fundo para a foto
+                doc.setFillColor(255, 255, 255);
+                doc.circle(185, 20, 16, 'F');
+                // Adiciona a imagem (tentando manter proporção quadrada)
+                doc.addImage(imgData, 'PNG', 170, 5, 30, 30, undefined, 'FAST');
+            }
+        } catch (e) {
+            console.error("Erro ao adicionar imagem ao PDF", e);
+        }
+    }
+
+    doc.setTextColor(0, 0, 0);
+    let finalY = 55;
+
     // 1. Dados Pessoais
     doc.setFontSize(14);
-    doc.text('Dados Pessoais e Contratuais', 14, 48);
+    doc.setTextColor(...primaryColor);
+    doc.text('Dados Pessoais e Contratuais', 14, finalY);
+    doc.setDrawColor(200);
+    doc.line(14, finalY + 2, 196, finalY + 2);
     
     const empData = [
-        ['Nome:', selectedEmployee.name],
-        ['Cargo:', selectedEmployee.role],
-        ['Departamento:', selectedEmployee.department],
-        ['Email:', selectedEmployee.email || '-'],
-        ['Telefone:', selectedEmployee.phone || '-'],
-        ['Admissão:', selectedEmployee.admission_date ? format(new Date(selectedEmployee.admission_date), 'dd/MM/yyyy') : '-'],
-        ['Status:', selectedEmployee.status]
+        ['Nome:', selectedEmployee.name, 'CPF/PIS:', selectedEmployee.pisPasep || '-'],
+        ['Cargo:', selectedEmployee.role, 'Departamento:', selectedEmployee.department],
+        ['Email:', selectedEmployee.email || '-', 'Telefone:', selectedEmployee.phone || '-'],
+        ['Admissão:', selectedEmployee.admissionDate ? format(new Date(selectedEmployee.admissionDate), 'dd/MM/yyyy') : '-', 'Tipo Contrato:', selectedEmployee.contractType || '-'],
+        ['Gestor:', selectedEmployee.manager || '-', 'Escala:', selectedEmployee.workSchedule || '-'],
+        ['Nascimento:', selectedEmployee.birthDate ? format(new Date(selectedEmployee.birthDate), 'dd/MM/yyyy') : '-', 'Status:', selectedEmployee.status]
     ];
 
     autoTable(doc, {
-        startY: 52,
+        startY: finalY + 5,
         head: [],
         body: empData,
         theme: 'plain',
         styles: { fontSize: 10, cellPadding: 1.5 },
-        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } }
+        columnStyles: { 
+            0: { fontStyle: 'bold', cellWidth: 25 },
+            1: { cellWidth: 70 },
+            2: { fontStyle: 'bold', cellWidth: 25 }
+        }
     });
 
     // 1.5 Dados Financeiros
-    let finalY = (doc as any).lastAutoTable.finalY + 10;
+    finalY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(14);
+    doc.setTextColor(...primaryColor);
     doc.text('Dados Financeiros', 14, finalY);
+    doc.line(14, finalY + 2, 196, finalY + 2);
 
     const financialData = [
-        ['Salário Base:', `R$ ${Number(selectedEmployee.baseSalary).toFixed(2)}`],
-        ['Insalubridade:', selectedEmployee.hasInsalubrity ? `Sim (R$ ${Number(selectedEmployee.insalubrity_amount || 0).toFixed(2)})` : 'Não'],
-        ['Adicional Noturno:', selectedEmployee.hasNightShift ? `Sim (R$ ${Number(selectedEmployee.night_shift_amount || 0).toFixed(2)})` : 'Não'],
-        ['Salário Família:', `R$ ${Number(selectedEmployee.family_salary_amount || 0).toFixed(2)}`],
-        ['Horas Extras:', `R$ ${Number(selectedEmployee.overtime_amount || 0).toFixed(2)}`],
-        ['Férias (Valor):', `R$ ${Number(selectedEmployee.vacation_amount || 0).toFixed(2)}`],
-        ['1/3 Férias:', `R$ ${Number(selectedEmployee.vacation_third_amount || 0).toFixed(2)}`],
-        ['Descontos Fixos:', `R$ ${Number(selectedEmployee.fixed_discounts || 0).toFixed(2)}`],
-        ['Chave PIX:', selectedEmployee.pix_key || '-']
+        ['Salário Base:', `R$ ${Number(selectedEmployee.baseSalary).toFixed(2)}`, 'Chave PIX:', selectedEmployee.pixKey || '-'],
+        ['Insalubridade:', selectedEmployee.hasInsalubrity ? `Sim (R$ ${Number(selectedEmployee.insalubrity_amount || 0).toFixed(2)})` : 'Não', 'Adicional Noturno:', selectedEmployee.hasNightShift ? `Sim (R$ ${Number(selectedEmployee.night_shift_amount || 0).toFixed(2)})` : 'Não'],
+        ['Salário Família:', `R$ ${Number(selectedEmployee.family_salary_amount || 0).toFixed(2)}`, 'Horas Extras:', `R$ ${Number(selectedEmployee.overtime_amount || 0).toFixed(2)}`],
+        ['Férias (Valor):', `R$ ${Number(selectedEmployee.vacation_amount || 0).toFixed(2)}`, '1/3 Férias:', `R$ ${Number(selectedEmployee.vacation_third_amount || 0).toFixed(2)}`],
+        ['Descontos Fixos:', `R$ ${Number(selectedEmployee.fixed_discounts || 0).toFixed(2)}`, '', '']
     ];
 
     autoTable(doc, {
@@ -257,13 +311,19 @@ export default function Reports() {
         body: financialData,
         theme: 'plain',
         styles: { fontSize: 10, cellPadding: 1.5 },
-        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }
+        columnStyles: { 
+            0: { fontStyle: 'bold', cellWidth: 30 },
+            1: { cellWidth: 60 },
+            2: { fontStyle: 'bold', cellWidth: 30 }
+        }
     });
 
     // 2. Histórico de Férias
     finalY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(14);
+    doc.setTextColor(...primaryColor);
     doc.text('Histórico de Férias e Ausências', 14, finalY);
+    doc.line(14, finalY + 2, 196, finalY + 2);
     
     const timeOffData = employeeRequests.map(r => [
         requestTypeLabels[r.type] || 'Ausência',
@@ -283,6 +343,7 @@ export default function Reports() {
         });
     } else {
         doc.setFontSize(10);
+        doc.setTextColor(100);
         doc.text('Nenhum registro encontrado.', 14, finalY + 8);
         (doc as any).lastAutoTable.finalY = finalY + 10;
     }
@@ -290,7 +351,9 @@ export default function Reports() {
     // 3. Avaliações
     finalY = (doc as any).lastAutoTable.finalY + 15;
     doc.setFontSize(14);
+    doc.setTextColor(...primaryColor);
     doc.text('Avaliações de Desempenho', 14, finalY);
+    doc.line(14, finalY + 2, 196, finalY + 2);
 
     const reviewData = reviews.map(r => {
         const goalsMet = r.goals ? r.goals.filter((g: any) => g.achieved).length : 0;
@@ -313,8 +376,43 @@ export default function Reports() {
             headStyles: { fillColor: [41, 128, 185] },
             columnStyles: { 3: { cellWidth: 70 } }
         });
+        
+        // --- Mini Gráfico de Evolução (Barras) ---
+        finalY = (doc as any).lastAutoTable.finalY + 10;
+        
+        // Verifica se cabe na página
+        if (finalY + 50 < 280) {
+             doc.setFontSize(11);
+             doc.setTextColor(0);
+             doc.text('Evolução das Notas (Últimos Ciclos)', 14, finalY);
+             
+             const chartX = 14;
+             const chartY = finalY + 5;
+             const chartHeight = 30;
+             const barWidth = 15;
+             const gap = 10;
+             
+             // Pega as últimas 5 avaliações e inverte para ordem cronológica
+             const sortedReviews = [...reviews].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).slice(-5);
+             
+             sortedReviews.forEach((r, i) => {
+                 const score = Number(r.overall_score);
+                 const barHeight = (score / 5) * chartHeight; // Escala baseada em nota máxima 5
+                 const x = chartX + (i * (barWidth + gap));
+                 const y = chartY + chartHeight - barHeight;
+                 
+                 doc.setFillColor(...primaryColor);
+                 doc.rect(x, y, barWidth, barHeight, 'F');
+                 
+                 doc.setFontSize(8);
+                 doc.setTextColor(0);
+                 doc.text(score.toFixed(1), x + barWidth/2, y - 2, { align: 'center' });
+                 doc.text(r.period.split(' ')[0], x + barWidth/2, chartY + chartHeight + 4, { align: 'center' });
+             });
+        }
     } else {
         doc.setFontSize(10);
+        doc.setTextColor(100);
         doc.text('Nenhuma avaliação encontrada.', 14, finalY + 8);
     }
 
@@ -442,6 +540,11 @@ export default function Reports() {
                     <div className="border rounded-lg p-6 bg-secondary/10 space-y-6 animate-in fade-in-50">
                         <div className="flex items-center gap-4">
                             <Avatar className="h-16 w-16 border-2 border-background">
+                                <AvatarImage 
+                                    src={selectedEmployee.avatar_url || ""} 
+                                    alt={selectedEmployee.name} 
+                                    className="object-cover w-full h-full" 
+                                />
                                 <AvatarFallback className="text-lg bg-primary text-primary-foreground">
                                     {selectedEmployee.name.substring(0,2).toUpperCase()}
                                 </AvatarFallback>
