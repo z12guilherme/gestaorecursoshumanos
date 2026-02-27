@@ -5,6 +5,11 @@
   - [x] Adicionar campo `avatar_url` na tabela `employees`.
   - [x] Criar componente de upload com compressão de imagem no formulário do colaborador.
   - [x] Exibir a foto na listagem e no perfil detalhado.
+
+### 💰 Financeiro e Folha (Melhorias)
+- [x] **INSS Manual:** Adicionar campo para inserir valor fixo de INSS, substituindo o cálculo automático quando preenchido.
+- [x] **Correção PDF:** Ajustar holerite para exibir o valor monetário exato da Insalubridade cadastrada, corrigindo divergência de cálculo.
+
 ---
 
 ## ✅ Sprint Anterior (Concluída)
