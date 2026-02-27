@@ -42,6 +42,7 @@ CREATE TABLE public.employees (
   vacation_limit_date date,
   base_salary numeric,
   fixed_discounts numeric,
+  inss_value numeric DEFAULT 0,
   contracted_hours numeric,
   has_insalubrity boolean DEFAULT false,
   has_night_shift boolean DEFAULT false,
@@ -316,6 +317,7 @@ ADD COLUMN IF NOT EXISTS base_salary numeric,
 ADD COLUMN IF NOT EXISTS fixed_discounts numeric,
 ADD COLUMN IF NOT EXISTS contracted_hours numeric,
 ADD COLUMN IF NOT EXISTS has_insalubrity boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS inss_value numeric DEFAULT 0,
 ADD COLUMN IF NOT EXISTS has_night_shift boolean DEFAULT false;
 
 -- Adicionar campos financeiros detalhados (V3)

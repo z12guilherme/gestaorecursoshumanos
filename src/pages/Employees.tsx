@@ -64,6 +64,7 @@ export default function Employees() {
     // Campos Financeiros (Mapeamento)
     baseSalary: dbEmp.base_salary || 0,
     fixedDiscounts: dbEmp.fixed_discounts || 0,
+    inss_value: dbEmp.inss_value || 0,
     hasInsalubrity: dbEmp.has_insalubrity || false,
     insalubrityAmount: dbEmp.insalubrity_amount || 0,
     hasNightShift: dbEmp.has_night_shift || false,
@@ -184,6 +185,7 @@ export default function Employees() {
         // Campos Financeiros
         base_salary: (employeeData as any).baseSalary,
         fixed_discounts: (employeeData as any).fixedDiscounts,
+        inss_value: (employeeData as any).inss_value,
         has_insalubrity: (employeeData as any).hasInsalubrity,
         insalubrity_amount: (employeeData as any).insalubrityAmount,
         has_night_shift: (employeeData as any).hasNightShift,

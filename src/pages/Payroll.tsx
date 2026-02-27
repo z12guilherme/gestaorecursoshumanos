@@ -100,8 +100,8 @@ export default function Payroll() {
     const hourlyRate = hours > 0 ? baseSalary / hours : 0;
     
     // Adicionais
-    const insalubrity = employee.hasInsalubrity ? MINIMUM_WAGE * INSALUBRITY_RATE : 0;
-    const nightShift = employee.hasNightShift ? baseSalary * NIGHT_SHIFT_RATE : 0;
+    const insalubrity = employee.hasInsalubrity ? (Number(employee.insalubrity_amount) || 0) : 0;
+    const nightShift = employee.hasNightShift ? (Number(employee.night_shift_amount) || 0) : 0;
     
     // Horas Extras (50% de acréscimo exemplo)
     const overtimeHours = overtimeData[employee.id] || 0;
@@ -127,7 +127,7 @@ export default function Payroll() {
     
     // Base de Cálculo do INSS (Salário Base + Adicionais)
     const inssBase = baseSalary + totalAdditions;
-    const estimatedTax = calculateINSS(inssBase);
+    const estimatedTax = employee.inss_value ? Number(employee.inss_value) : calculateINSS(inssBase);
 
     const totalDiscounts = discounts + estimatedTax;
     const netSalary = baseSalary + totalAdditions - totalDiscounts;

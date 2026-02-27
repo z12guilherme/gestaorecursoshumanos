@@ -1,16 +1,28 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Cake } from 'lucide-react';
+import { format, parseISO, getMonth, getDate } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-const birthdays = [
-  { id: 1, name: 'Carlos Santos', date: '10 Jan', department: 'Tecnologia' },
-  { id: 2, name: 'Ana Lima', date: '15 Jan', department: 'Marketing' },
-  { id: 3, name: 'Roberto Silva', date: '18 Jan', department: 'Financeiro' },
-  { id: 4, name: 'Fernanda Costa', date: '22 Jan', department: 'RH' },
-  { id: 5, name: 'Lucas Oliveira', date: '28 Jan', department: 'Comercial' },
-];
+interface Employee {
+  id: string;
+  name: string;
+  department: string;
+  birth_date?: string;
+  avatar_url?: string;
+}
 
-export function BirthdaysList() {
+interface BirthdaysListProps {
+  employees: Employee[];
+}
+
+export function BirthdaysList({ employees = [] }: BirthdaysListProps) {
+  const currentMonth = new Date().getMonth();
+
+  const birthdays = employees
+    .filter(e => e.birth_date && getMonth(parseISO(e.birth_date)) === currentMonth)
+    .sort((a, b) => getDate(parseISO(a.birth_date!)) - getDate(parseISO(b.birth_date!)));
+
   return (
     <Card className="h-full">
       <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -18,7 +30,10 @@ export function BirthdaysList() {
         <Cake className="h-5 w-5 text-muted-foreground" />
       </CardHeader>
       <CardContent className="space-y-3">
-        {birthdays.map((person) => (
+        {birthdays.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">Nenhum aniversariante este mês.</p>
+        ) : (
+          birthdays.map((person) => (
           <div key={person.id} className="flex items-center gap-3">
             <Avatar className="h-9 w-9">
               <AvatarFallback className="bg-primary/10 text-primary text-sm">
@@ -29,9 +44,9 @@ export function BirthdaysList() {
               <p className="text-sm font-medium text-foreground truncate">{person.name}</p>
               <p className="text-xs text-muted-foreground">{person.department}</p>
             </div>
-            <span className="text-sm font-medium text-primary">{person.date}</span>
+            <span className="text-sm font-medium text-primary">{person.birth_date && format(parseISO(person.birth_date), 'dd MMM', { locale: ptBR })}</span>
           </div>
-        ))}
+        )))}
       </CardContent>
     </Card>
   );

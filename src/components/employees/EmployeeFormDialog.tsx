@@ -234,6 +234,18 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 onChange={(e) => setFormData({ ...formData, fixedDiscounts: parseFloat(e.target.value) })}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="inss_value">INSS Manual (R$)</Label>
+              <Input
+                id="inss_value"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={(formData as any).inss_value || ''}
+                onChange={(e) => setFormData({ ...formData, inss_value: parseFloat(e.target.value) } as any)}
+              />
+              <p className="text-[10px] text-muted-foreground">Se preenchido, substitui o cálculo automático.</p>
+            </div>
 
             {/* Adicionais Variáveis */}
             <div className="col-span-2 space-y-3 border p-4 rounded-md bg-emerald-50/50 dark:bg-emerald-900/10">

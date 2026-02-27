@@ -8,6 +8,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { BirthdaysList } from '@/components/dashboard/BirthdaysList';
 
 export default function Dashboard() {
   const { employees, loading: loadingEmployees } = useEmployees();
@@ -160,6 +161,11 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Birthdays List */}
+          <div className="col-span-1">
+             <BirthdaysList employees={employees} />
+          </div>
         </div>
       </div>
     </AppLayout>
