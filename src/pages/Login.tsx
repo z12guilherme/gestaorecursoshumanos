@@ -67,7 +67,7 @@ export default function LoginPage() {
                         <input
                             type="email"
                             className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50/30 focus:bg-white placeholder:text-slate-400"
-                            placeholder="admin@empresa.com"
+                            placeholder="exemplo@rededmi.com.br"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -134,7 +134,7 @@ export default function LoginPage() {
             </div>
             
             <div className="absolute bottom-4 left-0 right-0 text-center">
-                <p className="text-[10px] text-slate-400">© 2026 GestãoRH. Todos os direitos reservados.</p>
+                <p className="text-[10px] text-slate-400">© 2026 Rede DMI. Todos os direitos reservados.</p>
             </div>
         </div>
 
@@ -144,7 +144,7 @@ export default function LoginPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent z-20" />
             <img 
                 src={hsfBg} 
-                alt="Imagem Corporativa" 
+                alt="Hospital Santa Fé" 
                 className="absolute inset-0 w-full h-full object-cover opacity-90"
             />
             <div className="absolute bottom-0 left-0 right-0 p-12 z-30 text-white">
@@ -154,7 +154,7 @@ export default function LoginPage() {
                 </div>
                 <h2 className="text-4xl font-bold mb-4 leading-tight">Excelência em Gestão de Pessoas</h2>
                 <p className="text-slate-200 text-lg leading-relaxed max-w-md">
-                    Plataforma integrada para otimizar os processos de RH da sua empresa, garantindo eficiência e cuidado com seus colaboradores.
+                    Plataforma integrada para otimizar os processos de RH da REDE DMI, garantindo eficiência e cuidado com nossos colaboradores.
                 </p>
             </div>
         </div>
