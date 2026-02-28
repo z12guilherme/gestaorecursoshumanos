@@ -125,7 +125,7 @@ export default function LoginPage() {
                     <div className="p-1.5 bg-white rounded-lg border border-slate-200 group-hover:border-blue-200 transition-colors">
                         <Clock className="h-4 w-4" />
                     </div>
-                    Terminal de Ponto
+                    Área do Funcionário
                 </button>
                 
                 <div className="flex justify-center">

@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { FileText } from 'lucide-react';
+import SignatureCanvas from 'react-signature-canvas';
+import { FileText, CheckCircle2, PenTool, Loader2, Eraser } from 'lucide-react';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/lib/supabase';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 
 // Definição da interface baseada nos campos do banco de dados (employees)
 interface Employee {
@@ -32,6 +35,42 @@ interface PayslipButtonProps {
   referenceDate?: Date;
 }
 
+// Função auxiliar para remover espaços em branco da assinatura (substitui getTrimmedCanvas)
+const trimCanvas = (canvas: HTMLCanvasElement) => {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+  
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const length = pixels.data.length;
+  let top: number | null = null;
+  let bottom: number | null = null;
+  let left: number | null = null;
+  let right: number | null = null;
+
+  for (let i = 0; i < length; i += 4) {
+    if (pixels.data[i + 3] !== 0) {
+      const x = (i / 4) % canvas.width;
+      const y = Math.floor((i / 4) / canvas.width);
+
+      if (top === null) { top = y; bottom = y; left = x; right = x; }
+      else {
+        if (y < top) top = y;
+        if (y > bottom) bottom = y;
+        if (x < left) left = x;
+        if (x > right) right = x;
+      }
+    }
+  }
+
+  if (top === null || bottom === null || left === null || right === null) return null;
+
+  const trimmed = document.createElement('canvas');
+  trimmed.width = right - left + 1;
+  trimmed.height = bottom - top + 1;
+  trimmed.getContext('2d')?.drawImage(canvas, left, top, trimmed.width, trimmed.height, 0, 0, trimmed.width, trimmed.height);
+  return trimmed;
+};
+
 export const PayslipButton: React.FC<PayslipButtonProps> = ({
   employee,
   companyName = "HOSPITAL DMI LTDA", // Você pode puxar isso do contexto de Settings futuramente
@@ -39,11 +78,65 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
   referenceDate = new Date()
 }) => {
 
+  const [loading, setLoading] = useState(false);
+  const [signatureData, setSignatureData] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const sigCanvas = useRef<any>(null);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
 
-  const generatePayslip = () => {
+  const handleSignAndDownload = async () => {
+    setLoading(true);
+    try {
+      // Verificar se o usuário desenhou algo
+      if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
+        alert("Por favor, assine no campo indicado antes de confirmar.");
+        setLoading(false);
+        return;
+      }
+
+      const originalCanvas = sigCanvas.current.getCanvas();
+      const trimmedCanvas = trimCanvas(originalCanvas);
+      const signatureImage = (trimmedCanvas || originalCanvas).toDataURL('image/png');
+
+      // 1. Registrar assinatura no banco
+      const refDate = format(referenceDate, 'yyyy-MM-dd');
+      const { data, error } = await supabase
+        .from('payslip_acknowledgments')
+        .upsert({
+          employee_id: employee.id,
+          reference_date: refDate,
+          user_agent: navigator.userAgent,
+          ip_address: 'IP_REGISTRADO_VIA_APP',
+          signature_image: signatureImage,
+          signed_at: new Date().toISOString()
+        }, { onConflict: 'employee_id, reference_date' })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setSignatureData(data);
+      setIsDialogOpen(false);
+      
+      // 2. Gerar PDF com os dados da assinatura recém criada
+      generatePayslip(data);
+
+    } catch (error: any) {
+      console.error("Erro detalhado ao assinar:", error);
+      alert(`Erro ao registrar assinatura: ${error.message || "Erro desconhecido. Verifique o console."}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearSignature = () => {
+    sigCanvas.current.clear();
+  };
+
+  const generatePayslip = (currentSignatureData = signatureData) => {
     const doc = new jsPDF();
 
     // --- Cabeçalho ---
@@ -260,18 +353,99 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     
     doc.text(`Declaramos ter recebido a importância líquida de ${formatCurrency(netPay)}, referente ao pagamento do salário do mês acima.`, 14, footerY);
     
-    doc.text(`Data: ____/____/________`, 14, footerY + 12);
+    const displayDate = currentSignatureData?.signed_at 
+      ? format(new Date(currentSignatureData.signed_at), "dd/MM/yyyy")
+      : "____/____/________";
+    doc.text(`Data: ${displayDate}`, 14, footerY + 12);
     
-    doc.line(100, footerY + 12, 190, footerY + 12);
-    doc.text("Assinatura do Funcionário", 145, footerY + 16, { align: "center" });
+    // --- Assinatura da Empresa (Estática/Simulada) ---
+    // Aqui você poderia carregar uma imagem de assets se tivesse
+    doc.setFont("helvetica", "bold");
+    doc.text(companyName.toUpperCase(), 50, footerY + 16, { align: "center" });
+    doc.line(20, footerY + 12, 80, footerY + 12);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.text("ASSINATURA DO EMPREGADOR", 50, footerY + 19, { align: "center" });
+
+    // --- Assinatura do Funcionário ---
+    doc.line(110, footerY + 12, 190, footerY + 12);
+    doc.setFontSize(8);
+    doc.text("Assinatura do Funcionário", 150, footerY + 16, { align: "center" });
+
+    // --- Carimbo de Assinatura Digital (Se assinado) ---
+    if (currentSignatureData) {
+      // Inserir a imagem da assinatura desenhada
+      if (currentSignatureData.signature_image) {
+        // doc.addImage(imagem, formato, x, y, largura, altura)
+        doc.addImage(currentSignatureData.signature_image, 'PNG', 120, footerY - 8, 60, 20);
+      }
+
+      const signY = footerY + 22;
+      doc.setDrawColor(0, 100, 0); // Verde escuro
+      doc.setTextColor(0, 100, 0);
+      doc.setFontSize(6);
+      
+      const signDate = currentSignatureData.signed_at 
+        ? format(new Date(currentSignatureData.signed_at), "dd/MM/yyyy 'às' HH:mm:ss")
+        : format(new Date(), "dd/MM/yyyy HH:mm:ss");
+
+      doc.setFont("helvetica", "bold");
+      doc.text("ASSINADO DIGITALMENTE", 110, signY);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Hash: ${currentSignatureData.id}`, 110, signY + 3);
+      doc.text(`Data: ${signDate}`, 110, signY + 6);
+    }
 
     doc.save(`Holerite_${employee.name.replace(/\s+/g, '_')}_${format(referenceDate, 'MM-yyyy')}.pdf`);
   };
 
   return (
-    <Button onClick={generatePayslip} variant="outline" size="sm" className="gap-2">
-      <FileText className="h-4 w-4" />
-      Holerite PDF
-    </Button>
+    <>
+      <Button 
+        onClick={() => setIsDialogOpen(true)} 
+        variant="default" 
+        size="sm" 
+        className="gap-2"
+      >
+        <PenTool className="h-4 w-4" />
+        Assinar e Baixar
+      </Button>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmação de Recebimento</DialogTitle>
+            <DialogDescription>
+              Para baixar seu holerite, você precisa confirmar o recebimento digitalmente.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="p-4 bg-muted rounded-md text-sm text-muted-foreground">
+            <p>Eu, <strong>{employee.name}</strong>, declaro ter recebido a importância líquida discriminada neste recibo de pagamento.</p>
+            <p className="mt-2 text-xs">Ao clicar em confirmar, será registrado o carimbo de tempo e dados do seu dispositivo como prova de assinatura.</p>
+            
+            <div className="mt-4 bg-white border border-dashed border-gray-400 rounded-md p-2 flex flex-col items-center justify-center">
+              <p className="text-xs text-gray-500 mb-1 w-full text-left">Desenhe sua assinatura abaixo:</p>
+              <SignatureCanvas 
+                ref={sigCanvas}
+                penColor="black"
+                canvasProps={{width: 400, height: 150, className: 'sigCanvas cursor-crosshair'}}
+              />
+              <Button variant="ghost" size="sm" onClick={clearSignature} className="mt-2 text-xs h-6">
+                <Eraser className="w-3 h-3 mr-1" /> Limpar Assinatura
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSignAndDownload} disabled={loading} className="gap-2">
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Confirmar Assinatura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

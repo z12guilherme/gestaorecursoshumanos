@@ -27,6 +27,7 @@ import { useDocuments } from '@/hooks/useDocuments';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { PayslipButton } from '@/components/PayslipButton';
 
 export default function ClockInPage() {
   const { employees } = useEmployees();
@@ -177,13 +178,24 @@ export default function ClockInPage() {
     setPin('');
   };
 
-  const handleAccessDocuments = () => {
+  const handleAccessDocuments = async () => {
       if (!pin) return;
       const employee = findEmployeeByPin(pin);
       if (employee) {
-          setIdentifiedEmployee(employee);
-          setShowDocumentsDialog(true);
-          setPin('');
+          setLoading(true);
+          // Busca dados completos (financeiros) para gerar o holerite
+          const { data: fullEmployee } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('id', employee.id)
+            .single();
+            
+          if (fullEmployee) {
+            setIdentifiedEmployee(fullEmployee);
+            setShowDocumentsDialog(true);
+            setPin('');
+          }
+          setLoading(false);
       }
   };
 
@@ -321,7 +333,7 @@ export default function ClockInPage() {
                         disabled={loading || pin.length < 4}
                      >
                         <FileText className="mr-2 h-4 w-4" />
-                        Acessar Meus Documentos
+                        Documentos e Holerite
                      </Button>
                   </div>
                 </CardContent>
@@ -340,24 +352,36 @@ export default function ClockInPage() {
               <CardContent className="flex-1 overflow-hidden">
                 <ScrollArea className="h-full pr-4 max-h-[400px]">
                   <div className="space-y-4">
-                    {announcements.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">Nenhum aviso no momento.</p>
-                    ) : (
-                      announcements.map(announcement => (
-                        <div key={announcement.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-sm flex items-center gap-2">
-                              {announcement.priority === 'high' && <Pin className="h-3 w-3 text-red-500" />}
-                              {announcement.title}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                                {format(new Date(announcement.created_at), 'dd/MM')}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{announcement.content}</p>
+                    {/* Aviso Fixo */}
+                    <div className="border-b border-border pb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-sm flex items-center gap-2">
+                          <Pin className="h-3 w-3 text-primary" />
+                          Como ter acesso ao seu contra cheque?
+                        </span>
+                        <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                            28/02
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Digite sua senha e clique em "Documentos e Holerite", irá abrir uma janela com o contra cheque do mês atual, clique em "Assinar e Baixar", faça a assinatura eletronica e baixe seu arquivo.
+                      </p>
+                    </div>
+
+                    {announcements.map(announcement => (
+                      <div key={announcement.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-sm flex items-center gap-2">
+                            {announcement.priority === 'high' && <Pin className="h-3 w-3 text-red-500" />}
+                            {announcement.title}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                              {format(new Date(announcement.created_at), 'dd/MM')}
+                          </span>
                         </div>
-                      ))
-                    )}
+                        <p className="text-sm text-muted-foreground leading-relaxed">{announcement.content}</p>
+                      </div>
+                    ))}
                   </div>
                 </ScrollArea>
               </CardContent>
@@ -373,7 +397,19 @@ export default function ClockInPage() {
                 <DialogTitle>Documentos de {identifiedEmployee?.name}</DialogTitle>
                 <DialogDescription>Visualize ou baixe seus documentos.</DialogDescription>
             </DialogHeader>
+            
+            {identifiedEmployee && (
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg flex items-center justify-between border border-blue-100 dark:border-blue-900 mt-4">
+                <div className="flex flex-col">
+                  <span className="font-medium text-blue-900 dark:text-blue-300">Contra Cheque</span>
+                  <span className="text-xs text-blue-700 dark:text-blue-400">Mês Atual</span>
+                </div>
+                <PayslipButton employee={identifiedEmployee as any} referenceDate={new Date()} />
+              </div>
+            )}
+
             <div className="py-4">
+                <h4 className="text-sm font-medium mb-2 text-muted-foreground">Outros Arquivos</h4>
                 <ScrollArea className="h-[300px] pr-4">
                     {documents.length === 0 ? (
                         <div className="text-center py-10 text-muted-foreground">
