@@ -3,16 +3,19 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import SignatureCanvas from 'react-signature-canvas';
 import { FileText, CheckCircle2, PenTool, Loader2, Eraser } from 'lucide-react';
+import emailjs from '@emailjs/browser';
 import { Button } from './ui/button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 // Definição da interface baseada nos campos do banco de dados (employees)
 interface Employee {
   id: string;
   name: string;
+  email?: string;
   role: string;
   department: string;
   admission_date: string | Date;
@@ -82,9 +85,63 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
   const [signatureData, setSignatureData] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const sigCanvas = useRef<any>(null);
+  const { toast } = useToast();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+  };
+
+  const sendPayslipEmail = async (doc: jsPDF) => {
+    if (!employee.email) return;
+
+    try {
+      // 1. Upload para o Supabase Storage (Bucket 'documents')
+      const pdfBlob = doc.output('blob');
+      // Cria um caminho organizado: payslips/ID_DO_FUNC/ANO-MES_TIMESTAMP.pdf
+      const fileName = `payslips/${employee.id}/${format(referenceDate, 'yyyy-MM')}_${Date.now()}.pdf`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, pdfBlob, {
+          contentType: 'application/pdf',
+          upsert: true
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // 2. Obter Link Público
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(fileName);
+      
+      // 3. Enviar Link por E-mail
+      await emailjs.send(
+        'service_z5ccatp',
+        'template_u3pgt98',
+        {
+          to_name: employee.name,
+          to_email: employee.email,
+          message: 'Seu holerite assinado está disponível para download.',
+          link: publicUrl // No seu template do EmailJS, use a variável {{link}}
+        },
+        '0ofiKy53c1RuwUoJ2'
+      );
+      
+      toast({
+        title: "E-mail enviado",
+        description: `Enviado para ${employee.email}. Pode levar alguns minutos para chegar.`,
+      });
+
+    } catch (error) {
+      console.error("Erro ao enviar email:", error);
+      toast({
+        title: "Aviso",
+        description: "Holerite baixado, mas houve um erro ao enviar a cópia por e-mail.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSignAndDownload = async () => {
@@ -92,7 +149,11 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     try {
       // Verificar se o usuário desenhou algo
       if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
-        alert("Por favor, assine no campo indicado antes de confirmar.");
+        toast({
+          title: "Assinatura obrigatória",
+          description: "Por favor, assine no campo indicado antes de confirmar.",
+          variant: "destructive"
+        });
         setLoading(false);
         return;
       }
@@ -122,11 +183,22 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       setIsDialogOpen(false);
       
       // 2. Gerar PDF com os dados da assinatura recém criada
-      generatePayslip(data);
+      const doc = generatePayslip(data);
+      await sendPayslipEmail(doc);
+
+      toast({
+        title: "Sucesso",
+        description: "Holerite assinado e baixado com sucesso.",
+        className: "bg-green-600 text-white border-none"
+      });
 
     } catch (error: any) {
       console.error("Erro detalhado ao assinar:", error);
-      alert(`Erro ao registrar assinatura: ${error.message || "Erro desconhecido. Verifique o console."}`);
+      toast({
+        title: "Erro ao registrar",
+        description: error.message || "Ocorreu um erro ao salvar a assinatura.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -397,6 +469,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     }
 
     doc.save(`Holerite_${employee.name.replace(/\s+/g, '_')}_${format(referenceDate, 'MM-yyyy')}.pdf`);
+    return doc;
   };
 
   return (
