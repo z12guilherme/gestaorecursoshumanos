@@ -122,7 +122,9 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
         'template_u3pgt98',
         {
           to_name: employee.name,
-          to_email: employee.email,
+          to_email: employee.email, // Importante: No template do EmailJS, o campo "To Email" deve ser {{to_email}}
+          name: companyName, // Preenche o campo {{name}} (From Name) com o nome da empresa
+          title: `Holerite - ${format(referenceDate, 'MM/yyyy')}`, // Preenche o campo {{title}} no Assunto
           message: 'Seu holerite assinado está disponível para download.',
           link: publicUrl // No seu template do EmailJS, use a variável {{link}}
         },
