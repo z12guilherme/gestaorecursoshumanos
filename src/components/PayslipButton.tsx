@@ -76,8 +76,8 @@ const trimCanvas = (canvas: HTMLCanvasElement) => {
 
 export const PayslipButton: React.FC<PayslipButtonProps> = ({
   employee,
-  companyName = "EMPRESA MODELO S.A.", // Nome genérico para apresentação
-  companyCNPJ = "00.000.000/0001-00",
+  companyName = "HOSPITAL DMI LTDA", 
+  companyCNPJ = "30.882.426/0001-87",
   referenceDate = new Date()
 }) => {
 
