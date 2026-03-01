@@ -25,6 +25,7 @@ CREATE TABLE public.employees (
   email text,
   role text,
   department text,
+  unit text,
   status text DEFAULT 'Ativo'::text,
   admission_date date,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
@@ -104,6 +105,9 @@ CREATE TABLE public.time_entries (
   employee_id uuid,
   timestamp timestamp with time zone DEFAULT now(),
   type text CHECK (type = ANY (ARRAY['in'::text, 'out'::text, 'lunch_start'::text, 'lunch_end'::text])),
+  latitude numeric,
+  longitude numeric,
+  notes text,
   CONSTRAINT time_entries_pkey PRIMARY KEY (id),
   CONSTRAINT time_entries_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id)
 );
@@ -117,6 +121,7 @@ CREATE TABLE public.time_off_requests (
   end_date date NOT NULL,
   status text DEFAULT 'pending'::text,
   reason text,
+  attachment_url text,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT time_off_requests_pkey PRIMARY KEY (id),
   CONSTRAINT time_off_requests_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id)
