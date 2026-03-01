@@ -200,6 +200,46 @@ CREATE TABLE public.payroll_configurations (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT payroll_configurations_pkey PRIMARY KEY (id)
 );
+
+-- Tabela de Confirmação de Holerites (Assinatura Digital)
+CREATE TABLE IF NOT EXISTS public.payslip_acknowledgments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  employee_id uuid NOT NULL,
+  reference_date date NOT NULL,
+  signature_image text,
+  user_agent text,
+  ip_address text,
+  signed_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payslip_acknowledgments_pkey PRIMARY KEY (id),
+  CONSTRAINT payslip_acknowledgments_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id),
+  CONSTRAINT payslip_acknowledgments_unique_ref UNIQUE (employee_id, reference_date)
+);
+
+-- 13. Documentos do Funcionário
+CREATE TABLE public.employee_documents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  employee_id uuid REFERENCES public.employees(id),
+  name text NOT NULL,
+  url text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT employee_documents_pkey PRIMARY KEY (id)
+);
+
+-- 14. Confirmação de Holerites (Assinatura Digital)
+CREATE TABLE public.payslip_acknowledgments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  employee_id uuid NOT NULL,
+  reference_date date NOT NULL,
+  signature_image text,
+  user_agent text,
+  ip_address text,
+  signed_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payslip_acknowledgments_pkey PRIMARY KEY (id),
+  CONSTRAINT payslip_acknowledgments_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id),
+  CONSTRAINT payslip_acknowledgments_unique_ref UNIQUE (employee_id, reference_date)
+);
 ```
 
 ## 3. Configuração de Segurança (RLS)
