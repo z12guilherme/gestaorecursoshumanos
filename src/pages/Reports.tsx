@@ -441,16 +441,16 @@ export default function Reports() {
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    doc.text('HOSPITAL DMI LTDA', stampX + stampWidth / 2, stampY + 6, { align: 'center' });
+    doc.text((companySettings?.company_name || 'EMPRESA').substring(0, 25), stampX + stampWidth / 2, stampY + 6, { align: 'center' });
     
     doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
-    doc.text('CNPJ: 30.882.426/0001-87', stampX + stampWidth / 2, stampY + 10, { align: 'center' });
+    doc.text(companySettings?.cnpj || 'CNPJ: 00.000.000/0001-00', stampX + stampWidth / 2, stampY + 10, { align: 'center' });
     
     doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, stampX + 2, stampY + 15);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(5); 
-    doc.text('Hospital Santa Fé', stampX + 22, stampY + 15);
+    doc.text('GestãoRH System', stampX + 22, stampY + 15);
     
     doc.setFont("helvetica", "normal");
     doc.setFontSize(5);

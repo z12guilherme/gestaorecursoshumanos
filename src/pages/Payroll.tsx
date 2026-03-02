@@ -24,6 +24,7 @@ import {
 export default function Payroll() {
   const { employees: dbEmployees, loading } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
+  const [companySettings, setCompanySettings] = useState<any>(null);
   
   // Mapeia os dados do banco (snake_case) para o formato esperado (camelCase)
   const employees = dbEmployees.map((emp: any) => {
@@ -78,6 +79,14 @@ export default function Payroll() {
       if (data && Array.isArray(data.value)) {
         setInssTable(data.value);
       }
+
+      // Busca configurações da empresa
+      const { data: settings } = await supabase
+        .from('settings')
+        .select('company_name, cnpj')
+        .maybeSingle();
+        
+      if (settings) setCompanySettings(settings);
     };
     fetchTaxTable();
   }, []);
@@ -165,9 +174,9 @@ export default function Payroll() {
     const doc = new jsPDF();
     
     doc.setFontSize(14);
-    doc.text('HOSPITAL DMI LTDA', 14, 15);
+    doc.text(companySettings?.company_name || 'EMPRESA DEMONSTRAÇÃO', 14, 15);
     doc.setFontSize(10);
-    doc.text('CNPJ: 30.882.426/0001-87', 14, 20);
+    doc.text(companySettings?.cnpj || 'CNPJ: 00.000.000/0001-00', 14, 20);
 
     doc.setFontSize(18);
     doc.text('Relatório de Folha de Pagamento Mensal', 14, 30);
@@ -218,16 +227,16 @@ export default function Payroll() {
     doc.setTextColor(41, 128, 185);
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    doc.text('HOSPITAL DMI LTDA', stampX + stampWidth / 2, stampY + 6, { align: 'center' });
+    doc.text((companySettings?.company_name || 'EMPRESA').substring(0, 25), stampX + stampWidth / 2, stampY + 6, { align: 'center' });
     
     doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
-    doc.text('CNPJ: 30.882.426/0001-87', stampX + stampWidth / 2, stampY + 10, { align: 'center' });
+    doc.text(companySettings?.cnpj || 'CNPJ: 00.000.000/0001-00', stampX + stampWidth / 2, stampY + 10, { align: 'center' });
     
     doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, stampX + 2, stampY + 15);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(5);
-    doc.text('Hospital Santa Fé', stampX + 22, stampY + 15);
+    doc.text('GestãoRH System', stampX + 22, stampY + 15);
     
     doc.setFont("helvetica", "normal");
     doc.setFontSize(5);
@@ -252,8 +261,8 @@ export default function Payroll() {
     });
 
     const fileContent = payrollExportService.generateCNAB240(dataToExport, {
-      name: 'HOSPITAL DMI LTDA',
-      cnpj: '30.882.426/0001-87',
+      name: companySettings?.company_name || 'EMPRESA',
+      cnpj: companySettings?.cnpj || '00000000000100',
       bankCode: '341'
     });
 
