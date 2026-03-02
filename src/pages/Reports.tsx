@@ -235,12 +235,15 @@ export default function Reports() {
     doc.rect(0, 0, 210, 40, 'F'); // Barra azul no topo
     
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.text(companySettings?.company_name || 'Hospital Santa Fé', 14, 18);
-    doc.setFontSize(14);
-    doc.text('Dossiê do Colaborador', 14, 28);
+    doc.setFontSize(18);
+    doc.text(companySettings?.company_name || 'HOSPITAL DMI LTDA', 14, 15);
+    doc.setFontSize(10);
+    doc.text(companySettings?.cnpj || 'CNPJ: 30.882.426/0001-87', 14, 20);
+    
+    doc.setFontSize(16);
+    doc.text('Dossiê do Colaborador', 14, 30);
     doc.setFontSize(9);
-    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 35);
+    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 36);
 
     // --- Foto do Colaborador ---
     if (selectedEmployee.avatar_url) {

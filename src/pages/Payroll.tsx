@@ -164,10 +164,15 @@ export default function Payroll() {
   const generatePDF = () => {
     const doc = new jsPDF();
     
+    doc.setFontSize(14);
+    doc.text('HOSPITAL DMI LTDA', 14, 15);
+    doc.setFontSize(10);
+    doc.text('CNPJ: 30.882.426/0001-87', 14, 20);
+
     doc.setFontSize(18);
-    doc.text('Relatório de Folha de Pagamento Mensal', 14, 22);
+    doc.text('Relatório de Folha de Pagamento Mensal', 14, 30);
     doc.setFontSize(11);
-    doc.text(`Gerado em: ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`, 14, 30);
+    doc.text(`Gerado em: ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`, 14, 38);
 
     const tableData = filteredEmployees.map(emp => {
       const calc = calculatePayroll(emp);
@@ -185,7 +190,7 @@ export default function Payroll() {
     autoTable(doc, {
       head: [['Colaborador', 'Cargo', 'Salário Base', 'Insalub.', 'H. Extra', 'Descontos', 'Líquido']],
       body: tableData,
-      startY: 40,
+      startY: 45,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [41, 128, 185] },
     });
@@ -209,8 +214,8 @@ export default function Payroll() {
     });
 
     const fileContent = payrollExportService.generateCNAB240(dataToExport, {
-      name: 'Empresa Demo LTDA',
-      cnpj: '12.345.678/0001-90',
+      name: 'HOSPITAL DMI LTDA',
+      cnpj: '30.882.426/0001-87',
       bankCode: '341'
     });
 
