@@ -419,6 +419,65 @@ export default function Reports() {
         doc.text('Nenhuma avaliação encontrada.', 14, finalY + 8);
     }
 
+    // --- Carimbo do Empregador ---
+    finalY = (doc as any).lastAutoTable.finalY + 40;
+    
+    if (finalY > 250) {
+        doc.addPage();
+        finalY = 40;
+    }
+
+    const stampX = 140;
+    const stampY = finalY - 10;
+    const stampWidth = 55;
+    const stampHeight = 30;
+
+    // Borda do Carimbo
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setLineWidth(0.5);
+    doc.rect(stampX, stampY, stampWidth, stampHeight);
+
+    // Texto do Carimbo
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text('HOSPITAL DMI LTDA', stampX + stampWidth / 2, stampY + 8, { align: 'center' });
+    
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.text('CNPJ: 30.882.426/0001-87', stampX + stampWidth / 2, stampY + 13, { align: 'center' });
+    
+    doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, stampX + 3, stampY + 19);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(6); // Reduzi levemente a rubrica
+    doc.text('Hospital Santa Fé', stampX + 28, stampY + 19);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.text('ASSINATURA DO EMPREGADOR', stampX + stampWidth / 2, stampY + 26, { align: 'center' });
+
+    // --- Carimbo do Colaborador (Esquerda) ---
+    const empStampWidth = 10;
+    const empStampHeight = 22;
+    const empStampX = 14;
+    const empStampY = finalY - 2; // Alinhado na base com o carimbo do empregador
+    
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(empStampX, empStampY, empStampWidth, empStampHeight);
+
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFontSize(6);
+    doc.setFont("helvetica", "bold");
+    doc.text('COLABORADOR', empStampX + empStampWidth / 2, empStampY + 6, { align: 'center' });
+    
+    doc.setFontSize(6);
+    doc.setFont("helvetica", "normal");
+    // Trunca o nome se for muito longo para caber no carimbo pequeno
+    doc.text(selectedEmployee.name.length > 20 ? selectedEmployee.name.substring(0, 20) + '...' : selectedEmployee.name, empStampX + empStampWidth / 2, empStampY + 12, { align: 'center' });
+    
+    doc.setFontSize(5);
+    doc.text('ASSINADO DIGITALMENTE', empStampX + empStampWidth / 2, empStampY + 18, { align: 'center' });
+
     doc.save(`Relatorio_${selectedEmployee.name.replace(/\s+/g, '_')}.pdf`);
   };
 

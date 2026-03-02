@@ -195,6 +195,43 @@ export default function Payroll() {
       headStyles: { fillColor: [41, 128, 185] },
     });
 
+    // --- Carimbo do Empregador ---
+    let finalY = (doc as any).lastAutoTable.finalY + 30;
+    
+    // Verifica se precisa de nova página
+    if (finalY > 250) {
+      doc.addPage();
+      finalY = 40;
+    }
+
+    const stampX = 140;
+    const stampY = finalY;
+    const stampWidth = 55;
+    const stampHeight = 30;
+
+    // Borda do Carimbo
+    doc.setDrawColor(41, 128, 185); // Azul Institucional
+    doc.setLineWidth(0.5);
+    doc.rect(stampX, stampY, stampWidth, stampHeight);
+
+    // Texto do Carimbo
+    doc.setTextColor(41, 128, 185);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text('HOSPITAL DMI LTDA', stampX + stampWidth / 2, stampY + 8, { align: 'center' });
+    
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.text('CNPJ: 30.882.426/0001-87', stampX + stampWidth / 2, stampY + 13, { align: 'center' });
+    
+    doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, stampX + 3, stampY + 19);
+    doc.setFont("helvetica", "italic");
+    doc.text('Hospital Santa Fé', stampX + 28, stampY + 19);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.text('ASSINATURA DO EMPREGADOR', stampX + stampWidth / 2, stampY + 26, { align: 'center' });
+
     doc.save('folha_pagamento.pdf');
   };
 
