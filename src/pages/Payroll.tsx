@@ -134,7 +134,13 @@ export default function Payroll() {
     
     // Base de Cálculo do INSS (Salário Base + Adicionais)
     const inssBase = baseSalary + totalAdditions;
-    const estimatedTax = employee.inss_value ? Number(employee.inss_value) : calculateINSS(inssBase);
+    
+    let manualInss = 0;
+    if (employee.inss_value) {
+      const valStr = String(employee.inss_value).replace(',', '.');
+      manualInss = Number(valStr) || 0;
+    }
+    const estimatedTax = manualInss > 0 ? manualInss : calculateINSS(inssBase);
 
     const totalDiscounts = discounts + estimatedTax;
     const netSalary = baseSalary + totalAdditions - totalDiscounts;
