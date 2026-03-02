@@ -204,10 +204,10 @@ export default function Payroll() {
       finalY = 40;
     }
 
-    const stampX = 140;
+    const stampX = 155;
     const stampY = finalY;
-    const stampWidth = 55;
-    const stampHeight = 30;
+    const stampWidth = 40;
+    const stampHeight = 22;
 
     // Borda do Carimbo
     doc.setDrawColor(41, 128, 185); // Azul Institucional
@@ -216,21 +216,22 @@ export default function Payroll() {
 
     // Texto do Carimbo
     doc.setTextColor(41, 128, 185);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.text('HOSPITAL DMI LTDA', stampX + stampWidth / 2, stampY + 8, { align: 'center' });
-    
     doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
-    doc.text('CNPJ: 30.882.426/0001-87', stampX + stampWidth / 2, stampY + 13, { align: 'center' });
+    doc.setFont("helvetica", "bold");
+    doc.text('HOSPITAL DMI LTDA', stampX + stampWidth / 2, stampY + 6, { align: 'center' });
     
-    doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, stampX + 3, stampY + 19);
-    doc.setFont("helvetica", "italic");
-    doc.text('Hospital Santa Fé', stampX + 28, stampY + 19);
-    
-    doc.setFont("helvetica", "normal");
     doc.setFontSize(6);
-    doc.text('ASSINATURA DO EMPREGADOR', stampX + stampWidth / 2, stampY + 26, { align: 'center' });
+    doc.setFont("helvetica", "normal");
+    doc.text('CNPJ: 30.882.426/0001-87', stampX + stampWidth / 2, stampY + 10, { align: 'center' });
+    
+    doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, stampX + 2, stampY + 15);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(5);
+    doc.text('Hospital Santa Fé', stampX + 22, stampY + 15);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5);
+    doc.text('ASSINATURA DO EMPREGADOR', stampX + stampWidth / 2, stampY + 20, { align: 'center' });
 
     doc.save('folha_pagamento.pdf');
   };
