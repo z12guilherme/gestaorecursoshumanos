@@ -15,6 +15,7 @@ Este projeto foi desenvolvido utilizando uma stack moderna e robusta:
   - ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB) **React 18**
   - ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white) **TypeScript**
   - ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white) **Vite**
+  - **Vitest** (Testes Unitários e de Integração)
 
 - **UI & Estilização:**
   - ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white) **Tailwind CSS**
@@ -43,9 +44,17 @@ Controle total sobre o quadro de funcionários.
 - **Listagem e Busca**: Filtros avançados por departamento e status.
 - **CRUD Completo**: Adição, edição e visualização de detalhes.
 - **Gestão de Documentos**: Upload e armazenamento seguro de documentos (CNH, Contratos, Atestados).
-- **Financeiro Detalhado**: Cadastro de adicionais fixos e variáveis (Gratificações), descontos variáveis e geração de holerite com cálculo progressivo de INSS.
+- **Gestão de Senhas**: Definição de PIN individual para registro de ponto.
 - **Ações Rápidas**: Concessão de férias, desligamento e alteração de status.
 - **Importação em Massa**: Suporte para importação de dados via arquivos Excel/CSV.
+
+### 💰 Salários e Pagamentos
+Gestão financeira e integração bancária.
+- **Cálculo de Folha**: Estimativa automática com base em salário, adicionais (Noturno, Insalubridade) e descontos.
+- **Holerites**: Geração de PDF detalhado com carimbo da empresa e assinatura digital.
+- **Integração Bancária**: Exportação de arquivos de remessa **CNAB 240** para pagamentos em lote.
+- **Contabilidade**: Exportação de dados em CSV para sistemas contábeis externos.
+- **Tabela INSS**: Configuração dinâmica das faixas de contribuição.
 
 ### 🤝 Recrutamento e Seleção
 Ferramentas para atrair e selecionar talentos.
@@ -67,9 +76,22 @@ Interface pública para que os colaboradores registrem suas horas.
 ### 📋 Controle de Ponto
 Acompanhamento detalhado dos registros de ponto.
 - **Relatório Completo**: Lista com todos os eventos de entrada e saída dos funcionários.
-- **Geolocalização**: Visualização no mapa do local exato onde o ponto foi registrado.
+- **Geolocalização**: Visualização em mapa interativo do local exato do registro.
 - **Saldo de Horas**: Cálculo automático de horas trabalhadas vs contratadas.
+- **Exportação**: Geração de espelho de ponto em Excel.
 - **Visualização Rápida**: Badges para identificar o tipo de registro.
+
+### 📈 Relatórios e Analytics
+Inteligência de dados para tomada de decisão.
+- **Dossiê do Colaborador**: PDF completo com histórico, dados contratuais e financeiros.
+- **Métricas de RH**: Gráficos de Turnover, Headcount e Custos por Departamento.
+- **Evolução**: Análise temporal de admissões e crescimento da empresa.
+
+### 🛡️ Auditoria e Segurança
+Rastreabilidade total das operações do sistema.
+- **Audit Logs**: Registro imutável de todas as alterações (Quem, Quando, O que).
+- **Diff de Dados**: Visualização detalhada do "Antes e Depois" de cada modificação (JSON Diff).
+- **Segurança**: Proteção de rotas e dados sensíveis via RLS (Row Level Security) no banco de dados.
 
 ### 📢 Comunicação Interna
 Canal direto com a equipe.
@@ -172,8 +194,11 @@ O sistema utiliza a autenticação do Supabase.
 
  - [x] **Backend Real**: Integração com Supabase/PostgreSQL para persistência de dados.
 - [x] **Autenticação**: Implementação de login seguro com JWT/OAuth.
-- [x] **Ponto Eletrônico**: Módulo para registro e espelho de ponto.
+- [x] **Ponto Eletrônico**: Registro com geolocalização e espelho de ponto.
 - [x] **App Mobile**: Versão responsiva otimizada (PWA).
+- [x] **Auditoria**: Sistema completo de logs de segurança.
+- [x] **Integração Bancária**: Exportação CNAB 240.
+- [x] **Testes**: Cobertura de testes unitários e de integração.
 
 ## 📄 Licença
 
