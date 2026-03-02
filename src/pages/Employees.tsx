@@ -22,12 +22,12 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Users, UserCheck, UserX, Calendar, LogOut, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import * as XLSX from 'xlsx';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/lib/AuthContext';
 import { useTimeOff } from '@/hooks/useTimeOff';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export default function Employees() {
   const { 
@@ -80,6 +80,7 @@ export default function Employees() {
   } as unknown as Employee));
 
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300); // 300ms de atraso
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -112,9 +113,9 @@ export default function Employees() {
 
   const filteredEmployees = employeesWithStatus.filter((employee) => {
     const matchesSearch = 
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.position.toLowerCase().includes(searchTerm.toLowerCase());
+      employee.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      employee.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      employee.position.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
     
     const matchesDepartment = departmentFilter === 'all' || employee.department === departmentFilter;
     const matchesStatus = statusFilter === 'all' || employee.status === statusFilter;
@@ -316,7 +317,8 @@ export default function Employees() {
     setEmployeeToTerminate(null);
   };
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import('xlsx');
     const template = [
       {
         "Nome": "João Silva",
@@ -352,6 +354,7 @@ export default function Employees() {
 
   const handleImport = async (file: File) => {
     try {
+      const XLSX = await import('xlsx');
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];

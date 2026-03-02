@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,29 +7,37 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Dashboard from "./pages/Dashboard";
-import Employees from "./pages/Employees";
-import Recruitment from "./pages/Recruitment";
-import Performance from "./pages/Performance";
-import TimeOff from "./pages/TimeOff";
-import Reports from "./pages/Reports";
-import Communication from "./pages/Communication";
-import Payroll from "./pages/Payroll";
-import AIAssistant from "./pages/AIAssistant";
-import Automations from "./pages/Automations";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import LoginPage from "./pages/Login";
-import ClockInPage from "./pages/ClockIn";
-import TimesheetPage from "./pages/Timesheet";
-import JobDetails from "./pages/JobDetails";
-import Support from "./pages/Support";
 import { ReloadPrompt } from "@/components/ReloadPrompt";
-import TermsOfService from './pages/TermsOfService';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import Suggestions from "@/pages/Suggestions";
-import PublicSuggestion from "@/pages/PublicSuggestion";
 
+// Lazy Loading das Páginas
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Employees = lazy(() => import("./pages/Employees"));
+const Recruitment = lazy(() => import("./pages/Recruitment"));
+const Performance = lazy(() => import("./pages/Performance"));
+const TimeOff = lazy(() => import("./pages/TimeOff"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Communication = lazy(() => import("./pages/Communication"));
+const Payroll = lazy(() => import("./pages/Payroll"));
+const AIAssistant = lazy(() => import("./pages/AIAssistant"));
+const Automations = lazy(() => import("./pages/Automations"));
+const Settings = lazy(() => import("./pages/Settings"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const LoginPage = lazy(() => import("./pages/Login"));
+const ClockInPage = lazy(() => import("./pages/ClockIn"));
+const TimesheetPage = lazy(() => import("./pages/Timesheet"));
+const JobDetails = lazy(() => import("./pages/JobDetails"));
+const Support = lazy(() => import("./pages/Support"));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const Suggestions = lazy(() => import("@/pages/Suggestions"));
+const PublicSuggestion = lazy(() => import("@/pages/PublicSuggestion"));
+const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+
+const LoadingSpinner = () => (
+  <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+    <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -52,6 +60,7 @@ const App = () => {
               v7_relativeSplatPath: true,
             }}
           >
+            <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               <Route path="/clock-in" element={<ClockInPage />} />
               <Route path="/login" element={<LoginPage />} />
@@ -74,9 +83,11 @@ const App = () => {
                 <Route path="/automations" element={<Automations />} />
                 <Route path="/tickets" element={<Support />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/audit-logs" element={<AuditLogs />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>

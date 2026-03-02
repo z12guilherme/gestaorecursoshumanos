@@ -384,4 +384,43 @@ CREATE TABLE IF NOT EXISTS public.payslip_acknowledgments (
   CONSTRAINT payslip_acknowledgments_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id),
   CONSTRAINT payslip_acknowledgments_unique_ref UNIQUE (employee_id, reference_date)
 );
+
+-- 15. Sistema de Auditoria (Audit Logs)
+CREATE TABLE public.audit_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  table_name text NOT NULL,
+  record_id uuid,
+  action text NOT NULL, -- INSERT, UPDATE, DELETE
+  old_data jsonb,
+  new_data jsonb,
+  changed_by uuid DEFAULT auth.uid(),
+  changed_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT audit_logs_pkey PRIMARY KEY (id)
+);
+
+-- Função Trigger para Auditoria Automática
+CREATE OR REPLACE FUNCTION public.handle_audit_log()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (TG_OP = 'DELETE') THEN
+    INSERT INTO public.audit_logs (table_name, record_id, action, old_data)
+    VALUES (TG_TABLE_NAME, OLD.id, 'DELETE', row_to_json(OLD)::jsonb);
+    RETURN OLD;
+  ELSIF (TG_OP = 'UPDATE') THEN
+    INSERT INTO public.audit_logs (table_name, record_id, action, old_data, new_data)
+    VALUES (TG_TABLE_NAME, NEW.id, 'UPDATE', row_to_json(OLD)::jsonb, row_to_json(NEW)::jsonb);
+    RETURN NEW;
+  ELSIF (TG_OP = 'INSERT') THEN
+    INSERT INTO public.audit_logs (table_name, record_id, action, new_data)
+    VALUES (TG_TABLE_NAME, NEW.id, 'INSERT', row_to_json(NEW)::jsonb);
+    RETURN NEW;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Exemplo de aplicação do Trigger na tabela de Funcionários
+CREATE TRIGGER audit_employees_changes
+AFTER INSERT OR UPDATE OR DELETE ON public.employees
+FOR EACH ROW EXECUTE FUNCTION public.handle_audit_log();
 ```

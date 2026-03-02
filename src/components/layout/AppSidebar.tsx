@@ -18,7 +18,8 @@ import {
   Clock,
   LifeBuoy,
   MessageCircle,
-  DollarSign
+  DollarSign,
+  ShieldAlert
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -60,6 +61,7 @@ const mainNavItems = [
 const toolsNavItems = [
   { title: 'Assistente IA', url: '/ai-assistant', icon: Bot },
   { title: 'Automações', url: '/automations', icon: Workflow },
+  { title: 'Auditoria', url: '/audit-logs', icon: ShieldAlert },
   { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 

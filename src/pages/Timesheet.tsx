@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
@@ -9,14 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Coffee, LogIn, LogOut, MapPin, MessageSquare, Download, Clock, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useDebounce } from '@/hooks/useDebounce';
+import { timeEntryService } from '@/services/timeEntryService';
 
 interface TimeEntry {
   id: string;
@@ -45,6 +46,15 @@ export default function Timesheet() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
   const [mapLocation, setMapLocation] = useState<{lat: number, lng: number} | null>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
+  const debouncedDate = useDebounce(selectedDate, 500);
+
+  const rowVirtualizer = useVirtualizer({
+    count: employeeStatus.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 76, // Altura estimada do item + gap
+    overscan: 5,
+  });
 
   useEffect(() => {
     async function fetchEntries() {
@@ -52,8 +62,8 @@ export default function Timesheet() {
       const { data, error } = await supabase
         .from('time_entries')
         .select('id, timestamp, type, employee_id, latitude, longitude, notes, employees(name)')
-        .gte('timestamp', `${selectedDate}T00:00:00.000Z`)
-        .lte('timestamp', `${selectedDate}T23:59:59.999Z`)
+        .gte('timestamp', `${debouncedDate}T00:00:00.000Z`)
+        .lte('timestamp', `${debouncedDate}T23:59:59.999Z`)
         .order('timestamp', { ascending: false });
 
       if (error) {
@@ -66,32 +76,7 @@ export default function Timesheet() {
     }
 
     fetchEntries();
-  }, [selectedDate]);
-
-  const calculateDailyHours = (empEntries: TimeEntry[]) => {
-    const sorted = [...empEntries].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    let totalMs = 0;
-    let lastInTime: number | null = null;
-
-    sorted.forEach(entry => {
-      const time = new Date(entry.timestamp).getTime();
-      if (entry.type === 'in' || entry.type === 'lunch_end') {
-        if (lastInTime === null) lastInTime = time;
-      } else if (entry.type === 'out' || entry.type === 'lunch_start') {
-        if (lastInTime !== null) {
-          totalMs += time - lastInTime;
-          lastInTime = null;
-        }
-      }
-    });
-
-    const totalMinutes = Math.floor(totalMs / 60000);
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    
-    if (h === 0 && m === 0) return '-';
-    return `${h}h ${m}m`;
-  };
+  }, [debouncedDate]);
 
   useEffect(() => {
       if (employees.length > 0) {
@@ -102,7 +87,7 @@ export default function Timesheet() {
               name: emp.name,
               department: emp.department || 'N/A',
               hasRegistered: entries.some(e => e.employee_id === emp.id),
-              workedHours: calculateDailyHours(entries.filter(e => e.employee_id === emp.id))
+              workedHours: timeEntryService.calculateDailyHours(entries.filter(e => e.employee_id === emp.id))
           }));
           setEmployeeStatus(statusList);
       }
@@ -125,7 +110,8 @@ export default function Timesheet() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const XLSX = await import('xlsx');
     const dataToExport = employeeStatus.map(emp => ({
         'Funcionário': emp.name,
         'Departamento': emp.department,
@@ -140,7 +126,8 @@ export default function Timesheet() {
     XLSX.writeFile(wb, `Espelho_Ponto_${selectedDate}.xlsx`);
   };
 
-  const handleDownloadCodeOfEthics = () => {
+  const handleDownloadCodeOfEthics = async () => {
+    const { default: jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
@@ -180,35 +167,58 @@ export default function Timesheet() {
                         onChange={(e) => setSelectedDate(e.target.value)}
                         className="mb-4"
                     />
-                    <div className="max-h-[60vh] overflow-y-auto space-y-3 pr-2">
+                    <div ref={parentRef} className="max-h-[60vh] overflow-y-auto pr-2">
                         {loading ? (
                             <p>Carregando...</p>
                         ) : (
-                            employeeStatus.map(emp => (
-                                <div 
-                                    key={emp.id} 
-                                    className={cn(
-                                        "flex items-center justify-between p-2 rounded-md border cursor-pointer transition-colors hover:bg-accent",
-                                        filterEmployeeId === emp.id ? "bg-accent border-primary" : ""
-                                    )}
-                                    onClick={() => setFilterEmployeeId(prev => prev === emp.id ? null : emp.id)}
-                                >
-                                    <div>
-                                        <p className="font-medium text-sm">{emp.name}</p>
-                                        <p className="text-xs text-muted-foreground">{emp.department}</p>
-                                        {emp.hasRegistered && (
-                                          <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
-                                            <Clock className="h-3 w-3" />
-                                            {emp.workedHours}
-                                          </p>
-                                        )}
-                                    </div>
-                                    <Badge variant={emp.hasRegistered ? 'default' : 'destructive'}>
-                                        {emp.hasRegistered ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
-                                        {emp.hasRegistered ? 'Registrou' : 'Não Registrou'}
-                                    </Badge>
-                                </div>
-                            ))
+                            <div
+                                style={{
+                                    height: `${rowVirtualizer.getTotalSize()}px`,
+                                    width: '100%',
+                                    position: 'relative',
+                                }}
+                            >
+                                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                                    const emp = employeeStatus[virtualRow.index];
+                                    return (
+                                        <div
+                                            key={emp.id}
+                                            style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                width: '100%',
+                                                height: `${virtualRow.size}px`,
+                                                transform: `translateY(${virtualRow.start}px)`,
+                                            }}
+                                            className="pb-3"
+                                        >
+                                            <div 
+                                                className={cn(
+                                                    "flex items-center justify-between p-2 rounded-md border cursor-pointer transition-colors hover:bg-accent",
+                                                    filterEmployeeId === emp.id ? "bg-accent border-primary" : ""
+                                                )}
+                                                onClick={() => setFilterEmployeeId(prev => prev === emp.id ? null : emp.id)}
+                                            >
+                                                <div>
+                                                    <p className="font-medium text-sm">{emp.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{emp.department}</p>
+                                                    {emp.hasRegistered && (
+                                                    <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
+                                                        <Clock className="h-3 w-3" />
+                                                        {emp.workedHours}
+                                                    </p>
+                                                    )}
+                                                </div>
+                                                <Badge variant={emp.hasRegistered ? 'default' : 'destructive'}>
+                                                    {emp.hasRegistered ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                                                    {emp.hasRegistered ? 'Registrou' : 'Não Registrou'}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         )}
                          {employeeStatus.length === 0 && !loading && <p className="text-sm text-muted-foreground text-center py-4">Nenhum funcionário ativo encontrado.</p>}
                     </div>

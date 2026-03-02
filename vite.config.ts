@@ -1,7 +1,9 @@
+/// <reference types="vitest" />
 import path from "path"
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react-swc"
 import { VitePWA } from "vite-plugin-pwa"
+import { visualizer } from "rollup-plugin-visualizer"
 
 export default defineConfig({
   server: {
@@ -14,8 +16,16 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Creates a separate 'vendor' chunk for third-party packages
           if (id.includes('node_modules')) {
+            // Separa bibliotecas grandes em chunks individuais
+            if (id.includes('recharts')) return 'recharts';
+            if (id.includes('jspdf')) return 'jspdf';
+            if (id.includes('xlsx')) return 'xlsx';
+            if (id.includes('@supabase')) return 'supabase';
+            if (id.includes('lucide-react')) return 'lucide';
+            if (id.includes('date-fns')) return 'date-fns';
+            
+            // O restante vai para o vendor padrão
             return 'vendor';
           }
         },
@@ -237,11 +247,23 @@ export default defineConfig({
           }
         ]
       }
-    })
+    }),
+    visualizer({
+      open: true, // Abre o navegador automaticamente após o build
+      gzipSize: true,
+      brotliSize: true,
+      filename: "stats.html",
+    }),
   ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: "./src/test/setup.ts",
+    css: true,
   },
 })

@@ -6,13 +6,20 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useEmployees } from '@/hooks/useEmployees';
-import { Download, Calculator } from 'lucide-react';
+import { Download, Calculator, ChevronDown } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PayslipButton } from '@/components/PayslipButton';
 import { supabase } from '@/lib/supabase';
+import { payrollExportService } from '@/services/payrollExportService';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function Payroll() {
   const { employees: dbEmployees, loading } = useEmployees();
@@ -180,6 +187,55 @@ export default function Payroll() {
     doc.save('folha_pagamento.pdf');
   };
 
+  const handleExportCNAB = () => {
+    const dataToExport = filteredEmployees.map(emp => {
+      const calc = calculatePayroll(emp);
+      return {
+        name: emp.name,
+        cpf: emp.pis_pasep || '000.000.000-00', // Fallback caso não tenha CPF cadastrado
+        netSalary: calc.netSalary,
+        pixKey: emp.pix_key,
+        // Dados bancários simulados (idealmente viriam do cadastro do colaborador)
+        bankCode: '341',
+        bankAgency: '0000',
+        bankAccount: '00000-0'
+      };
+    });
+
+    const fileContent = payrollExportService.generateCNAB240(dataToExport, {
+      name: 'Empresa Demo LTDA',
+      cnpj: '12.345.678/0001-90',
+      bankCode: '341'
+    });
+
+    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `remessa_salarios_${format(new Date(), 'yyyyMMdd')}.rem`;
+    a.click();
+  };
+
+  const handleExportCSV = () => {
+    const dataToExport = filteredEmployees.map(emp => {
+      const calc = calculatePayroll(emp);
+      return {
+        name: emp.name,
+        cpf: emp.pis_pasep || '',
+        netSalary: calc.netSalary,
+        pixKey: emp.pix_key
+      };
+    });
+
+    const fileContent = payrollExportService.generateCSV(dataToExport);
+    const blob = new Blob([fileContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `folha_pagamento_${format(new Date(), 'yyyyMMdd')}.csv`;
+    a.click();
+  };
+
   return (
     <AppLayout title="Salários e Pagamentos" subtitle="Gestão financeira e folha de ponto">
       <div className="space-y-6">
@@ -192,10 +248,26 @@ export default function Payroll() {
               className="w-full md:w-64"
             />
           </div>
-          <Button onClick={generatePDF} className="bg-emerald-600 hover:bg-emerald-700">
-            <Download className="mr-2 h-4 w-4" />
-            Baixar Relatório PDF
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+                <Download className="h-4 w-4" />
+                Exportar
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={generatePDF} className="cursor-pointer">
+                Relatório PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
+                Arquivo CSV (Contabilidade)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCNAB} className="cursor-pointer">
+                Arquivo CNAB 240 (Banco)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <Card>

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Users, DollarSign, Clock } from "lucide-react";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, ComposedChart, Area } from "recharts";
+import { Users, DollarSign, Clock, TrendingUp } from "lucide-react";
+import { analyticsService } from "@/services/analyticsService";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
 
@@ -10,6 +10,9 @@ export function DashboardAnalytics() {
   const [costByDept, setCostByDept] = useState<any[]>([]);
   const [overtimeData, setOvertimeData] = useState<any[]>([]);
   const [turnoverRate, setTurnoverRate] = useState(0);
+  const [costHistory, setCostHistory] = useState<any[]>([]);
+  const [headcountHistory, setHeadcountHistory] = useState<any[]>([]);
+  const [forecast, setForecast] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,52 +21,15 @@ export function DashboardAnalytics() {
 
   const fetchAnalytics = async () => {
     try {
-      const { data: employees, error } = await supabase
-        .from("employees")
-        .select("department, salary, status, overtime_amount, admission_date");
-
-      if (error) throw error;
-      if (!employees) return;
-
-      // 1. Custo de Folha por Departamento (Pizza)
-      const deptMap: Record<string, number> = {};
-      employees.forEach((emp) => {
-        if (emp.status === "Ativo") {
-          const dept = emp.department || "Sem Depto";
-          const salary = Number(emp.salary) || 0;
-          deptMap[dept] = (deptMap[dept] || 0) + salary;
-        }
-      });
-
-      const pieData = Object.keys(deptMap).map((key) => ({
-        name: key,
-        value: deptMap[key],
-      }));
-      setCostByDept(pieData);
-
-      // 2. Horas Extras (Barra) - Agrupado por Departamento (Simulação de "Por Mês" com dados atuais)
-      // Nota: Para histórico mensal real, seria necessário consultar a tabela time_entries ou histórico de folha.
-      // Aqui usamos o snapshot atual de overtime_amount.
-      const overtimeMap: Record<string, number> = {};
-      employees.forEach((emp) => {
-        const dept = emp.department || "Geral";
-        const overtime = Number(emp.overtime_amount) || 0;
-        overtimeMap[dept] = (overtimeMap[dept] || 0) + overtime;
-      });
-
-      const barData = Object.keys(overtimeMap).map((key) => ({
-        name: key,
-        valor: overtimeMap[key],
-      }));
-      setOvertimeData(barData);
-
-      // 3. KPI Turnover (Rotatividade)
-      // Fórmula Simplificada: (Demitidos / Total Geral) * 100
-      const totalEmployees = employees.length;
-      const terminatedEmployees = employees.filter(e => e.status === "Desligado").length;
-      const rate = totalEmployees > 0 ? (terminatedEmployees / totalEmployees) * 100 : 0;
-      setTurnoverRate(rate);
-
+      const data = await analyticsService.getDashboardMetrics();
+      
+      setCostByDept(data.costByDept);
+      setOvertimeData(data.overtimeData);
+      setTurnoverRate(data.turnoverRate);
+      setCostHistory(data.costHistory);
+      setHeadcountHistory(data.headcountHistory);
+      setForecast(data.headcountForecast);
+      
     } catch (err) {
       console.error("Erro ao carregar analytics:", err);
     } finally {
@@ -91,12 +57,21 @@ export function DashboardAnalytics() {
                     </p>
                 </CardContent>
             </Card>
-            {/* Outros KPIs podem ser adicionados aqui */}
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Previsão Headcount (Próx. Mês)</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{forecast}</div>
+                    <p className="text-xs text-muted-foreground">Baseado na média recente</p>
+                </CardContent>
+            </Card>
         </div>
       </Card>
 
       {/* Gráfico de Pizza - Custos */}
-      <Card className="col-span-4">
+      <Card className="col-span-4 lg:col-span-3">
         <CardHeader>
           <CardTitle>Custo de Folha por Departamento</CardTitle>
         </CardHeader>
@@ -126,8 +101,49 @@ export function DashboardAnalytics() {
         </CardContent>
       </Card>
 
+      {/* Gráfico de Linha - Evolução */}
+      <Card className="col-span-4">
+        <CardHeader>
+          <CardTitle>Evolução do Custo de Folha (6 Meses)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={costHistory}>
+                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value/1000}k`} />
+                <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
+                <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} activeDot={{ r: 8 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gráfico Composto - Crescimento */}
+      <Card className="col-span-4">
+        <CardHeader>
+          <CardTitle>Crescimento de Colaboradores (Admissões vs Total)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={headcountHistory}>
+                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="left" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="right" orientation="right" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip />
+                <Legend />
+                <Bar yAxisId="right" dataKey="admissions" name="Novas Admissões" fill="#3b82f6" barSize={20} radius={[4, 4, 0, 0]} />
+                <Line yAxisId="left" type="monotone" dataKey="total" name="Total Ativos" stroke="#10b981" strokeWidth={2} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Gráfico de Barras - Horas Extras */}
-      <Card className="col-span-3">
+      <Card className="col-span-3 lg:col-span-7">
         <CardHeader>
           <CardTitle>Custo de Horas Extras (Atual)</CardTitle>
         </CardHeader>
