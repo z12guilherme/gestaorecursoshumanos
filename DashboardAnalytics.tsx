@@ -1,31 +1,57 @@
 import { useEffect, useState } from "react";
+import { subMonths } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, ComposedChart, Area } from "recharts";
-import { Users, DollarSign, Clock, TrendingUp } from "lucide-react";
+import { Users, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 import { analyticsService } from "@/services/analyticsService";
+import { MonthFilter } from "@/components/dashboard/MonthFilter";
+import { calculateGrowth, formatCurrency, formatPercent } from "@/lib/analytics-utils";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
 
+interface MonthlyMetrics {
+  totalCost: number;
+  totalOvertime: number;
+  turnoverRate: number;
+  headcount: number;
+}
+
 export function DashboardAnalytics() {
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const [currentMetrics, setCurrentMetrics] = useState<MonthlyMetrics | null>(null);
+  const [previousMetrics, setPreviousMetrics] = useState<MonthlyMetrics | null>(null);
+
   const [costByDept, setCostByDept] = useState<any[]>([]);
   const [overtimeData, setOvertimeData] = useState<any[]>([]);
-  const [turnoverRate, setTurnoverRate] = useState(0);
   const [costHistory, setCostHistory] = useState<any[]>([]);
   const [headcountHistory, setHeadcountHistory] = useState<any[]>([]);
   const [forecast, setForecast] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAnalytics();
-  }, []);
+    fetchAnalytics(currentDate);
+  }, [currentDate]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (date: Date) => {
     try {
-      const data = await analyticsService.getDashboardMetrics();
+      setLoading(true);
+      const previousMonth = subMonths(date, 1);
       
-      setCostByDept(data.costByDept);
-      setOvertimeData(data.overtimeData);
-      setTurnoverRate(data.turnoverRate);
+      // Fetch data for both months
+      const [currentData, previousData, historicalData] = await Promise.all([
+        analyticsService.getMonthlyMetrics(date),
+        analyticsService.getMonthlyMetrics(previousMonth),
+        analyticsService.getDashboardMetrics(), // Assuming this gets general/historical data
+      ]);
+      
+      setCurrentMetrics(currentData.metrics);
+      setPreviousMetrics(previousData.metrics);
+      setCostByDept(currentData.costByDept);
+      setOvertimeData(currentData.overtimeData);
+
+      // Keep historical data as is for now
+      const data = historicalData;
       setCostHistory(data.costHistory);
       setHeadcountHistory(data.headcountHistory);
       setForecast(data.headcountForecast);
@@ -38,38 +64,75 @@ export function DashboardAnalytics() {
   };
 
   if (loading) return <div className="p-4">Carregando indicadores...</div>;
+  
+  const totalCostGrowth = currentMetrics && previousMetrics ? calculateGrowth(currentMetrics.totalCost, previousMetrics.totalCost) : 0;
+  const turnoverGrowth = currentMetrics && previousMetrics ? currentMetrics.turnoverRate - previousMetrics.turnoverRate : 0;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-4">
-      
-      {/* KPI Card */}
-      <Card className="col-span-2 lg:col-span-7">
-        <div className="grid gap-4 md:grid-cols-3">
+    <div className="space-y-4 mt-4">
+      <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold tracking-tight">Dashboard de Análise</h2>
+          <MonthFilter date={currentDate} setDate={setCurrentDate} />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Taxa de Turnover</CardTitle>
+                    <CardTitle className="text-sm font-medium">Custo Total da Folha</CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{turnoverRate.toFixed(1)}%</div>
-                    <p className="text-xs text-muted-foreground">
-                        Baseado no histórico total
+                    <div className="text-2xl font-bold">{formatCurrency(currentMetrics?.totalCost ?? 0)}</div>
+                    <p className="text-xs text-muted-foreground flex items-center">
+                      {totalCostGrowth >= 0 ? (
+                        <TrendingUp className="h-4 w-4 mr-1 text-emerald-500" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 mr-1 text-red-500" />
+                      )}
+                      <span className={totalCostGrowth >= 0 ? 'text-emerald-500' : 'text-red-500'}>{formatPercent(totalCostGrowth)}</span>
+                      &nbsp;vs. mês anterior
                     </p>
                 </CardContent>
             </Card>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Previsão Headcount (Próx. Mês)</CardTitle>
+                    <CardTitle className="text-sm font-medium">Headcount Ativo</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{currentMetrics?.headcount ?? 0}</div>
+                    <p className="text-xs text-muted-foreground">
+                        {previousMetrics?.headcount ?? 0} no mês anterior
+                    </p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Taxa de Turnover (Mensal)</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{(currentMetrics?.turnoverRate ?? 0).toFixed(1)}%</div>
+                    <p className="text-xs text-muted-foreground flex items-center">
+                      {turnoverGrowth > 0.09 ? ( <TrendingUp className="h-4 w-4 mr-1 text-red-500" /> ) : 
+                       turnoverGrowth < -0.09 ? ( <TrendingDown className="h-4 w-4 mr-1 text-emerald-500" /> ) : 
+                       ( <ArrowRight className="h-4 w-4 mr-1 text-muted-foreground" />)
+                      }
+                      {turnoverGrowth.toFixed(1)} p.p. vs. mês anterior
+                    </p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Previsão Headcount</CardTitle>
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{forecast}</div>
-                    <p className="text-xs text-muted-foreground">Baseado na média recente</p>
+                    <p className="text-xs text-muted-foreground">Estimativa para o próximo mês</p>
                 </CardContent>
             </Card>
-        </div>
-      </Card>
-
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
       {/* Gráfico de Pizza - Custos */}
       <Card className="col-span-4 lg:col-span-3">
         <CardHeader>
@@ -143,7 +206,7 @@ export function DashboardAnalytics() {
       </Card>
 
       {/* Gráfico de Barras - Horas Extras */}
-      <Card className="col-span-3 lg:col-span-7">
+      <Card className="col-span-4 lg:col-span-7">
         <CardHeader>
           <CardTitle>Custo de Horas Extras (Atual)</CardTitle>
         </CardHeader>
@@ -166,6 +229,7 @@ export function DashboardAnalytics() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
