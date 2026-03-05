@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { ManualModal } from "@/components/ManualModal";
+import { SecurityBadge } from "@/components/auth/SecurityBadge";
 import hsfBg from "@/assets/hsf.jpeg";
 import { Mail, Lock, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
 
@@ -131,9 +132,13 @@ export default function LoginPage() {
                 <div className="flex justify-center">
                    <ManualModal />
                 </div>
+
+                <div className="flex justify-center pt-4">
+                    <SecurityBadge />
+                </div>
             </div>
             
-            <div className="absolute bottom-4 left-0 right-0 text-center">
+            <div className="absolute bottom-4 left-0 right-0 text-center flex flex-col items-center gap-2">
                 <p className="text-[10px] text-slate-400">© 2026 Rede DMI. Todos os direitos reservados.</p>
             </div>
         </div>
