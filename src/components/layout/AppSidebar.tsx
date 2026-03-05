@@ -84,7 +84,23 @@ export function AppSidebar() {
   });
 
   useEffect(() => {
-    if (session?.user) {
+    async function fetchUserProfile() {
+      if (!session?.user) return;
+
+      // 1. Tenta buscar configurações personalizadas (prioridade)
+      const { data: settings } = await supabase.from('settings').select('developer_name, avatar_url').maybeSingle();
+
+      if (settings && settings.developer_name) {
+        setUserProfile({
+          name: settings.developer_name,
+          email: session.user.email || "",
+          avatar: settings.avatar_url || "",
+          role: "Administrador" // Assume Admin se configurado via Settings
+        });
+        return;
+      }
+
+      // 2. Se não houver config, tenta encontrar funcionário pelo email
       const currentEmployee = employees.find(e => e.email === session.user.email);
       
       if (currentEmployee) {
@@ -95,7 +111,7 @@ export function AppSidebar() {
           role: currentEmployee.role || "Colaborador"
         });
       } else {
-        // Fallback se não encontrar na lista de funcionários (ex: admin superusuário)
+        // 3. Fallback final (dados da sessão ou padrão)
         setUserProfile({
           name: session.user.user_metadata?.name || "Admin",
           email: session.user.email || "",
@@ -104,6 +120,7 @@ export function AppSidebar() {
         });
       }
     }
+    fetchUserProfile();
   }, [session, employees]);
 
   const handleLogout = async () => {
