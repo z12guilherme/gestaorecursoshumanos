@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { PayslipButton } from '@/components/PayslipButton';
+import { PayslipViewerModal } from '@/components/PayslipViewerModal';
 
 export default function ClockInPage() {
   const { employees } = useEmployees();
@@ -42,6 +43,7 @@ export default function ClockInPage() {
   // Documents State
   const [showDocumentsDialog, setShowDocumentsDialog] = useState(false);
   const [identifiedEmployee, setIdentifiedEmployee] = useState<Employee | null>(null);
+  const [isPayslipViewerOpen, setIsPayslipViewerOpen] = useState(false);
   const { documents } = useDocuments(identifiedEmployee?.id);
   
   // Support States
@@ -390,6 +392,13 @@ export default function ClockInPage() {
         </div>
       </div>
 
+      <PayslipViewerModal 
+        open={isPayslipViewerOpen}
+        onOpenChange={setIsPayslipViewerOpen}
+        employee={identifiedEmployee}
+        referenceDate={new Date()}
+      />
+
       {/* Dialog de Documentos */}
       <Dialog open={showDocumentsDialog} onOpenChange={setShowDocumentsDialog}>
         <DialogContent className="sm:max-w-md">
@@ -404,7 +413,10 @@ export default function ClockInPage() {
                   <span className="font-medium text-blue-900 dark:text-blue-300">Contra Cheque</span>
                   <span className="text-xs text-blue-700 dark:text-blue-400">Mês Atual</span>
                 </div>
-                <PayslipButton employee={identifiedEmployee as any} referenceDate={new Date()} />
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setIsPayslipViewerOpen(true)}>Visualizar</Button>
+                  <PayslipButton employee={identifiedEmployee as any} referenceDate={new Date()} />
+                </div>
               </div>
             )}
 

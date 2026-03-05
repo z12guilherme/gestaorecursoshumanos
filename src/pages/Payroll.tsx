@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useEmployees } from '@/hooks/useEmployees';
-import { Download, Calculator, ChevronDown } from 'lucide-react';
+import { Download, Calculator, ChevronDown, Eye } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -14,6 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { PayslipButton } from '@/components/PayslipButton';
 import { supabase } from '@/lib/supabase';
 import { payrollExportService } from '@/services/payrollExportService';
+import { PayslipViewerModal } from '@/components/PayslipViewerModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,8 @@ export default function Payroll() {
   const { employees: dbEmployees, loading } = useEmployees();
   const [searchTerm, setSearchTerm] = useState('');
   const [companySettings, setCompanySettings] = useState<any>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [selectedEmployeeForView, setSelectedEmployeeForView] = useState<any>(null);
   
   // Mapeia os dados do banco (snake_case) para o formato esperado (camelCase)
   const employees = dbEmployees.map((emp: any) => {
@@ -294,6 +297,22 @@ export default function Payroll() {
     a.click();
   };
 
+  const handleViewPayslip = (emp: any, calc: any) => {
+    const employeeData = {
+      ...emp,
+      insalubrity_amount: calc.insalubrity,
+      night_shift_amount: calc.nightShift,
+      overtime_amount: calc.overtimeValue,
+      variable_additions: emp.variable_additions || [],
+      variable_discounts: [
+        ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
+        { description: "INSS (2026)", value: calc.estimatedTax }
+      ]
+    };
+    setSelectedEmployeeForView(employeeData);
+    setIsViewerOpen(true);
+  };
+
   return (
     <AppLayout title="Salários e Pagamentos" subtitle="Gestão financeira e folha de ponto">
       <div className="space-y-6">
@@ -354,11 +373,11 @@ export default function Payroll() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">Carregando dados...</TableCell>
+                    <TableCell colSpan={7} className="text-center py-8">Carregando dados...</TableCell>
                   </TableRow>
                 ) : filteredEmployees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">Nenhum colaborador encontrado.</TableCell>
+                    <TableCell colSpan={7} className="text-center py-8">Nenhum colaborador encontrado.</TableCell>
                   </TableRow>
                 ) : (
                   filteredEmployees.map((emp) => {
@@ -394,19 +413,29 @@ export default function Payroll() {
                           R$ {calc.netSalary.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-center">
-                          <PayslipButton 
-                            employee={{
-                              ...emp,
-                              insalubrity_amount: calc.insalubrity,
-                              night_shift_amount: calc.nightShift,
-                              overtime_amount: calc.overtimeValue,
-                              variable_additions: emp.variable_additions || [],
-                              variable_discounts: [
-                                ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
-                                { description: "INSS (2026)", value: calc.estimatedTax }
-                              ]
-                            }} 
-                          />
+                          <div className="flex items-center justify-center gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              title="Visualizar"
+                              onClick={() => handleViewPayslip(emp, calc)}
+                            >
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                            <PayslipButton 
+                              employee={{
+                                ...emp,
+                                insalubrity_amount: calc.insalubrity,
+                                night_shift_amount: calc.nightShift,
+                                overtime_amount: calc.overtimeValue,
+                                variable_additions: emp.variable_additions || [],
+                                variable_discounts: [
+                                  ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
+                                  { description: "INSS (2026)", value: calc.estimatedTax }
+                                ]
+                              }} 
+                            />
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -416,6 +445,13 @@ export default function Payroll() {
             </Table>
           </CardContent>
         </Card>
+
+        <PayslipViewerModal 
+          open={isViewerOpen}
+          onOpenChange={setIsViewerOpen}
+          employee={selectedEmployeeForView}
+          referenceDate={new Date()}
+        />
       </div>
     </AppLayout>
   );
