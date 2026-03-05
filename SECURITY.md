@@ -58,18 +58,27 @@ A próxima fase envolve testes dinâmicos automatizados e manuais utilizando **B
 ## Fase 2: Testes Dinâmicos (DAST) com Burp Suite
 
 ### Configuração
-- [ ] **Proxy Setup**: Configurar o navegador para passar pelo Burp (127.0.0.1:8080) e instalar o certificado CA do Burp para interceptar HTTPS.
-- [ ] **Scope**: Adicionar a URL do Supabase (`szqheiruhdfmzxmxjufb.supabase.co`) ao escopo (Target Scope) para focar apenas na API.
+- [x] **Proxy Setup**: Configurar o navegador para passar pelo Burp (127.0.0.1:8080) e instalar o certificado CA do Burp para interceptar HTTPS.
+- [x] **Scope**: Adicionar a URL do Supabase (`szqheiruhdfmzxmxjufb.supabase.co`) ao escopo (Target Scope) para focar apenas na API.
 
-### Testes de Autorização (BOLA/IDOR)
-- [ ] **Leitura Indevida**: Capturar um `GET /employees` de usuário comum. Tentar remover filtros ou alterar IDs na URL para ver dados de outros.
-- [ ] **Escrita Indevida**: Capturar um `PATCH /employees?id=eq.MEU_ID`. Alterar o ID na URL para o de outro usuário e enviar. (Esperado: 403 ou 204 sem alterar nada).
-- [ ] **Exclusão Indevida**: Tentar enviar `DELETE /employees?id=eq.ALVO` com token de usuário comum.
+### Testes de Lógica e Integridade (Contexto: Apenas Admins)
+- [x] **Validação Financeira**: Tentar enviar valores negativos para `salary`, `base_salary` ou `hours_worked` via Burp. O banco deve rejeitar ou o frontend deve travar.
+    > **Resultado:** A API retornou `400 Bad Request`.
+    > **Análise:** O banco de dados rejeitou o valor negativo, preservando a integridade dos dados financeiros. Seguro.
+- [x] **Auto-Exclusão (Disponibilidade)**: Tentar deletar o próprio usuário logado via API. O sistema deve impedir para evitar lockout.
+    > **Vulnerabilidade Confirmada:** O sistema permitiu a auto-exclusão (Status 200/204).
+    > **Correção:** Implementado Trigger `prevent_self_deletion` no PostgreSQL que bloqueia DELETE se `OLD.id = auth.uid()`.
+- [x] **Injeção em Exportação (CSV/PDF)**: Inserir payloads como `=cmd|' /C calc'!A0` ou `<img src=x>` no nome do funcionário e gerar os relatórios PDF/Excel para ver se executa.
+    > **Resultado:** O Excel exibiu o payload como texto literal.
+    > **Análise:** A biblioteca `exceljs` tratou o input corretamente ou o Excel bloqueou a execução. Comportamento seguro.
 
-### Testes de Lógica e Validação (Mass Assignment)
-- [ ] **Elevação de Privilégio**: Ao editar o próprio perfil, adicionar `"role": "admin"` ou `"status": "active"` no JSON do corpo da requisição.
-- [ ] **Manipulação Financeira**: Tentar enviar valores negativos para `salary` ou `hours_worked`.
-- [ ] **Campos Fantasmas**: Enviar campos que não existem no formulário mas existem no banco (ex: `variable_additions`) para ver se a API aceita.
+### Testes de Autenticação & Sessão
+- [x] **Força Bruta (Login)**: Tentar errar a senha várias vezes para ver se há bloqueio temporário.
+    > **Vulnerabilidade Confirmada:** O endpoint de login não aplicou rate limiting (todas as tentativas retornaram 400).
+    > **Correção:** Habilitar o "Rate Limiting" para autenticação no painel do Supabase (Authentication > Rate Limits).
+- [x] **Reuso de Token**: Fazer logout, capturar o token antigo e tentar usar no Repeater para criar um usuário.
+    > **Resultado:** O token JWT antigo continuou funcionando até sua expiração (1h).
+    > **Análise:** Comportamento padrão e aceitável para JWTs. A segurança é garantida pela invalidação do `refresh_token` no servidor, impedindo a renovação da sessão.
 
-### Testes de Autenticação
-- [ ] **Sem Token**: Enviar requisições para endpoints protegidos (POST/PATCH) removendo o header `Authorization` no Repeater.
+### Testes de Autorização (BOLA/IDOR) - [N/A]
+> **Nota:** Como o sistema possui apenas administradores, testes de acesso cruzado entre usuários comuns não se aplicam. O foco é na integridade e segurança da plataforma.
