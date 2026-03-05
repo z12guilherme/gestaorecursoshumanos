@@ -50,3 +50,26 @@ Strict-Transport-Security (HSTS)
 [x] CORS Policy: Garantir que o Supabase e suas funções só aceitem requisições vindas do domínio oficial.
     > **Resultado:** `Access-Control-Allow-Origin: *`.
     > **Análise:** A API é pública por padrão. Como a autenticação usa Bearer Tokens (não cookies) e RLS está ativo, o risco é mitigado. Para restringir a origem, seria necessário usar um Proxy ou Edge Functions.
+
+## 🏁 Conclusão da Fase 1 (Checklist Manual)
+Todos os itens críticos do checklist acima foram verificados e mitigados ou aceitos (risco calculado).
+A próxima fase envolve testes dinâmicos automatizados e manuais utilizando **Burp Suite** para identificar vulnerabilidades mais complexas de lógica de negócio e injeção.
+
+## Fase 2: Testes Dinâmicos (DAST) com Burp Suite
+
+### Configuração
+- [ ] **Proxy Setup**: Configurar o navegador para passar pelo Burp (127.0.0.1:8080) e instalar o certificado CA do Burp para interceptar HTTPS.
+- [ ] **Scope**: Adicionar a URL do Supabase (`szqheiruhdfmzxmxjufb.supabase.co`) ao escopo (Target Scope) para focar apenas na API.
+
+### Testes de Autorização (BOLA/IDOR)
+- [ ] **Leitura Indevida**: Capturar um `GET /employees` de usuário comum. Tentar remover filtros ou alterar IDs na URL para ver dados de outros.
+- [ ] **Escrita Indevida**: Capturar um `PATCH /employees?id=eq.MEU_ID`. Alterar o ID na URL para o de outro usuário e enviar. (Esperado: 403 ou 204 sem alterar nada).
+- [ ] **Exclusão Indevida**: Tentar enviar `DELETE /employees?id=eq.ALVO` com token de usuário comum.
+
+### Testes de Lógica e Validação (Mass Assignment)
+- [ ] **Elevação de Privilégio**: Ao editar o próprio perfil, adicionar `"role": "admin"` ou `"status": "active"` no JSON do corpo da requisição.
+- [ ] **Manipulação Financeira**: Tentar enviar valores negativos para `salary` ou `hours_worked`.
+- [ ] **Campos Fantasmas**: Enviar campos que não existem no formulário mas existem no banco (ex: `variable_additions`) para ver se a API aceita.
+
+### Testes de Autenticação
+- [ ] **Sem Token**: Enviar requisições para endpoints protegidos (POST/PATCH) removendo o header `Authorization` no Repeater.
