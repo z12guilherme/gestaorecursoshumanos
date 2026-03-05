@@ -236,15 +236,14 @@ CREATE TABLE public.payslip_acknowledgments (
 
 Por padrão, o Supabase bloqueia o acesso público às tabelas. Para que o frontend funcione corretamente, você precisará configurar as políticas de segurança (Row Level Security).
 
-**Opção Rápida (Desenvolvimento):**
-Se quiser liberar o acesso para leitura e escrita para qualquer usuário autenticado (ou público, dependendo da sua regra de negócio), execute também:
+**Recomendação de Segurança:**
+É crucial definir políticas que restrinjam o acesso aos dados. Por exemplo, para permitir que apenas usuários logados (`authenticated`) acessem a tabela de funcionários, use o seguinte comando. **Nunca use `USING (true)` em uma política `FOR ALL` em produção.**
 
 ```sql
--- Exemplo: Habilitar RLS e permitir acesso total (CUIDADO: Use apenas em dev ou ajuste conforme necessidade)
+-- Habilita o RLS na tabela de funcionários
 ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Permitir acesso total a employees" ON public.employees FOR ALL USING (true) WITH CHECK (true);
-
--- Repita para as outras tabelas se necessário, ou configure políticas específicas no painel "Authentication > Policies".
+-- Permite acesso total APENAS para usuários logados
+CREATE POLICY "Acesso total para usuários autenticados" ON public.employees FOR ALL TO authenticated USING (true) WITH CHECK (true);
 ```
 
 *Recomendação:* No futuro, configure políticas que verifiquem `auth.uid()` para garantir que apenas usuários autorizados possam editar dados sensíveis.
@@ -423,4 +422,22 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER audit_employees_changes
 AFTER INSERT OR UPDATE OR DELETE ON public.employees
 FOR EACH ROW EXECUTE FUNCTION public.handle_audit_log();
+
+-- 16. Tabela para Inscrições de Push Notifications
+CREATE TABLE public.push_subscriptions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  subscription_details jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT push_subscriptions_pkey PRIMARY KEY (id),
+  CONSTRAINT push_subscriptions_endpoint_unique UNIQUE ( (subscription_details->>'endpoint') )
+);
+
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Permitir que usuários insiram suas próprias inscrições"
+ON public.push_subscriptions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Permitir que usuários vejam suas próprias inscrições"
+ON public.push_subscriptions FOR SELECT USING (auth.uid() = user_id);
 ```

@@ -50,6 +50,25 @@ export function useEmployees() {
     }
   };
 
+  const fetchPublicEmployees = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('employees_public')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+
+      setEmployees(data || []);
+    } catch (err: any) {
+      console.error('Erro ao buscar colaboradores (público):', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addEmployee = async (employee: Omit<Employee, 'id' | 'created_at'>) => {
     try {
       const { data, error } = await supabase
@@ -121,6 +140,20 @@ export function useEmployees() {
     }
   };
 
+  // Busca dados completos (incluindo sensíveis) apenas para edição
+  const getEmployeeDetails = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('id', id)
+        .single();
+      return { data, error: null };
+    } catch (err: any) {
+      return { data: null, error: err };
+    }
+  };
+
   useEffect(() => {
     fetchEmployees();
   }, []);
@@ -130,9 +163,11 @@ export function useEmployees() {
     loading,
     error,
     refetch: fetchEmployees,
+    fetchPublicEmployees,
     addEmployee,
     updateEmployee,
     deleteEmployee,
-    validateEmployeeLogin
+    validateEmployeeLogin,
+    getEmployeeDetails
   };
 }

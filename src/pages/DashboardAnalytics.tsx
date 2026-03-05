@@ -2,13 +2,10 @@ import { useEffect, useState } from "react";
 import { subMonths } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, ComposedChart, Area } from "recharts";
-import { Users, TrendingUp, TrendingDown, ArrowRight, Bell, Send } from "lucide-react";
+import { Users, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 import { analyticsService } from "@/services/analyticsService";
 import { MonthFilter } from "@/components/dashboard/MonthFilter";
 import { calculateGrowth, formatCurrency, formatPercent } from "@/lib/analytics-utils";
-import { Button } from "@/components/ui/button";
-import { subscribeToPushNotifications } from "@/lib/push-notifications";
-import { supabase } from "@/lib/supabase";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
 
@@ -71,38 +68,11 @@ export function DashboardAnalytics() {
   const totalCostGrowth = currentMetrics && previousMetrics ? calculateGrowth(currentMetrics.totalCost, previousMetrics.totalCost) : 0;
   const turnoverGrowth = currentMetrics && previousMetrics ? currentMetrics.turnoverRate - previousMetrics.turnoverRate : 0;
 
-  const handleSubscribe = async () => {
-    await subscribeToPushNotifications();
-    alert("Permissão solicitada! Se aceita, você foi inscrito.");
-  };
-
-  const handleSendTest = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert("Usuário não logado");
-
-    const { error } = await supabase.functions.invoke('send-notification', {
-      body: {
-        user_ids: [user.id],
-        payload: {
-          title: "Teste GestãoRH 🚀",
-          body: `Notificação enviada às ${new Date().toLocaleTimeString()}`
-        }
-      }
-    });
-
-    if (error) alert("Erro ao enviar: " + error.message);
-    else alert("Notificação enviada! Verifique seu dispositivo.");
-  };
-
   return (
     <div className="space-y-4 mt-4">
       <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold tracking-tight">Dashboard de Análise</h2>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handleSubscribe} title="Ativar Notificações"><Bell className="h-4 w-4" /></Button>
-            <Button variant="outline" size="icon" onClick={handleSendTest} title="Enviar Teste"><Send className="h-4 w-4" /></Button>
-            <MonthFilter date={currentDate} setDate={setCurrentDate} />
-          </div>
+          <MonthFilter date={currentDate} setDate={setCurrentDate} />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>

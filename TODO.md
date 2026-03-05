@@ -54,12 +54,4 @@
 ### 7. 📊 Dashboard Avançado (Analytics)
 - [x] Implementar gráficos de linha para evolução de custos. (`DashboardAnalytics.tsx`)
 - [x] Criar análise de Turnover/Crescimento (previsão e histórico). (`DashboardAnalytics.tsx`)
-- [ ] Adicionar filtros de data e comparativos (Mês Atual vs Mês Anterior).
-
-### 8. 🔔 Notificações Push (PWA)
-> **Problema:** Usuários perdem avisos se não estiverem com o app aberto.
-- [ ] Configurar Service Workers para **Web Push API**.
-- [ ] Implementar notificações para:
-    - Aprovação de Férias.
-    - Lembrete de Ponto não batido.
-    - Novos Comunicados.
+- [x] Adicionar filtros de data e comparativos (Mês Atual vs Mês Anterior).
