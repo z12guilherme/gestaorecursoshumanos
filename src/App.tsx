@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ReloadPrompt } from "@/components/ReloadPrompt";
 
+
 // Lazy Loading das Páginas
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Employees = lazy(() => import("./pages/Employees"));
@@ -32,6 +33,7 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const Suggestions = lazy(() => import("@/pages/Suggestions"));
 const PublicSuggestion = lazy(() => import("@/pages/PublicSuggestion"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const PublicEvaluation = lazy(() => import("./pages/PublicEvaluation"));
 
 const LoadingSpinner = () => (
   <div className="flex h-screen w-full items-center justify-center bg-slate-50">
@@ -68,6 +70,7 @@ const App = () => {
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/sugestoes-publico" element={<PublicSuggestion />} />
+              <Route path="/avaliacao/:token" element={<PublicEvaluation />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/employees" element={<Employees />} />

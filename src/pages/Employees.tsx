@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Users, UserCheck, UserX, Calendar, LogOut, KeyRound } from 'lucide-react';
+import { Users, UserCheck, UserX, Calendar, LogOut, KeyRound, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/lib/AuthContext';
@@ -28,6 +28,7 @@ import { useTimeOff } from '@/hooks/useTimeOff';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { useDebounce } from '@/hooks/useDebounce';
+import { EvaluationLinkGenerator } from '@/components/performance/EvaluationLinkGenerator';
 
 export default function Employees() {
   const { 
@@ -89,6 +90,7 @@ export default function Employees() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [passwordToUpdate, setPasswordToUpdate] = useState('');
   const [employeeToTerminate, setEmployeeToTerminate] = useState<Employee | null>(null);
+  const [isLinkGeneratorOpen, setIsLinkGeneratorOpen] = useState(false);
   const { toast } = useToast();
 
   // Computa o status real baseado nas solicitações de férias ativas
@@ -527,6 +529,12 @@ export default function Employees() {
         </div>
 
         {/* Filters */}
+        <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setIsLinkGeneratorOpen(true)} className="gap-2">
+                <LinkIcon className="h-4 w-4" />
+                Gerar Link de Avaliação
+            </Button>
+        </div>
         <EmployeeFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -601,6 +609,12 @@ export default function Employees() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <EvaluationLinkGenerator
+            employees={dbEmployees}
+            open={isLinkGeneratorOpen}
+            onOpenChange={setIsLinkGeneratorOpen}
+        />
 
         <AlertDialog open={!!employeeToTerminate} onOpenChange={(open) => !open && setEmployeeToTerminate(null)}>
           <AlertDialogContent>
