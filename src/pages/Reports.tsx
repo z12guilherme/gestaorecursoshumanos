@@ -231,10 +231,7 @@ export default function Reports() {
     };
     
     // --- Cabeçalho Visual ---
-    doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, 210, 40, 'F'); // Barra azul no topo
-    
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(0, 0, 0);
     doc.setFontSize(18);
     doc.text(companySettings?.company_name || 'HOSPITAL DMI LTDA', 14, 15);
     doc.setFontSize(10);
@@ -250,9 +247,6 @@ export default function Reports() {
         try {
             const imgData = await getImageData(selectedEmployee.avatar_url);
             if (imgData) {
-                // Desenha um círculo branco de fundo para a foto
-                doc.setFillColor(255, 255, 255);
-                doc.circle(185, 20, 16, 'F');
                 // Adiciona a imagem (tentando manter proporção quadrada)
                 doc.addImage(imgData, 'PNG', 170, 5, 30, 30, undefined, 'FAST');
             }
@@ -341,8 +335,9 @@ export default function Reports() {
             startY: finalY + 5,
             head: [['Tipo', 'Início', 'Fim', 'Status', 'Anexo']],
             body: timeOffData,
-            theme: 'striped',
-            headStyles: { fillColor: [41, 128, 185] }
+            theme: 'grid',
+            headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineWidth: 0.1, lineColor: [0, 0, 0] },
+            styles: { textColor: [0, 0, 0] }
         });
     } else {
         doc.setFontSize(10);
@@ -375,8 +370,9 @@ export default function Reports() {
             startY: finalY + 5,
             head: [['Período', 'Nota', 'Metas', 'Feedback', 'Data']],
             body: reviewData,
-            theme: 'striped',
-            headStyles: { fillColor: [41, 128, 185] },
+            theme: 'grid',
+            headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineWidth: 0.1, lineColor: [0, 0, 0] },
+            styles: { textColor: [0, 0, 0] },
             columnStyles: { 3: { cellWidth: 70 } }
         });
         
