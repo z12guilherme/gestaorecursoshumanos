@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useEmployees } from '@/hooks/useEmployees';
 import { 
   LayoutDashboard, 
   Users, 
@@ -71,20 +72,39 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
+  const { employees } = useEmployees();
+  const { session } = useAuth();
   const isCollapsed = state === 'collapsed';
-  const [developerName, setDeveloperName] = useState('[DEV] Marcos Guilherme');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  
+  const [userProfile, setUserProfile] = useState({
+    name: "Usuário",
+    email: "",
+    avatar: "",
+    role: ""
+  });
 
   useEffect(() => {
-    async function fetchSettings() {
-      const { data } = await supabase.from('settings').select('developer_name, avatar_url').maybeSingle();
-      if (data) {
-        if (data.developer_name) setDeveloperName(data.developer_name);
-        if (data.avatar_url) setAvatarUrl(data.avatar_url);
+    if (session?.user) {
+      const currentEmployee = employees.find(e => e.email === session.user.email);
+      
+      if (currentEmployee) {
+        setUserProfile({
+          name: currentEmployee.name,
+          email: currentEmployee.email,
+          avatar: currentEmployee.avatar_url || "",
+          role: currentEmployee.role || "Colaborador"
+        });
+      } else {
+        // Fallback se não encontrar na lista de funcionários (ex: admin superusuário)
+        setUserProfile({
+          name: session.user.user_metadata?.name || "Admin",
+          email: session.user.email || "",
+          avatar: "",
+          role: "Administrador"
+        });
       }
     }
-    fetchSettings();
-  }, []);
+  }, [session, employees]);
 
   const handleLogout = async () => {
     await signOut();
@@ -146,14 +166,14 @@ export function AppSidebar() {
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-lg p-2 hover:bg-sidebar-accent transition-colors">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={avatarUrl || "/placeholder.svg"} className="object-cover" />
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm">AS</AvatarFallback>
+                <AvatarImage src={userProfile.avatar || "/placeholder.svg"} className="object-cover" />
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm">{userProfile.name.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               {!isCollapsed && (
                 <>
                   <div className="flex flex-col items-start text-left flex-1">
-                    <span className="text-sm font-medium text-sidebar-foreground">{developerName}</span>
-                    <span className="text-xs text-muted-foreground">Admin</span>
+                    <span className="text-sm font-medium text-sidebar-foreground truncate w-32">{userProfile.name}</span>
+                    <span className="text-xs text-muted-foreground">{userProfile.role}</span>
                   </div>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </>
