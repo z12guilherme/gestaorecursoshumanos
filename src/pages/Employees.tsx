@@ -318,7 +318,23 @@ export default function Employees() {
   };
 
   const handleDownloadTemplate = async () => {
-    const XLSX = await import('xlsx');
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Modelo Importação');
+
+    worksheet.columns = [
+      { header: 'Nome', key: 'Nome', width: 30 },
+      { header: 'Email', key: 'Email', width: 30 },
+      { header: 'Cargo', key: 'Cargo', width: 20 },
+      { header: 'Departamento', key: 'Departamento', width: 20 },
+      { header: 'Telefone', key: 'Telefone', width: 15 },
+      { header: 'Data de Admissão', key: 'Data de Admissão', width: 15 },
+      { header: 'PIS/PASEP', key: 'PIS/PASEP', width: 15 },
+      { header: 'Chave PIX', key: 'Chave PIX', width: 20 },
+      { header: 'Vencimento Férias', key: 'Vencimento Férias', width: 15 },
+      { header: 'Limite Férias', key: 'Limite Férias', width: 15 }
+    ];
+
     const template = [
       {
         "Nome": "João Silva",
@@ -346,36 +362,72 @@ export default function Employees() {
       }
     ];
 
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Modelo Importação");
-    XLSX.writeFile(wb, "modelo_importacao_funcionarios.xlsx");
+    worksheet.addRows(template);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "modelo_importacao_funcionarios.xlsx";
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleImport = async (file: File) => {
     try {
-      const XLSX = await import('xlsx');
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const arrayBuffer = await file.arrayBuffer();
+      await workbook.xlsx.load(arrayBuffer);
+      
+      const worksheet = workbook.worksheets[0];
+      const jsonData: any[] = [];
+      
+      const headers: string[] = [];
+      worksheet.getRow(1).eachCell((cell, colNumber) => {
+        headers[colNumber] = cell.text;
+      });
+
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        const rowData: any = {};
+        row.eachCell((cell, colNumber) => {
+          const header = headers[colNumber];
+          if (header) {
+             let value = cell.value;
+             if (typeof value === 'object' && value !== null) {
+                if ('text' in value) value = (value as any).text;
+                else if ('result' in value) value = (value as any).result;
+             }
+             rowData[header] = value;
+          }
+        });
+        jsonData.push(rowData);
+      });
 
       let count = 0;
-      for (const row of jsonData as any[]) {
+      for (const row of jsonData) {
         if (!row['Nome'] && !row['Nome Completo']) continue;
         
+        const formatDate = (val: any) => {
+            if (val instanceof Date) return val.toISOString();
+            if (typeof val === 'string') return val;
+            return new Date().toISOString();
+        };
+
         await addEmployee({
           name: row['Nome'] || row['Nome Completo'],
           email: row['Email'] || '',
           role: row['Cargo'] || 'Novo Colaborador',
           department: row['Departamento'] || 'Geral',
           status: 'active',
-          admission_date: row['Data de Admissão'] || new Date().toISOString(),
+          admission_date: formatDate(row['Data de Admissão']),
           password: '1234',
           pis_pasep: row['PIS/PASEP'] || '',
           pix_key: row['Chave PIX'] || '',
-          vacation_due_date: row['Vencimento Férias'] || '',
-          vacation_limit_date: row['Limite Férias'] || '',
+          vacation_due_date: formatDate(row['Vencimento Férias']),
+          vacation_limit_date: formatDate(row['Limite Férias']),
         });
         count++;
       }

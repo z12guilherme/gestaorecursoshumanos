@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 import { Download, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import * as XLSX from 'xlsx';
 import { isSameDay, endOfMonth } from 'date-fns';
 
 export default function PayrollReport() {
@@ -72,10 +71,24 @@ export default function PayrollReport() {
     const data = await generatePayrollData();
     if (data.length === 0) return;
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Folha de Pagamento");
-    XLSX.writeFile(wb, `Folha_Pagamento_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Folha de Pagamento');
+
+    if (data.length > 0) {
+        worksheet.columns = Object.keys(data[0]).map(key => ({ header: key, key, width: 20 }));
+    }
+
+    worksheet.addRows(data);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Folha_Pagamento_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const closeMonth = async () => {

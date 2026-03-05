@@ -111,7 +111,18 @@ export default function Timesheet() {
   };
 
   const handleExport = async () => {
-    const XLSX = await import('xlsx');
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Ponto Diário');
+
+    worksheet.columns = [
+        { header: 'Funcionário', key: 'Funcionário', width: 30 },
+        { header: 'Departamento', key: 'Departamento', width: 20 },
+        { header: 'Status', key: 'Status', width: 15 },
+        { header: 'Horas Trabalhadas', key: 'Horas Trabalhadas', width: 20 },
+        { header: 'Data', key: 'Data', width: 15 }
+    ];
+
     const dataToExport = employeeStatus.map(emp => ({
         'Funcionário': emp.name,
         'Departamento': emp.department,
@@ -120,10 +131,16 @@ export default function Timesheet() {
         'Data': format(new Date(selectedDate), 'dd/MM/yyyy')
     }));
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Ponto Diário");
-    XLSX.writeFile(wb, `Espelho_Ponto_${selectedDate}.xlsx`);
+    worksheet.addRows(dataToExport);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Espelho_Ponto_${selectedDate}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleDownloadCodeOfEthics = async () => {
