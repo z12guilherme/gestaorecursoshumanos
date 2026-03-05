@@ -4,7 +4,6 @@ import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import * as XLSX from 'xlsx';
 import { format, startOfMonth, endOfMonth, differenceInMinutes, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -107,10 +106,24 @@ export default function TimeSheetReport() {
         return;
     }
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Relatório de Ponto");
-    XLSX.writeFile(wb, `Ponto_Mensal_${parseInt(selectedMonth) + 1}_${selectedYear}.xlsx`);
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Relatório de Ponto');
+
+    if (data.length > 0) {
+      worksheet.columns = Object.keys(data[0]).map(key => ({ header: key, key, width: 20 }));
+    }
+
+    worksheet.addRows(data);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Ponto_Mensal_${parseInt(selectedMonth) + 1}_${selectedYear}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   return (
