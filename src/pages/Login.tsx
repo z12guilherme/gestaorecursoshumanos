@@ -133,7 +133,7 @@ export default function LoginPage() {
                    <ManualModal />
                 </div>
 
-                <div className="flex justify-center pt-4">
+                <div className="flex justify-center pt-8">
                     <SecurityBadge />
                 </div>
             </div>
