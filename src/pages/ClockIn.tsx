@@ -61,33 +61,41 @@ export default function ClockInPage() {
     fetchSettings();
   }, []);
 
-  const findEmployeeByPin = (inputPin: string) => {
-    const employee = employees.find(e => e.password === inputPin);
-    if (!employee) {
-      toast({
-        title: "Acesso Negado",
-        description: "Senha não encontrada. Verifique suas credenciais.",
-        variant: "destructive"
-      });
-      return null;
+  const getEmployeeByPin = async (inputPin: string) => {
+    // 1. Tenta encontrar na lista carregada (se disponível)
+    let employee = employees.find(e => e.password === inputPin);
+    if (employee) return employee;
+
+    try {
+      // 2. Tenta via RPC (Bypass de RLS seguro para Anon)
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_employee_by_pin', { pin_input: inputPin });
+      if (!rpcError && rpcData && rpcData.length > 0) return rpcData[0];
+
+      // 3. Tenta via Query Direta (Fallback)
+      const { data } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('password', inputPin)
+        .maybeSingle();
+      
+      if (data) return data;
+    } catch (err) {
+      console.error("Erro ao buscar funcionário:", err);
     }
-    const duplicates = employees.filter(e => e.password === inputPin);
-    if (duplicates.length > 1) {
-       toast({
-        title: "Conflito de Senha",
-        description: "Existem múltiplos funcionários com esta senha. Contate o RH.",
-        variant: "destructive"
-      });
-      return null;
-    }
-    return employee;
+    
+    toast({
+      title: "Acesso Negado",
+      description: "Senha não encontrada. Verifique suas credenciais.",
+      variant: "destructive"
+    });
+    return null;
   };
 
   const handleClockAction = async (type: 'in' | 'out') => {
     if (!pin) return;
     setLoading(true);
 
-    const employee = findEmployeeByPin(pin);
+    const employee = await getEmployeeByPin(pin);
     if (!employee) {
         setLoading(false);
         setPin("");
@@ -180,23 +188,15 @@ export default function ClockInPage() {
 
   const handleAccessDocuments = async () => {
       if (!pin) return;
-      const employee = findEmployeeByPin(pin);
+      setLoading(true);
+      const employee = await getEmployeeByPin(pin);
+      
       if (employee) {
-          setLoading(true);
-          // Busca dados completos (financeiros) para gerar o holerite
-          const { data: fullEmployee } = await supabase
-            .from('employees')
-            .select('*')
-            .eq('id', employee.id)
-            .single();
-            
-          if (fullEmployee) {
-            setIdentifiedEmployee(fullEmployee);
-            setShowDocumentsDialog(true);
-            setPin('');
-          }
-          setLoading(false);
+        setIdentifiedEmployee(employee);
+        setShowDocumentsDialog(true);
+        setPin('');
       }
+      setLoading(false);
   };
 
   const handleCreateTicket = async () => {
