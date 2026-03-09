@@ -20,37 +20,42 @@ import {
 } from '@/components/ui/select';
 import { departments } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, KeyRound, Loader2 } from 'lucide-react';
 import { AvatarUpload } from './AvatarUpload';
+import { supabase } from '@/lib/supabase';
 
 interface EmployeeFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   employee?: Employee | null;
-  onSave: (employee: Partial<Employee>) => void;
+  onSuccess: () => void;
 }
 
-export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: EmployeeFormDialogProps) {
+export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: EmployeeFormDialogProps) {
   const { toast } = useToast();
-  const [formData, setFormData] = useState<Partial<Employee>>({
+  const [isSaving, setIsSaving] = useState(false);
+  // Usando 'any' temporariamente para permitir as chaves snake_case do banco de dados
+  const [formData, setFormData] = useState<any>({
     name: '',
     email: '',
     phone: '',
-    position: '',
+    role: '', // No banco é 'role', no front costuma ser 'position'
     department: '',
-    contractType: 'CLT',
+    contract_type: 'CLT',
     status: 'active',
-    hireDate: '',
-    birthDate: '',
-    baseSalary: 0,
-    fixedDiscounts: 0,
-    contractedHours: 220,
-    hasInsalubrity: false,
-    hasNightShift: false,
-    pisPasep: '',
-    pixKey: '',
-    vacationDueDate: '',
-    vacationLimitDate: '',
+    admission_date: '',
+    birth_date: '',
+    base_salary: 0,
+    fixed_discounts: 0,
+    contracted_hours: 220,
+    has_insalubrity: false,
+    has_night_shift: false,
+    insalubrity_amount: 0,
+    night_shift_amount: 0,
+    pis_pasep: '',
+    pix_key: '',
+    vacation_due_date: '',
+    vacation_limit_date: '',
     variable_discounts: [],
     variable_additions: [],
     avatar_url: '',
@@ -58,42 +63,90 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
 
   useEffect(() => {
     if (employee) {
-      setFormData(employee);
+      // Mapeia os dados do objeto Employee (camelCase) para o formato do DB (snake_case)
+      setFormData({
+        id: employee.id,
+        name: employee.name,
+        email: employee.email,
+        phone: employee.phone,
+        role: employee.position, // Mapeando position -> role
+        department: employee.department,
+        contract_type: employee.contractType,
+        status: employee.status,
+        admission_date: employee.hireDate,
+        birth_date: employee.birthDate,
+        base_salary: employee.baseSalary,
+        fixed_discounts: employee.fixedDiscounts,
+        contracted_hours: employee.contractedHours,
+        has_insalubrity: employee.hasInsalubrity,
+        has_night_shift: employee.hasNightShift,
+        insalubrity_amount: (employee as any).insalubrityAmount || 0,
+        night_shift_amount: (employee as any).nightShiftAmount || 0,
+        pis_pasep: employee.pisPasep,
+        pix_key: employee.pixKey,
+        vacation_due_date: employee.vacationDueDate,
+        vacation_limit_date: employee.vacationLimitDate,
+        variable_discounts: employee.variable_discounts || [],
+        variable_additions: employee.variable_additions || [],
+        avatar_url: employee.avatar_url,
+        inss_value: (employee as any).inssValue || 0,
+        password: '' // Senha sempre vazia ao editar
+      });
     } else {
       setFormData({
         name: '',
         email: '',
         phone: '',
-        position: '',
+        role: '',
         department: '',
-        contractType: 'CLT',
+        contract_type: 'CLT',
         status: 'active',
-        hireDate: '',
-        birthDate: '',
-        baseSalary: 0,
-        fixedDiscounts: 0,
-        contractedHours: 220,
-        hasInsalubrity: false,
-        hasNightShift: false,
-        pisPasep: '',
-        pixKey: '',
-        vacationDueDate: '',
-        vacationLimitDate: '',
+        admission_date: '',
+        birth_date: '',
+        base_salary: 0,
+        fixed_discounts: 0,
+        contracted_hours: 220,
+        has_insalubrity: false,
+        has_night_shift: false,
+        insalubrity_amount: 0,
+        night_shift_amount: 0,
+        pis_pasep: '',
+        pix_key: '',
+        vacation_due_date: '',
+        vacation_limit_date: '',
         variable_discounts: [],
         variable_additions: [],
         avatar_url: '',
       });
     }
-  }, [employee]);
+  }, [employee, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-    toast({
-      title: employee ? 'Colaborador atualizado' : 'Colaborador cadastrado',
-      description: `${formData.name} foi ${employee ? 'atualizado' : 'cadastrado'} com sucesso.`,
+    setIsSaving(true);
+
+    // A função hash-password já trata o caso de a senha vir vazia (não atualiza)
+    const { error } = await supabase.functions.invoke('hash-password', {
+      body: { record: formData },
     });
-    onOpenChange(false);
+
+    setIsSaving(false);
+
+    if (error) {
+      console.error("Erro ao salvar colaborador:", error);
+      toast({
+        title: "Erro ao Salvar",
+        description: "Não foi possível salvar os dados. Verifique o console para mais detalhes.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: employee ? 'Colaborador atualizado' : 'Colaborador cadastrado',
+        description: `${formData.name} foi ${employee ? 'atualizado' : 'cadastrado'} com sucesso.`,
+      });
+      onSuccess();
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -150,8 +203,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
               <Label htmlFor="position">Cargo</Label>
               <Input
                 id="position"
-                value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                 required
               />
             </div>
@@ -174,8 +227,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
             <div className="space-y-2">
               <Label htmlFor="contractType">Tipo de Contrato</Label>
               <Select
-                value={formData.contractType}
-                onValueChange={(value) => setFormData({ ...formData, contractType: value as Employee['contractType'] })}
+                value={formData.contract_type}
+                onValueChange={(value) => setFormData({ ...formData, contract_type: value })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -188,13 +241,28 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 </SelectContent>
               </Select>
             </div>
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="password">Senha do Ponto (PIN)</Label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={formData.password || ''}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder={employee ? 'Deixe em branco para não alterar' : 'PIN de 4 a 6 dígitos'}
+                  className="pl-9"
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="hireDate">Data de Admissão</Label>
               <Input
                 id="hireDate"
                 type="date"
-                value={formData.hireDate}
-                onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
+                value={formData.admission_date}
+                onChange={(e) => setFormData({ ...formData, admission_date: e.target.value })}
                 required
               />
             </div>
@@ -203,8 +271,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
               <Input
                 id="birthDate"
                 type="date"
-                value={formData.birthDate}
-                onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                value={formData.birth_date}
+                onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
                 required
               />
             </div>
@@ -220,8 +288,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 id="baseSalary"
                 type="number"
                 step="0.01"
-                value={formData.baseSalary}
-                onChange={(e) => setFormData({ ...formData, baseSalary: parseFloat(e.target.value) })}
+                value={formData.base_salary}
+                onChange={(e) => setFormData({ ...formData, base_salary: parseFloat(e.target.value) })}
               />
             </div>
             <div className="space-y-2">
@@ -230,8 +298,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 id="fixedDiscounts"
                 type="number"
                 step="0.01"
-                value={formData.fixedDiscounts}
-                onChange={(e) => setFormData({ ...formData, fixedDiscounts: parseFloat(e.target.value) })}
+                value={formData.fixed_discounts}
+                onChange={(e) => setFormData({ ...formData, fixed_discounts: parseFloat(e.target.value) })}
               />
             </div>
             <div className="space-y-2">
@@ -392,16 +460,16 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
               <Input
                 id="contractedHours"
                 type="number"
-                value={formData.contractedHours}
-                onChange={(e) => setFormData({ ...formData, contractedHours: parseInt(e.target.value) })}
+                value={formData.contracted_hours}
+                onChange={(e) => setFormData({ ...formData, contracted_hours: parseInt(e.target.value) })}
                 placeholder="Ex: 220"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="hasInsalubrity">Insalubridade</Label>
               <Select
-                value={formData.hasInsalubrity ? "yes" : "no"}
-                onValueChange={(value) => setFormData({ ...formData, hasInsalubrity: value === "yes" })}
+                value={formData.has_insalubrity ? "yes" : "no"}
+                onValueChange={(value) => setFormData({ ...formData, has_insalubrity: value === "yes" })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -412,23 +480,23 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 </SelectContent>
               </Select>
             </div>
-            {formData.hasInsalubrity && (
+            {formData.has_insalubrity && (
               <div className="space-y-2">
                 <Label htmlFor="insalubrityAmount">Valor Insalubridade (R$)</Label>
                 <Input
                   id="insalubrityAmount"
                   type="number"
                   step="0.01"
-                  value={(formData as any).insalubrityAmount || ''}
-                  onChange={(e) => setFormData({ ...formData, insalubrityAmount: parseFloat(e.target.value) } as any)}
+                  value={formData.insalubrity_amount || ''}
+                  onChange={(e) => setFormData({ ...formData, insalubrity_amount: parseFloat(e.target.value) })}
                 />
               </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="hasNightShift">Adicional Noturno</Label>
               <Select
-                value={formData.hasNightShift ? "yes" : "no"}
-                onValueChange={(value) => setFormData({ ...formData, hasNightShift: value === "yes" })}
+                value={formData.has_night_shift ? "yes" : "no"}
+                onValueChange={(value) => setFormData({ ...formData, has_night_shift: value === "yes" })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -439,15 +507,15 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
                 </SelectContent>
               </Select>
             </div>
-            {formData.hasNightShift && (
+            {formData.has_night_shift && (
               <div className="space-y-2">
                 <Label htmlFor="nightShiftAmount">Valor Adicional Noturno (R$)</Label>
                 <Input
                   id="nightShiftAmount"
                   type="number"
                   step="0.01"
-                  value={(formData as any).nightShiftAmount || ''}
-                  onChange={(e) => setFormData({ ...formData, nightShiftAmount: parseFloat(e.target.value) } as any)}
+                  value={formData.night_shift_amount || ''}
+                  onChange={(e) => setFormData({ ...formData, night_shift_amount: parseFloat(e.target.value) })}
                 />
               </div>
             )}
@@ -461,8 +529,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
               <Label htmlFor="pisPasep">PIS/PASEP</Label>
               <Input
                 id="pisPasep"
-                value={formData.pisPasep || ''}
-                onChange={(e) => setFormData({ ...formData, pisPasep: e.target.value })}
+                value={formData.pis_pasep || ''}
+                onChange={(e) => setFormData({ ...formData, pis_pasep: e.target.value })}
                 placeholder="000.00000.00-0"
               />
             </div>
@@ -470,8 +538,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
               <Label htmlFor="pixKey">Chave PIX</Label>
               <Input
                 id="pixKey"
-                value={formData.pixKey || ''}
-                onChange={(e) => setFormData({ ...formData, pixKey: e.target.value })}
+                value={formData.pix_key || ''}
+                onChange={(e) => setFormData({ ...formData, pix_key: e.target.value })}
                 placeholder="CPF, Email ou Aleatória"
               />
             </div>
@@ -480,8 +548,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
               <Input
                 id="vacationDueDate"
                 type="date"
-                value={formData.vacationDueDate || ''}
-                onChange={(e) => setFormData({ ...formData, vacationDueDate: e.target.value })}
+                value={formData.vacation_due_date || ''}
+                onChange={(e) => setFormData({ ...formData, vacation_due_date: e.target.value })}
               />
             </div>
             <div className="space-y-2">
@@ -489,8 +557,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
               <Input
                 id="vacationLimitDate"
                 type="date"
-                value={formData.vacationLimitDate || ''}
-                onChange={(e) => setFormData({ ...formData, vacationLimitDate: e.target.value })}
+                value={formData.vacation_limit_date || ''}
+                onChange={(e) => setFormData({ ...formData, vacation_limit_date: e.target.value })}
               />
             </div>
           </div>
@@ -498,8 +566,9 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSave }: Emp
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit">
-              {employee ? 'Salvar' : 'Cadastrar'}
+            <Button type="submit" disabled={isSaving}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSaving ? 'Salvando...' : (employee ? 'Salvar Alterações' : 'Cadastrar Colaborador')}
             </Button>
           </DialogFooter>
         </form>

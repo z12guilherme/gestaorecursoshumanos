@@ -46,7 +46,16 @@ export default function ClockIn() {
 
     setLoading(true);
     try {
-      // Busca dados completos para validar senha e passar para o Holerite
+      // 1. Validação segura via Edge Function (Hash)
+      const { data: validation, error: validationError } = await supabase.functions.invoke('validate-pin', {
+        body: { employee_id: selectedId, pin: pin }
+      });
+
+      if (validationError || !validation || !validation.isValid) {
+        throw new Error("Senha incorreta");
+      }
+
+      // 2. Se validou, busca dados completos para o Holerite (sem precisar checar senha aqui)
       const { data: employee, error } = await supabase
         .from("employees")
         .select("*")
@@ -55,18 +64,11 @@ export default function ClockIn() {
 
       if (error || !employee) throw new Error("Funcionário não encontrado");
 
-      // Validação simples de senha (em produção, ideal usar hash)
-      if (employee.password !== pin) {
-        toast({ title: "Acesso Negado", description: "Senha incorreta.", variant: "destructive" });
-        setLoading(false);
-        return;
-      }
-
       setAuthenticatedEmployee(employee);
       setPin(""); // Limpa o PIN por segurança
     } catch (error) {
-      console.error(error);
-      toast({ title: "Erro", description: "Falha ao autenticar.", variant: "destructive" });
+      console.error("Erro de autenticação:", error);
+      toast({ title: "Acesso Negado", description: "Senha incorreta ou erro de conexão.", variant: "destructive" });
     } finally {
       setLoading(false);
     }

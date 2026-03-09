@@ -13,11 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchLogs();
@@ -42,6 +45,11 @@ export default function AuditLogs() {
       default: return "bg-gray-500";
     }
   };
+
+  // Lógica de Paginação
+  const totalPages = Math.ceil(logs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentLogs = logs.slice(startIndex, startIndex + itemsPerPage);
 
   if (loading) return <div className="p-8 text-center">Carregando auditoria...</div>;
 
@@ -69,7 +77,7 @@ export default function AuditLogs() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {logs.map((log) => (
+                {currentLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="whitespace-nowrap font-medium">
                       {format(new Date(log.changed_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
@@ -112,6 +120,31 @@ export default function AuditLogs() {
               </TableBody>
             </Table>
           </ScrollArea>
+
+          {/* Controles de Paginação */}
+          {logs.length > 0 && (
+            <div className="flex items-center justify-end space-x-2 py-4">
+              <div className="text-sm text-muted-foreground mr-4">
+                Página {currentPage} de {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

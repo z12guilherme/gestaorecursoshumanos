@@ -20,10 +20,10 @@ import {
   LifeBuoy,
   MessageCircle,
   DollarSign,
-  ShieldAlert
+  ShieldAlert,
+  Loader2
 } from 'lucide-react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -44,6 +44,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -69,58 +70,73 @@ const toolsNavItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
-  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
   const { employees } = useEmployees();
   const { session } = useAuth();
   const isCollapsed = state === 'collapsed';
   
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [userProfile, setUserProfile] = useState({
-    name: "Usuário",
+    name: "",
     email: "",
     avatar: "",
     role: ""
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     async function fetchUserProfile() {
       if (!session?.user) return;
-
-      // 1. Tenta buscar configurações personalizadas (prioridade)
-      const { data: settings } = await supabase.from('settings').select('developer_name, avatar_url').maybeSingle();
-
-      if (settings && settings.developer_name) {
-        setUserProfile({
-          name: settings.developer_name,
-          email: session.user.email || "",
-          avatar: settings.avatar_url || "",
-          role: "Administrador" // Assume Admin se configurado via Settings
-        });
-        return;
-      }
-
-      // 2. Se não houver config, tenta encontrar funcionário pelo email
-      const currentEmployee = employees.find(e => e.email === session.user.email);
       
-      if (currentEmployee) {
-        setUserProfile({
-          name: currentEmployee.name,
-          email: currentEmployee.email,
-          avatar: currentEmployee.avatar_url || "",
-          role: currentEmployee.role || "Colaborador"
-        });
-      } else {
-        // 3. Fallback final (dados da sessão ou padrão)
-        setUserProfile({
-          name: session.user.user_metadata?.name || "Admin",
-          email: session.user.email || "",
-          avatar: "",
-          role: "Administrador"
-        });
+      try {
+        // 1. Tenta buscar configurações personalizadas (prioridade)
+        const { data: settings } = await supabase.from('settings').select('developer_name, avatar_url').maybeSingle();
+
+        if (!isMounted) return;
+
+        if (settings && settings.developer_name) {
+          setUserProfile({
+            name: settings.developer_name,
+            email: session.user.email || "",
+            avatar: settings.avatar_url || "",
+            role: "Administrador" // Assume Admin se configurado via Settings
+          });
+          return;
+        }
+
+        // 2. Se não houver config, tenta encontrar funcionário pelo email
+        const currentEmployee = employees.find(e => e.email === session.user.email);
+        
+        if (currentEmployee) {
+          setUserProfile({
+            name: currentEmployee.name,
+            email: currentEmployee.email,
+            avatar: currentEmployee.avatar_url || "",
+            role: currentEmployee.role || "Colaborador"
+          });
+        } else {
+          // 3. Fallback final (dados da sessão ou padrão)
+          setUserProfile({
+            name: session.user.user_metadata?.name || "Usuário",
+            email: session.user.email || "",
+            avatar: "",
+            role: "Convidado"
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao carregar perfil:", error);
+      } finally {
+        if (isMounted) setIsLoadingProfile(false);
       }
     }
+    
     fetchUserProfile();
+
+    return () => {
+      isMounted = false;
+    };
   }, [session, employees]);
 
   const handleLogout = async () => {
@@ -181,18 +197,38 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-lg p-2 hover:bg-sidebar-accent transition-colors">
-              <Avatar className="h-9 w-9">
-                <AvatarImage src={userProfile.avatar || "/placeholder.svg"} className="object-cover" />
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm">{userProfile.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              {!isCollapsed && (
+            <button className="flex w-full items-center gap-3 rounded-lg p-2 hover:bg-sidebar-accent transition-colors outline-none">
+              {isLoadingProfile ? (
                 <>
-                  <div className="flex flex-col items-start text-left flex-1">
-                    <span className="text-sm font-medium text-sidebar-foreground truncate w-32">{userProfile.name}</span>
-                    <span className="text-xs text-muted-foreground">{userProfile.role}</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <Skeleton className="h-9 w-9 rounded-full" />
+                  {!isCollapsed && (
+                    <div className="flex flex-col gap-1 flex-1">
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-2 w-16" />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={userProfile.avatar || "/placeholder.svg"} className="object-cover" />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                      {userProfile.name ? userProfile.name.substring(0, 2).toUpperCase() : "US"}
+                    </AvatarFallback>
+                  </Avatar>
+                  {!isCollapsed && (
+                    <>
+                      <div className="flex flex-col items-start text-left flex-1 overflow-hidden">
+                        <span className="text-sm font-medium text-sidebar-foreground truncate w-full">
+                          {userProfile.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate w-full">
+                          {userProfile.role}
+                        </span>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </>
+                  )}
                 </>
               )}
             </button>

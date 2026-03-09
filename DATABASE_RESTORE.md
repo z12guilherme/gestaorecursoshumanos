@@ -35,7 +35,7 @@ CREATE TABLE public.employees (
   salary numeric,
   manager text,
   work_schedule text DEFAULT '09:00 - 18:00'::text,
-  password text DEFAULT '1234'::text, -- Senha utilizada para o Ponto Eletrônico
+  password text, -- Senha HASHEADA para o Ponto Eletrônico
   pis_pasep text,
   avatar_url text,
   pix_key text,
