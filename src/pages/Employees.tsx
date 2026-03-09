@@ -562,7 +562,7 @@ export default function Employees() {
           open={isFormOpen}
           onOpenChange={setIsFormOpen}
           employee={selectedEmployee}
-          onSave={handleSave}
+          onSuccess={refetch}
         />
 
         <EmployeeDetailSheet
