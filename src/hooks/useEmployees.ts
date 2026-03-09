@@ -71,6 +71,9 @@ export function useEmployees() {
 
   const addEmployee = async (employee: Omit<Employee, 'id' | 'created_at'>) => {
     try {
+      // LOG DE DEBUG: Confirmando que estamos na versão SEM Edge Function
+      console.log('>>> MODO TEXTO PLANO ATIVO: Nenhuma Edge Function será chamada <<<');
+
       const { data, error } = await supabase
         .from('employees')
         .insert([employee])
@@ -89,6 +92,8 @@ export function useEmployees() {
 
   const updateEmployee = async (id: string, updates: Partial<Employee>) => {
     try {
+      console.log('>>> ATUALIZANDO (MODO TEXTO PLANO) <<<');
+
       const { data, error } = await supabase
         .from('employees')
         .update(updates)
@@ -126,6 +131,7 @@ export function useEmployees() {
   // Função para validar login do funcionário no Ponto Eletrônico
   const validateEmployeeLogin = async (employeeId: string, passwordInput: string) => {
     try {
+      // Validação direta
       const { data, error } = await supabase
         .from('employees')
         .select('id')

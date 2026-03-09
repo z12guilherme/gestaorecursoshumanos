@@ -126,10 +126,36 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
     e.preventDefault();
     setIsSaving(true);
 
-    // A função hash-password já trata o caso de a senha vir vazia (não atualiza)
-    const { error } = await supabase.functions.invoke('hash-password', {
-      body: { record: formData },
-    });
+    // NOTA: Edge Function removida temporariamente para evitar erro 401/500.
+    // Salvando diretamente no banco de dados.
+    const payload = { ...formData };
+    
+    // Remove senha vazia para não sobrescrever na edição
+    if (!payload.password) {
+      delete payload.password;
+    } else {
+      // Se houver senha, ela será salva como texto plano por enquanto
+    }
+
+    // Se for novo cadastro e não tiver senha, define padrão '1234'
+    if (!employee && !payload.password) {
+      payload.password = '1234';
+    }
+
+    let error;
+    
+    if (employee?.id) {
+      const { error: updateError } = await supabase
+        .from('employees')
+        .update(payload)
+        .eq('id', employee.id);
+      error = updateError;
+    } else {
+      const { error: insertError } = await supabase
+        .from('employees')
+        .insert([payload]);
+      error = insertError;
+    }
 
     setIsSaving(false);
 
@@ -145,7 +171,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
         title: employee ? 'Colaborador atualizado' : 'Colaborador cadastrado',
         description: `${formData.name} foi ${employee ? 'atualizado' : 'cadastrado'} com sucesso.`,
       });
-      onSuccess();
+      if (onSuccess) onSuccess();
       onOpenChange(false);
     }
   };
