@@ -1,15 +1,16 @@
 // c:\Users\santa fe\Desktop\gestaorecursoshumanos\src\components\employees\FinancialDataForm.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
-interface Discount {
-  description: string;
-  amount: number;
-}
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface FinancialDataProps {
   formData: any;
@@ -17,255 +18,292 @@ interface FinancialDataProps {
 }
 
 export default function FinancialDataForm({ formData, setFormData }: FinancialDataProps) {
-  const [newDiscountDesc, setNewDiscountDesc] = useState('');
-  const [newDiscountValue, setNewDiscountValue] = useState('');
-
-  // Garante que variable_discounts seja um array
-  const discounts: Discount[] = Array.isArray(formData.variable_discounts) ? formData.variable_discounts : [];
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
-    let val: any = value;
-
-    if (type === 'number') {
-      val = parseFloat(value) || 0;
-    }
-
-    setFormData({ ...formData, [name]: val });
-  };
-  
-  const handleInsalubrityChange = (value: string) => {
-      const hasInsalubrity = value === 'yes';
-      setFormData({
-          ...formData, 
-          has_insalubrity: hasInsalubrity,
-          insalubrity_amount: hasInsalubrity ? formData.insalubrity_amount : 0
-      });
-  }
-
-  const handleNightShiftChange = (value: string) => {
-      const hasNightShift = value === 'yes';
-      setFormData({
-          ...formData, 
-          has_night_shift: hasNightShift,
-          night_shift_amount: hasNightShift ? formData.night_shift_amount : 0
-      });
-  }
-
-  const addDiscount = () => {
-    if (!newDiscountDesc || !newDiscountValue) return;
-    const newDiscount: Discount = {
-      description: newDiscountDesc,
-      amount: parseFloat(newDiscountValue) || 0
-    };
-    
-    setFormData({
-      ...formData,
-      variable_discounts: [...discounts, newDiscount]
-    });
-
-    setNewDiscountDesc('');
-    setNewDiscountValue('');
-  };
-
-  const removeDiscount = (index: number) => {
-    const newDiscounts = [...discounts];
-    newDiscounts.splice(index, 1);
-    setFormData({ ...formData, variable_discounts: newDiscounts });
-  };
-
   return (
-    <div className="space-y-6 py-4">
-      <h3 className="text-lg font-medium border-b pb-2">Dados Financeiros e Folha</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Salário Base */}
-        <div className="space-y-2">
-          <Label>Salário Base (R$)</Label>
-          <Input
-            type="number"
-            name="base_salary"
-            value={formData.base_salary || ''}
-            onChange={handleInputChange}
-            placeholder="0.00"
-          />
-        </div>
-
-        {/* Chave PIX */}
-        <div className="space-y-2">
-          <Label>Chave PIX</Label>
-          <Input
-            type="text"
-            name="pix_key"
-            value={formData.pix_key || ''}
-            onChange={handleInputChange}
-            placeholder="CPF, Email ou Aleatória"
-          />
-        </div>
-
-        {/* Salário Família */}
-        <div className="space-y-2">
-          <Label>Salário Família (R$)</Label>
-          <Input
-            type="number"
-            name="family_salary_amount"
-            value={formData.family_salary_amount || ''}
-            onChange={handleInputChange}
-          />
-        </div>
-
-        {/* Insalubridade */}
-        <div className="col-span-1 md:col-span-2 bg-secondary/20 p-4 rounded-md border">
-            <Label className="mb-2 block">Insalubridade</Label>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <RadioGroup 
-                    defaultValue={formData.has_insalubrity ? "yes" : "no"} 
-                    onValueChange={handleInsalubrityChange}
-                    className="flex items-center gap-4"
-                >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="no" id="insalubrity_no" />
-                        <Label htmlFor="insalubrity_no">Não</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="yes" id="insalubrity_yes" />
-                        <Label htmlFor="insalubrity_yes">Sim</Label>
-                    </div>
-                </RadioGroup>
-                
-                {formData.has_insalubrity && (
-                    <div className="flex-1">
-                        <Input
-                            type="number"
-                            name="insalubrity_amount"
-                            value={formData.insalubrity_amount || ''}
-                            onChange={handleInputChange}
-                            placeholder="Valor R$"
-                            className="w-full"
-                        />
-                    </div>
-                )}
-            </div>
-        </div>
-
-        {/* Adicional Noturno */}
-        <div className="col-span-1 md:col-span-2 bg-secondary/20 p-4 rounded-md border">
-            <Label className="mb-2 block">Adicional Noturno</Label>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <RadioGroup 
-                    defaultValue={formData.has_night_shift ? "yes" : "no"} 
-                    onValueChange={handleNightShiftChange}
-                    className="flex items-center gap-4"
-                >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="no" id="night_shift_no" />
-                        <Label htmlFor="night_shift_no">Não</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="yes" id="night_shift_yes" />
-                        <Label htmlFor="night_shift_yes">Sim</Label>
-                    </div>
-                </RadioGroup>
-                
-                {formData.has_night_shift && (
-                    <div className="flex-1">
-                        <Input
-                            type="number"
-                            name="night_shift_amount"
-                            value={formData.night_shift_amount || ''}
-                            onChange={handleInputChange}
-                            placeholder="Valor R$"
-                            className="w-full"
-                        />
-                    </div>
-                )}
-            </div>
-        </div>
-
-        {/* Hora Extra */}
-        <div className="space-y-2">
-          <Label>Hora Extra (Valor R$)</Label>
-          <Input
-            type="number"
-            name="overtime_amount"
-            value={formData.overtime_amount || ''}
-            onChange={handleInputChange}
-          />
-        </div>
-
-        {/* Férias */}
-        <div className="space-y-2">
-          <Label>Férias (Valor R$)</Label>
-          <Input
-            type="number"
-            name="vacation_amount"
-            value={formData.vacation_amount || ''}
-            onChange={handleInputChange}
-          />
-        </div>
-
-        {/* Terço de Férias */}
-        <div className="space-y-2">
-          <Label>1/3 de Férias (Valor R$)</Label>
-          <Input
-            type="number"
-            name="vacation_third_amount"
-            value={formData.vacation_third_amount || ''}
-            onChange={handleInputChange}
-          />
-        </div>
+    <>
+      {/* Novos Campos Financeiros */}
+      <div className="col-span-2 border-t pt-4 mt-2">
+        <h4 className="text-sm font-medium mb-4 text-muted-foreground">Dados Financeiros & Folha</h4>
       </div>
 
-      {/* Seção de Descontos */}
-      <div className="mt-6">
-        <Label className="mb-2 block">Descontos Variáveis</Label>
-        <div className="bg-secondary/20 p-4 rounded-md border">
-          <div className="flex gap-2 mb-4">
-            <Input
-              type="text"
-              value={newDiscountDesc}
-              onChange={(e) => setNewDiscountDesc(e.target.value)}
-              placeholder="Descrição (ex: Atraso, Vale)"
-              className="flex-1"
-            />
-            <Input
-              type="number"
-              value={newDiscountValue}
-              onChange={(e) => setNewDiscountValue(e.target.value)}
-              placeholder="Valor R$"
-              className="w-32"
-            />
+      <div className="space-y-2">
+        <Label htmlFor="baseSalary">Salário Base (R$)</Label>
+        <Input
+          id="baseSalary"
+          type="number"
+          step="0.01"
+          value={formData.base_salary}
+          onChange={(e) => setFormData({ ...formData, base_salary: parseFloat(e.target.value) })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="fixedDiscounts">Descontos Fixos (R$)</Label>
+        <Input
+          id="fixedDiscounts"
+          type="number"
+          step="0.01"
+          value={formData.fixed_discounts}
+          onChange={(e) => setFormData({ ...formData, fixed_discounts: parseFloat(e.target.value) })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="inss_value">INSS Manual (R$)</Label>
+        <Input
+          id="inss_value"
+          type="number"
+          step="0.01"
+          placeholder="0.00"
+          value={(formData as any).inss_value || ''}
+          onChange={(e) => setFormData({ ...formData, inss_value: parseFloat(e.target.value) } as any)}
+        />
+        <p className="text-[10px] text-muted-foreground">Se preenchido, substitui o cálculo automático.</p>
+      </div>
+
+      {/* Adicionais Variáveis */}
+      <div className="col-span-2 space-y-3 border p-4 rounded-md bg-emerald-50/50 dark:bg-emerald-900/10">
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-sm text-emerald-700 dark:text-emerald-300">Adicionais / Gratificações</h4>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const current = (formData as any).variable_additions || [];
+              setFormData({
+                ...formData,
+                variable_additions: [...current, { description: "", value: 0 }]
+              } as any);
+            }}
+            className="h-7 text-xs gap-1 border-emerald-200 hover:bg-emerald-100 text-emerald-700"
+          >
+            <Plus className="h-3 w-3" /> Adicionar
+          </Button>
+        </div>
+
+        {((formData as any).variable_additions || []).length === 0 && (
+          <p className="text-xs text-muted-foreground italic">Nenhum adicional lançado.</p>
+        )}
+
+        {((formData as any).variable_additions || []).map((item: any, index: number) => (
+          <div key={index} className="flex gap-2 items-end animate-in fade-in slide-in-from-top-1">
+            <div className="flex-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Descrição</Label>
+              <Input
+                value={item.description}
+                onChange={(e) => {
+                  const newItems = [...((formData as any).variable_additions || [])];
+                  newItems[index].description = e.target.value;
+                  setFormData({ ...formData, variable_additions: newItems } as any);
+                }}
+                placeholder="Ex: Bônus Meta"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="w-28">
+              <Label className="text-[10px] uppercase text-muted-foreground">Valor (R$)</Label>
+              <Input
+                type="number"
+                value={item.value}
+                onChange={(e) => {
+                  const newItems = [...((formData as any).variable_additions || [])];
+                  newItems[index].value = Number(e.target.value);
+                  setFormData({ ...formData, variable_additions: newItems } as any);
+                }}
+                placeholder="0.00"
+                className="h-8 text-sm"
+              />
+            </div>
             <Button
               type="button"
-              onClick={addDiscount}
-              variant="secondary"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+              onClick={() => {
+                const newItems = ((formData as any).variable_additions || []).filter((_: any, i: number) => i !== index);
+                setFormData({ ...formData, variable_additions: newItems } as any);
+              }}
             >
-              <Plus className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-
-          <div className="space-y-2">
-            {discounts.map((discount, index) => (
-              <div key={index} className="flex justify-between items-center bg-background p-2 rounded border">
-                <span className="text-sm">{discount.description}</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-red-600">- R$ {discount.amount.toFixed(2)}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeDiscount(index)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {discounts.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center italic">Nenhum desconto lançado.</p>
-            )}
-          </div>
-        </div>
+        ))}
       </div>
-    </div>
+
+      {/* Descontos Variáveis */}
+      <div className="col-span-2 space-y-3 border p-4 rounded-md bg-slate-50 dark:bg-slate-900/50">
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-sm text-slate-700 dark:text-slate-300">Descontos Variáveis / Eventuais</h4>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const current = (formData as any).variable_discounts || [];
+              setFormData({
+                ...formData,
+                variable_discounts: [...current, { description: "", value: 0 }]
+              } as any);
+            }}
+            className="h-7 text-xs gap-1"
+          >
+            <Plus className="h-3 w-3" /> Adicionar
+          </Button>
+        </div>
+
+        {((formData as any).variable_discounts || []).length === 0 && (
+          <p className="text-xs text-muted-foreground italic">Nenhum desconto variável adicionado.</p>
+        )}
+
+        {((formData as any).variable_discounts || []).map((discount: any, index: number) => (
+          <div key={index} className="flex gap-2 items-end animate-in fade-in slide-in-from-top-1">
+            <div className="flex-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Descrição</Label>
+              <Input
+                value={discount.description}
+                onChange={(e) => {
+                  const newDiscounts = [...((formData as any).variable_discounts || [])];
+                  newDiscounts[index].description = e.target.value;
+                  setFormData({ ...formData, variable_discounts: newDiscounts } as any);
+                }}
+                placeholder="Ex: Farmácia"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="w-28">
+              <Label className="text-[10px] uppercase text-muted-foreground">Valor (R$)</Label>
+              <Input
+                type="number"
+                value={discount.value}
+                onChange={(e) => {
+                  const newDiscounts = [...((formData as any).variable_discounts || [])];
+                  newDiscounts[index].value = Number(e.target.value);
+                  setFormData({ ...formData, variable_discounts: newDiscounts } as any);
+                }}
+                placeholder="0.00"
+                className="h-8 text-sm"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+              onClick={() => {
+                const newDiscounts = ((formData as any).variable_discounts || []).filter((_: any, i: number) => i !== index);
+                setFormData({ ...formData, variable_discounts: newDiscounts } as any);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="contractedHours">Carga Horária Mensal</Label>
+        <Input
+          id="contractedHours"
+          type="number"
+          value={formData.contracted_hours}
+          onChange={(e) => setFormData({ ...formData, contracted_hours: parseInt(e.target.value) })}
+          placeholder="Ex: 220"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="hasInsalubrity">Insalubridade</Label>
+        <Select
+          value={formData.has_insalubrity ? "yes" : "no"}
+          onValueChange={(value) => setFormData({ ...formData, has_insalubrity: value === "yes" })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="no">Não</SelectItem>
+            <SelectItem value="yes">Sim</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {formData.has_insalubrity && (
+        <div className="space-y-2">
+          <Label htmlFor="insalubrityAmount">Valor Insalubridade (R$)</Label>
+          <Input
+            id="insalubrityAmount"
+            type="number"
+            step="0.01"
+            value={formData.insalubrity_amount || ''}
+            onChange={(e) => setFormData({ ...formData, insalubrity_amount: parseFloat(e.target.value) })}
+          />
+        </div>
+      )}
+      <div className="space-y-2">
+        <Label htmlFor="hasNightShift">Adicional Noturno</Label>
+        <Select
+          value={formData.has_night_shift ? "yes" : "no"}
+          onValueChange={(value) => setFormData({ ...formData, has_night_shift: value === "yes" })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="no">Não</SelectItem>
+            <SelectItem value="yes">Sim</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {formData.has_night_shift && (
+        <div className="space-y-2">
+          <Label htmlFor="nightShiftAmount">Valor Adicional Noturno (R$)</Label>
+          <Input
+            id="nightShiftAmount"
+            type="number"
+            step="0.01"
+            value={formData.night_shift_amount || ''}
+            onChange={(e) => setFormData({ ...formData, night_shift_amount: parseFloat(e.target.value) })}
+          />
+        </div>
+      )}
+
+      {/* Novos Campos de Documentação */}
+      <div className="col-span-2 border-t pt-4 mt-2">
+        <h4 className="text-sm font-medium mb-4 text-muted-foreground">Documentação & Prazos</h4>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="pisPasep">PIS/PASEP</Label>
+        <Input
+          id="pisPasep"
+          value={formData.pis_pasep || ''}
+          onChange={(e) => setFormData({ ...formData, pis_pasep: e.target.value })}
+          placeholder="000.00000.00-0"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="pixKey">Chave PIX</Label>
+        <Input
+          id="pixKey"
+          value={formData.pix_key || ''}
+          onChange={(e) => setFormData({ ...formData, pix_key: e.target.value })}
+          placeholder="CPF, Email ou Aleatória"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="vacationDueDate">Vencimento Férias</Label>
+        <Input
+          id="vacationDueDate"
+          type="date"
+          value={formData.vacation_due_date || ''}
+          onChange={(e) => setFormData({ ...formData, vacation_due_date: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="vacationLimitDate">Limite para Gozo</Label>
+        <Input
+          id="vacationLimitDate"
+          type="date"
+          value={formData.vacation_limit_date || ''}
+          onChange={(e) => setFormData({ ...formData, vacation_limit_date: e.target.value })}
+        />
+      </div>
+    </>
   );
 }
