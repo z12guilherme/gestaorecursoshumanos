@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Employee } from '@/types/hr';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -16,9 +15,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LogIn, LogOut, User, ArrowLeft, Megaphone, Pin, Building2, FileText, Download, LifeBuoy, Search, Copy, Check, MessageSquare, KeyRound } from 'lucide-react';
+import { LogIn, LogOut, ArrowLeft, Megaphone, Pin, FileText, Download, LifeBuoy, Search, Copy, Check, MessageSquare, KeyRound, Clock, Calendar } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
-import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { useCommunication } from '@/hooks/useCommunication';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -36,9 +34,13 @@ export default function ClockInPage() {
 
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [companySettings, setCompanySettings] = useState<any>(null);
+  const [companySettings, setCompanySettings] = useState<any>({
+    company_name: 'Hospital Santa Fé',
+    cnpj: '04.232.442/0001-14'
+  });
   
   // Documents State
   const [showDocumentsDialog, setShowDocumentsDialog] = useState(false);
@@ -56,11 +58,13 @@ export default function ClockInPage() {
   const [loadingSupport, setLoadingSupport] = useState(false);
 
   useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     async function fetchSettings() {
       const { data } = await supabase.from('settings').select('company_name, cnpj').maybeSingle();
-      if (data) setCompanySettings(data);
+      if (data) setCompanySettings((prev: any) => ({ ...prev, ...data }));
     }
     fetchSettings();
+    return () => clearInterval(timer);
   }, []);
 
   const getEmployeeByPin = async (inputPin: string) => {
@@ -253,144 +257,189 @@ export default function ClockInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-3 sm:p-6 lg:p-8 flex flex-col">
-      <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-3">
-              {companySettings?.company_name || 'Ponto Eletrônico'}
-            </h1>
-            {companySettings?.cnpj ? (
-              <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                <Building2 className="h-3 w-3" /> CNPJ: {companySettings.cnpj}
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground mt-1">Registro de Entrada e Saída</p>
-            )}
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+       {/* Top Bar */}
+       <header className="bg-white border-b h-16 flex items-center justify-between px-6 shadow-sm z-10">
+          {/* Logo & Company Name */}
+          <div className="flex items-center gap-3">
+             <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
+                SF
+             </div>
+             <div>
+                <h1 className="font-bold text-slate-800 leading-tight">{companySettings?.company_name}</h1>
+                <p className="text-xs text-slate-500">Portal do Colaborador</p>
+             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setIsSupportOpen(true)}>
-              <LifeBuoy className="mr-2 h-4 w-4" /> Suporte RH
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/login')}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Área Administrativa
-            </Button>
+          {/* Time & Date (Desktop) */}
+          <div className="hidden md:flex flex-col items-end">
+             <span className="text-xl font-bold text-slate-800 font-mono">
+               {format(currentTime, 'HH:mm')}
+             </span>
+             <span className="text-xs text-slate-500 capitalize">
+               {format(currentTime, "EEEE, d 'de' MMMM", { locale: ptBR })}
+             </span>
           </div>
-        </div>
+       </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 flex-1">
-          {/* Main Clock In Area */}
-          <div className="lg:col-span-2 flex items-center justify-center">
-             <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
-                <CardHeader className="text-center space-y-2 pb-2">
-                  <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-2">
-                    <KeyRound className="h-8 w-8 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">Registro de Ponto</CardTitle>
-                  <p className="text-muted-foreground">Digite sua senha (PIN) para registrar</p>
+       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Left Column: Actions (Terminal) - Spans 7 cols */}
+          <div className="lg:col-span-7 flex flex-col gap-6">
+             {/* Welcome / Clock Card */}
+             <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-none shadow-lg overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                   <Clock className="w-64 h-64" />
+                </div>
+                <CardContent className="p-8 relative z-10">
+                   <p className="text-blue-100 font-medium mb-1">Bem-vindo ao seu portal</p>
+                   <h2 className="text-3xl md:text-4xl font-bold mb-6">O que você deseja fazer hoje?</h2>
+                   
+                   <div className="flex flex-wrap gap-4">
+                      <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 flex items-center gap-3 border border-white/10">
+                         <Calendar className="w-8 h-8 text-blue-100" />
+                         <div>
+                            <p className="text-xs text-blue-200">Data de Hoje</p>
+                            <p className="font-bold">{format(currentTime, 'dd/MM/yyyy')}</p>
+                         </div>
+                      </div>
+                      <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 flex items-center gap-3 border border-white/10">
+                         <Clock className="w-8 h-8 text-blue-100" />
+                         <div>
+                            <p className="text-xs text-blue-200">Hora Atual</p>
+                            <p className="font-bold font-mono">{format(currentTime, 'HH:mm:ss')}</p>
+                         </div>
+                      </div>
+                   </div>
+                </CardContent>
+             </Card>
+
+             {/* PIN & Actions */}
+             <Card className="border-none shadow-md flex-1">
+                <CardHeader>
+                   <CardTitle>Acesso Rápido</CardTitle>
+                   <CardDescription>Digite seu PIN para liberar as ações</CardDescription>
                 </CardHeader>
-                
-                <CardContent className="space-y-6 pt-4">
-                  <div className="flex justify-center">
-                    <Input
-                      type="password"
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value)}
-                      className="text-center text-3xl tracking-[0.5em] h-16 w-48 font-mono border-2 focus-visible:ring-primary"
-                      maxLength={4}
-                      placeholder="----"
-                      autoFocus
-                      disabled={loading}
-                    />
-                  </div>
+                <CardContent className="space-y-6">
+                   <div className="max-w-sm mx-auto">
+                      <div className="relative">
+                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <KeyRound className="h-5 w-5 text-slate-400" />
+                         </div>
+                         <Input
+                            type="password"
+                            placeholder="Digite seu PIN (4 dígitos)"
+                            className="pl-10 text-center text-2xl tracking-widest h-14 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                            maxLength={4}
+                            value={pin}
+                            onChange={(e) => setPin(e.target.value)}
+                         />
+                      </div>
+                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button 
-                      size="lg" 
-                      className="h-14 text-lg bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-95"
-                      onClick={() => handleClockAction('in')}
-                      disabled={loading || pin.length < 4}
-                    >
-                      <LogIn className="mr-2 h-6 w-6" />
-                      Entrada
-                    </Button>
-                    
-                    <Button 
-                      size="lg" 
-                      variant="destructive"
-                      className="h-14 text-lg transition-all active:scale-95"
-                      onClick={() => handleClockAction('out')}
-                      disabled={loading || pin.length < 4}
-                    >
-                      <LogOut className="mr-2 h-6 w-6" />
-                      Saída
-                    </Button>
-                  </div>
+                   <div className="grid grid-cols-2 gap-4">
+                      <Button 
+                        className="h-24 flex flex-col gap-2 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-100 text-emerald-700 hover:text-emerald-800 shadow-sm"
+                        variant="outline"
+                        onClick={() => handleClockAction('in')}
+                      >
+                         <LogIn className="w-8 h-8" />
+                         <span className="font-bold text-lg">Registrar Entrada</span>
+                      </Button>
+                      <Button 
+                        className="h-24 flex flex-col gap-2 bg-amber-50 hover:bg-amber-100 border-2 border-amber-100 text-amber-700 hover:text-amber-800 shadow-sm"
+                        variant="outline"
+                        onClick={() => handleClockAction('out')}
+                      >
+                         <LogOut className="w-8 h-8" />
+                         <span className="font-bold text-lg">Registrar Saída</span>
+                      </Button>
+                   </div>
 
-                  <div className="pt-2">
-                     <Button 
-                        variant="outline" 
-                        className="w-full" 
+                   <div className="grid grid-cols-2 gap-4">
+                      <Button 
+                        className="h-16 flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                        variant="ghost"
                         onClick={handleAccessDocuments}
-                        disabled={loading || pin.length < 4}
-                     >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Documentos e Holerite
-                     </Button>
-                  </div>
+                      >
+                         <FileText className="w-5 h-5" />
+                         Meus Documentos
+                      </Button>
+                      <Button 
+                        className="h-16 flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                        variant="ghost"
+                        onClick={() => setIsSupportOpen(true)}
+                      >
+                         <LifeBuoy className="w-5 h-5" />
+                         Suporte / Ajuda
+                      </Button>
+                   </div>
                 </CardContent>
              </Card>
           </div>
-          
-          {/* Mural de Avisos */}
-          <div className="lg:col-span-1">
-            <Card className="h-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm flex flex-col">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Megaphone className="h-4 w-4 text-primary" />
-                  Mural de Avisos
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full pr-4 max-h-[400px]">
-                  <div className="space-y-4">
-                    {/* Aviso Fixo */}
-                    <div className="border-b border-border pb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-sm flex items-center gap-2">
-                          <Pin className="h-3 w-3 text-primary" />
-                          Como ter acesso ao seu contra cheque?
-                        </span>
-                        <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                            28/02
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        Digite sua senha e clique em "Documentos e Holerite", irá abrir uma janela com o contra cheque do mês atual, clique em "Assinar e Baixar", faça a assinatura eletronica e baixe seu arquivo.
-                      </p>
-                    </div>
 
-                    {announcements.map(announcement => (
-                      <div key={announcement.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium text-sm flex items-center gap-2">
-                            {announcement.priority === 'high' && <Pin className="h-3 w-3 text-red-500" />}
-                            {announcement.title}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                              {format(new Date(announcement.created_at), 'dd/MM')}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{announcement.content}</p>
+          {/* Right Column: Info & Announcements - Spans 5 cols */}
+          <div className="lg:col-span-5 flex flex-col gap-6">
+             {/* Announcements */}
+             <Card className="flex-1 border-none shadow-md flex flex-col">
+                <CardHeader className="bg-slate-50/50 border-b pb-4">
+                   <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                         <Megaphone className="w-5 h-5 text-blue-600" />
+                         Mural de Avisos
+                      </CardTitle>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                         {announcements.length} Novos
+                      </Badge>
+                   </div>
+                </CardHeader>
+                <CardContent className="p-0 flex-1 overflow-hidden">
+                   <ScrollArea className="h-[500px] p-6">
+                      <div className="space-y-4">
+                         {/* Fixed Notice */}
+                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-2">
+                               <Pin className="w-4 h-4 text-blue-400 fill-blue-400" />
+                            </div>
+                            <h4 className="font-bold text-blue-900 mb-2 pr-6">Como acessar seu Holerite?</h4>
+                            <p className="text-sm text-blue-800 leading-relaxed">
+                               Digite sua senha no painel ao lado e clique em "Meus Documentos". 
+                               Você poderá visualizar, assinar e baixar seu contra cheque do mês atual instantaneamente.
+                            </p>
+                         </div>
+
+                         {announcements.map((announcement) => (
+                            <div key={announcement.id} className="group bg-white border border-slate-100 hover:border-blue-200 rounded-xl p-4 transition-all shadow-sm hover:shadow-md">
+                               <div className="flex justify-between items-start mb-2">
+                                  <h4 className="font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">
+                                     {announcement.title}
+                                  </h4>
+                                  {announcement.priority === 'high' && (
+                                     <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-2" title="Alta Prioridade" />
+                                  )}
+                               </div>
+                               <p className="text-sm text-slate-600 leading-relaxed mb-3">
+                                  {announcement.content}
+                               </p>
+                               <div className="flex items-center justify-between text-xs text-slate-400">
+                                  <span>{format(new Date(announcement.created_at), "d 'de' MMM", { locale: ptBR })}</span>
+                                  <span>{announcement.author || 'RH'}</span>
+                               </div>
+                            </div>
+                         ))}
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                   </ScrollArea>
+                </CardContent>
+             </Card>
+             
+             {/* Admin Link */}
+             <div className="text-center">
+                <Button variant="link" className="text-slate-400 hover:text-slate-600 text-xs" onClick={() => navigate('/login')}>
+                   <ArrowLeft className="mr-1 h-3 w-3" /> Acesso Administrativo
+                </Button>
+             </div>
           </div>
-        </div>
-      </div>
+
+       </main>
 
       <PayslipViewerModal 
         open={isPayslipViewerOpen}
