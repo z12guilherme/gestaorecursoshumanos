@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { auditService, AuditLog } from "@/services/auditService";
+import { supabase } from "@/lib/supabase";
 import {
   Table,
   TableBody,
@@ -18,13 +19,30 @@ import { Button } from "@/components/ui/button";
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
     fetchLogs();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const { data } = await supabase.from('profiles').select('id, full_name');
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((u) => {
+          map[u.id] = u.full_name;
+        });
+        setUserMap(map);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar usuários:", error);
+    }
+  };
 
   const fetchLogs = async () => {
     try {
@@ -72,7 +90,7 @@ export default function AuditLogs() {
                   <TableHead>Data/Hora</TableHead>
                   <TableHead>Ação</TableHead>
                   <TableHead>Tabela</TableHead>
-                  <TableHead>Usuário (ID)</TableHead>
+                  <TableHead>Usuário</TableHead>
                   <TableHead>Detalhes</TableHead>
                 </TableRow>
               </TableHeader>
@@ -86,8 +104,8 @@ export default function AuditLogs() {
                       <Badge className={getActionColor(log.action)}>{log.action}</Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{log.table_name}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {log.changed_by || "Sistema"}
+                    <TableCell className="text-xs text-muted-foreground">
+                      {log.changed_by ? (userMap[log.changed_by] || log.changed_by) : "Sistema"}
                     </TableCell>
                     <TableCell>
                       <details className="cursor-pointer text-sm text-muted-foreground group">
