@@ -403,7 +403,7 @@ export default function ClockInPage() {
                             <h4 className="font-bold text-blue-900 mb-2 pr-6">Como acessar seu Holerite?</h4>
                             <p className="text-sm text-blue-800 leading-relaxed">
                                Digite sua senha no painel ao lado e clique em "Meus Documentos". 
-                               Você poderá visualizar, assinar e baixar seu contra cheque do mês atual instantaneamente.
+                               Você poderá visualizar, assinar e baixar seu contra cheque do mês atual instantaneamente (Verifique com o RH se foram feitas as atualizações mensais).
                             </p>
                          </div>
 
