@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useEmployees } from '@/hooks/useEmployees';
 import { 
   LayoutDashboard, 
@@ -71,73 +69,20 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const { signOut } = useAuth();
+  const { signOut, session, profile, loading: authLoading } = useAuth();
   const { employees } = useEmployees();
-  const { session } = useAuth();
   const isCollapsed = state === 'collapsed';
   
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [userProfile, setUserProfile] = useState({
-    name: "",
-    email: "",
-    avatar: "",
-    role: ""
-  });
+  // Tenta encontrar o funcionário correspondente para definir o cargo (Role)
+  const currentEmployee = employees.find(e => e.email === session?.user?.email);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function fetchUserProfile() {
-      if (!session?.user) return;
-      
-      try {
-        // 1. Tenta buscar configurações personalizadas (prioridade)
-        const { data: settings } = await supabase.from('settings').select('developer_name, avatar_url').maybeSingle();
-
-        if (!isMounted) return;
-
-        if (settings && settings.developer_name) {
-          setUserProfile({
-            name: settings.developer_name,
-            email: session.user.email || "",
-            avatar: settings.avatar_url || "",
-            role: "Administrador" // Assume Admin se configurado via Settings
-          });
-          return;
-        }
-
-        // 2. Se não houver config, tenta encontrar funcionário pelo email
-        const currentEmployee = employees.find(e => e.email === session.user.email);
-        
-        if (currentEmployee) {
-          setUserProfile({
-            name: currentEmployee.name,
-            email: currentEmployee.email,
-            avatar: currentEmployee.avatar_url || "",
-            role: currentEmployee.role || "Colaborador"
-          });
-        } else {
-          // 3. Fallback final (dados da sessão ou padrão)
-          setUserProfile({
-            name: session.user.user_metadata?.name || "Usuário",
-            email: session.user.email || "",
-            avatar: "",
-            role: "Convidado"
-          });
-        }
-      } catch (error) {
-        console.error("Erro ao carregar perfil:", error);
-      } finally {
-        if (isMounted) setIsLoadingProfile(false);
-      }
-    }
-    
-    fetchUserProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [session, employees]);
+  // Prioriza os dados do perfil (tabela profiles), depois funcionário, depois sessão
+  const userProfile = {
+    name: profile?.full_name || currentEmployee?.name || session?.user?.user_metadata?.name || "Usuário",
+    email: profile?.email || session?.user?.email || "",
+    avatar: profile?.avatar_url || currentEmployee?.avatar_url || "",
+    role: profile?.display_role || currentEmployee?.role || "Administrador"
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -198,7 +143,7 @@ export function AppSidebar() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-lg p-2 hover:bg-sidebar-accent transition-colors outline-none">
-              {isLoadingProfile ? (
+              {authLoading ? (
                 <>
                   <Skeleton className="h-9 w-9 rounded-full" />
                   {!isCollapsed && (

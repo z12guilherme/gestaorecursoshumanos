@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { User, Building2, Bell, Palette, Upload, Loader2, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);
@@ -18,55 +19,84 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { refreshProfile } = useAuth();
 
-  // Estado do formulário
-  const [formData, setFormData] = useState({
+  // Estado para o perfil do usuário
+  const [profileData, setProfileData] = useState({
     id: '',
-    developer_name: '',
+    full_name: '',
     avatar_url: '',
+    email: '',
+    display_role: '',
+  });
+
+  // Estado para as configurações da empresa
+  const [companySettings, setCompanySettings] = useState({
+    id: '',
     company_name: '',
     cnpj: '',
     email: '',
     notifications_enabled: true,
-    theme: 'light'
   });
 
   useEffect(() => {
-    async function fetchSettings() {
+    async function fetchData() {
+      setLoading(true);
       try {
-        const { data, error } = await supabase
+        // 1. Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) throw userError || new Error('User not found.');
+
+        // 2. Fetch user profile from 'profiles' table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('full_name, avatar_url, display_role')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) throw profileError;
+        
+        setProfileData({
+          id: user.id,
+          full_name: profile.full_name || '',
+          avatar_url: profile.avatar_url || '',
+          email: user.email || '',
+          display_role: profile.display_role || ''
+        });
+
+        // 3. Fetch company settings from 'settings' table
+        const { data: settings, error: settingsError } = await supabase
           .from('settings')
           .select('*')
           .maybeSingle();
 
-        if (error) throw error;
-        if (data) {
-          setFormData({
-            id: data.id,
-            developer_name: data.developer_name || '',
-            avatar_url: data.avatar_url || '',
-            company_name: data.company_name || '',
-            cnpj: data.cnpj || '',
-            email: data.email || '',
-            notifications_enabled: data.notifications_enabled ?? true,
-            theme: data.theme || 'light'
+        if (settingsError) throw settingsError;
+        if (settings) {
+          setCompanySettings({
+            id: settings.id,
+            company_name: settings.company_name || '',
+            cnpj: settings.cnpj || '',
+            email: settings.email || '',
+            notifications_enabled: settings.notifications_enabled ?? true,
           });
         }
+
       } catch (error) {
-        console.error('Error fetching settings:', error);
+        console.error('Error fetching data:', error);
+        toast({ title: "Erro ao carregar dados", description: "Não foi possível buscar as configurações.", variant: "destructive" });
       } finally {
         setLoading(false);
       }
     }
-    fetchSettings();
-  }, []);
+    fetchData();
+  }, [toast]);
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) return;
     
     const file = event.target.files[0];
     const fileExt = file.name.split('.').pop();
-    const fileName = `avatar-${Date.now()}.${fileExt}`;
+    const fileName = `${profileData.id}/${Date.now()}.${fileExt}`;
     const filePath = `${fileName}`;
 
     try {
@@ -76,8 +106,8 @@ export default function Settings() {
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
+          cacheControl: '3600', // 1 hour cache
+          upsert: true // Overwrite existing file with same name
         });
 
       if (uploadError) throw uploadError;
@@ -90,7 +120,7 @@ export default function Settings() {
       // 3. Atualizar estado local
       // Adiciona timestamp para evitar cache do navegador
       const publicUrlWithTimestamp = `${publicUrl}?t=${Date.now()}`;
-      setFormData(prev => ({ ...prev, avatar_url: publicUrlWithTimestamp }));
+      setProfileData(prev => ({ ...prev, avatar_url: publicUrlWithTimestamp }));
 
       toast({ title: "Imagem carregada", description: "Clique em Salvar para confirmar a alteração." });
 
@@ -107,41 +137,48 @@ export default function Settings() {
     try {
       setSaving(true);
       
-      const payload = {
-        developer_name: formData.developer_name,
-        avatar_url: formData.avatar_url,
-        company_name: formData.company_name,
-        cnpj: formData.cnpj,
-        email: formData.email,
-        notifications_enabled: formData.notifications_enabled,
-        updated_at: new Date().toISOString()
-      };
-      
-      let error;
-      if (formData.id) {
-        const { error: updateError } = await supabase
-          .from('settings')
-          .update(payload)
-          .eq('id', formData.id);
-        error = updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('settings')
-          .insert([payload]);
-        error = insertError;
+      if (activeTab === 'profile') {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            full_name: profileData.full_name,
+            avatar_url: profileData.avatar_url,
+            display_role: profileData.display_role,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', profileData.id);
+        
+        if (error) throw error;
+        await refreshProfile(); // Atualiza o contexto global (Sidebar)
+        toast({ title: "Perfil salvo", description: "Suas informações de perfil foram atualizadas." });
+
+      } else if (activeTab === 'company' || activeTab === 'notifications') {
+        const payload = {
+          company_name: companySettings.company_name,
+          cnpj: companySettings.cnpj,
+          email: companySettings.email,
+          notifications_enabled: companySettings.notifications_enabled,
+          updated_at: new Date().toISOString()
+        };
+        
+        let error;
+        if (companySettings.id) {
+          const { error: updateError } = await supabase
+            .from('settings')
+            .update(payload)
+            .eq('id', companySettings.id);
+          error = updateError;
+        } else {
+          // Se não houver settings, insere um novo.
+          const { error: insertError } = await supabase
+            .from('settings')
+            .insert([payload]);
+          error = insertError;
+        }
+
+        if (error) throw error;
+        toast({ title: "Configurações salvas", description: "As alterações da empresa foram aplicadas." });
       }
-
-      if (error) throw error;
-
-      toast({
-        title: "Configurações salvas",
-        description: "As alterações foram aplicadas com sucesso.",
-      });
-      
-      // Recarrega a página para atualizar o Sidebar
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
 
     } catch (error: any) {
       console.error('Error saving settings:', error);
@@ -198,8 +235,8 @@ export default function Settings() {
                   <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                     <Avatar className="h-24 w-24 border-2 border-border">
                       <AvatarImage 
-                        key={formData.avatar_url} // Força re-render quando a URL muda
-                        src={formData.avatar_url || "/placeholder.svg"} 
+                        key={profileData.avatar_url} // Força re-render quando a URL muda
+                        src={profileData.avatar_url || "/placeholder.svg"} 
                         className="object-cover" 
                       />
                       <AvatarFallback className="text-2xl">AD</AvatarFallback>
@@ -230,17 +267,27 @@ export default function Settings() {
                     <Label htmlFor="devName">Nome de Exibição</Label>
                     <Input
                       id="devName"
-                      value={formData.developer_name}
-                      onChange={(e) => setFormData({...formData, developer_name: e.target.value})}
+                      value={profileData.full_name}
+                      onChange={(e) => setProfileData({...profileData, full_name: e.target.value})}
                       placeholder="Ex: [DEV] Marcos Guilherme"
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="email">E-mail de Contato</Label>
+                    <Label htmlFor="displayRole">Cargo de Exibição</Label>
+                    <Input
+                      id="displayRole"
+                      value={profileData.display_role}
+                      onChange={(e) => setProfileData({...profileData, display_role: e.target.value})}
+                      placeholder="Ex: Administrador, Gerente de RH"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">E-mail de Login</Label>
                     <Input
                       id="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      value={profileData.email}
+                      readOnly
+                      disabled
                       placeholder="admin@empresa.com"
                     />
                   </div>
@@ -260,8 +307,8 @@ export default function Settings() {
                   <Label htmlFor="companyName">Razão Social / Nome Fantasia</Label>
                   <Input
                     id="companyName"
-                    value={formData.company_name}
-                    onChange={(e) => setFormData({...formData, company_name: e.target.value})}
+                    value={companySettings.company_name}
+                    onChange={(e) => setCompanySettings({...companySettings, company_name: e.target.value})}
                     placeholder="Minha Empresa S.A."
                   />
                 </div>
@@ -269,9 +316,18 @@ export default function Settings() {
                   <Label htmlFor="cnpj">CNPJ</Label>
                   <Input
                     id="cnpj"
-                    value={formData.cnpj}
-                    onChange={(e) => setFormData({...formData, cnpj: e.target.value})}
+                    value={companySettings.cnpj}
+                    onChange={(e) => setCompanySettings({...companySettings, cnpj: e.target.value})}
                     placeholder="00.000.000/0001-00"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="companyEmail">E-mail de Contato (Empresa)</Label>
+                  <Input
+                    id="companyEmail"
+                    value={companySettings.email}
+                    onChange={(e) => setCompanySettings({...companySettings, email: e.target.value})}
+                    placeholder="contato@empresa.com.br"
                   />
                 </div>
               </CardContent>
@@ -293,8 +349,8 @@ export default function Settings() {
                     </p>
                   </div>
                   <Switch
-                    checked={formData.notifications_enabled}
-                    onCheckedChange={(c) => setFormData({...formData, notifications_enabled: c})}
+                    checked={companySettings.notifications_enabled}
+                    onCheckedChange={(c) => setCompanySettings({...companySettings, notifications_enabled: c})}
                   />
                 </div>
               </CardContent>
