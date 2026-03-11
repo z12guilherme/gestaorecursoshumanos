@@ -191,6 +191,7 @@ export default function Payroll() {
       return [
         emp.name,
         emp.role,
+        emp.pix_key || '-',
         calc.baseSalary.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
         calc.insalubrity.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
         calc.overtimeValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
@@ -200,10 +201,10 @@ export default function Payroll() {
     });
 
     autoTable(doc, {
-      head: [['Colaborador', 'Cargo', 'Salário Base', 'Insalub.', 'H. Extra', 'Descontos', 'Líquido']],
+      head: [['Colaborador', 'Cargo', 'Chave PIX', 'Salário Base', 'Insalub.', 'H. Extra', 'Descontos', 'Líquido']],
       body: tableData,
       startY: 45,
-      styles: { fontSize: 8 },
+      styles: { fontSize: 7 },
       headStyles: { fillColor: [41, 128, 185] },
     });
 

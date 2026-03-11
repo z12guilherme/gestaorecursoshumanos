@@ -145,12 +145,12 @@ export default function LoginPage() {
 
         {/* Right Column - Image */}
         <div className="w-full lg:w-1/2 relative hidden lg:block bg-slate-900">
-            <div className="absolute inset-0 bg-blue-600/20 mix-blend-overlay z-10" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent z-20" />
+            <div className="absolute inset-0 bg-blue-400/10 mix-blend-overlay z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent z-20" />
             <img 
                 src={hsfBg} 
                 alt="Hospital Santa Fé" 
-                className="absolute inset-0 w-full h-full object-cover opacity-90"
+                className="absolute inset-0 w-full h-full object-cover"
             />
             <div className="absolute bottom-0 left-0 right-0 p-12 z-30 text-white">
                 <div className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium">
