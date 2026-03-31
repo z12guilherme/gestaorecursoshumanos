@@ -117,6 +117,18 @@ export default function ClockInPage() {
       .limit(1)
       .maybeSingle();
 
+    // Se não há registro anterior, a primeira ação deve ser 'in'
+    if (!lastEntry && type !== 'in') {
+      toast({
+        title: "Ação Inválida",
+        description: "Seu primeiro registro do dia deve ser uma entrada.",
+        variant: "destructive"
+      });
+      setLoading(false);
+      setPin('');
+      return;
+    }
+
     if (lastEntry) {
       const isLastIn = lastEntry.type === 'in' || lastEntry.type === 'lunch_end';
       const isLastOut = lastEntry.type === 'out' || lastEntry.type === 'lunch_start';
@@ -124,7 +136,7 @@ export default function ClockInPage() {
       if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
         toast({
           title: "Ação Inválida",
-          description: type === 'in' ? "Você já registrou entrada. Registre a saída primeiro." : "Você já registrou saída. Registre a entrada primeiro.",
+          description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'}. A próxima ação deve ser de ${isLastIn ? 'saída' : 'entrada'}.`,
           variant: "destructive"
         });
         setLoading(false);
