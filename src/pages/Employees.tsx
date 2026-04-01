@@ -256,8 +256,7 @@ export default function Employees() {
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
         
-        // Atualiza todas as solicitações em paralelo e aguarda
-        await Promise.all(activeRequests.map(req => updateRequest(req.id, { end_date: yesterdayStr })));
+        // Atualiza todas as solicitações em paralelo de forma segura
         await Promise.all(activeRequests.map(async (req) => {
           if (typeof updateRequest === 'function') {
             return updateRequest(req.id, { end_date: yesterdayStr });
