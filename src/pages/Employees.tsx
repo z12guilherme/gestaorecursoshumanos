@@ -44,6 +44,7 @@ export default function Employees() {
   
   // Mapeia os dados do Supabase (DB) para o formato da UI (Employee)
   const employees: Employee[] = dbEmployees.map((dbEmp: any) => {
+  const employees: Employee[] = (dbEmployees || []).map((dbEmp: any) => {
     // Garante que os campos JSON sejam arrays, mesmo se vierem como string do banco
     let varDiscounts = [];
     try { varDiscounts = typeof dbEmp.variable_discounts === 'string' ? JSON.parse(dbEmp.variable_discounts) : (dbEmp.variable_discounts || []); } catch { varDiscounts = []; }
@@ -110,6 +111,7 @@ export default function Employees() {
     }
 
     const isOnVacation = timeOffRequests.some(r => 
+    const isOnVacation = (timeOffRequests || []).some(r => 
       r.employee_id === emp.id && 
       r.status === 'approved' && 
       r.type === 'vacation' &&
@@ -239,6 +241,7 @@ export default function Employees() {
       today.setHours(0, 0, 0, 0);
       
       const activeRequests = timeOffRequests.filter(r => 
+      const activeRequests = (timeOffRequests || []).filter(r => 
         r.employee_id === employeeId && 
         r.status === 'approved' && 
         r.type === 'vacation' &&
@@ -258,8 +261,20 @@ export default function Employees() {
         
         // Atualiza todas as solicitações em paralelo e aguarda
         await Promise.all(activeRequests.map(req => updateRequest(req.id, { end_date: yesterdayStr })));
+        await Promise.all(activeRequests.map(async (req) => {
+          if (typeof updateRequest === 'function') {
+            return updateRequest(req.id, { end_date: yesterdayStr });
+          } else {
+            // Fallback seguro com o Supabase caso o hook useTimeOff não exporte a função updateRequest
+            const { error } = await supabase.from('time_off_requests').update({ end_date: yesterdayStr }).eq('id', req.id);
+            if (error) throw error;
+          }
+        }));
         
         await refetchTimeOff(); // Atualiza a lista de férias
+        if (typeof refetchTimeOff === 'function') {
+          await refetchTimeOff(); // Atualiza a lista de férias
+        }
       }
       
       await refetch(); // Atualiza a lista de colaboradores para garantir o status 'active'
