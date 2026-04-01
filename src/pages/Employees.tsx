@@ -41,44 +41,50 @@ export default function Employees() {
   } = useEmployees();
   const { signOut } = useAuth();
   const { requests: timeOffRequests, updateRequest, refetch: refetchTimeOff } = useTimeOff();
-
+  
   // Mapeia os dados do Supabase (DB) para o formato da UI (Employee)
-  const employees: Employee[] = dbEmployees.map(dbEmp => ({
-    id: dbEmp.id,
-    name: dbEmp.name,
-    email: dbEmp.email,
-    position: dbEmp.role || '', // Mapeia role -> position
-    department: dbEmp.department,
-    status: dbEmp.status as any, // Cast simples para o status da UI
-    hireDate: dbEmp.admission_date, // Mapeia admission_date -> hireDate
-    // Campos que não estão no banco simplificado (preenchidos com padrão)
-    phone: dbEmp.phone || '',
-    contractType: dbEmp.contract_type || 'CLT',
-    birthDate: dbEmp.birth_date || '',
-    salary: dbEmp.salary || 0,
-    manager: dbEmp.manager || '',
-    workSchedule: dbEmp.work_schedule || '09:00 - 18:00',
-    unit: dbEmp.unit || '',
-    // Aliases para evitar ambiguidade em componentes que usam nomes diferentes
-    role: dbEmp.role || '',
-    admissionDate: dbEmp.admission_date,
-    // Campos Financeiros (Mapeamento)
-    baseSalary: dbEmp.base_salary || 0,
-    fixedDiscounts: dbEmp.fixed_discounts || 0,
-    inss_value: dbEmp.inss_value || 0,
-    hasInsalubrity: dbEmp.has_insalubrity || false,
-    insalubrityAmount: dbEmp.insalubrity_amount || 0,
-    hasNightShift: dbEmp.has_night_shift || false,
-    nightShiftAmount: dbEmp.night_shift_amount || 0,
-    contractedHours: dbEmp.contracted_hours || 220,
-    pisPasep: dbEmp.pis_pasep || '',
-    pixKey: dbEmp.pix_key || '',
-    vacationDueDate: dbEmp.vacation_due_date || '',
-    vacationLimitDate: dbEmp.vacation_limit_date || '',
-    variable_discounts: dbEmp.variable_discounts || [],
-    variable_additions: dbEmp.variable_additions || [],
-    avatar_url: dbEmp.avatar_url,
-  } as unknown as Employee));
+  const employees: Employee[] = dbEmployees.map((dbEmp: any) => {
+    // Garante que os campos JSON sejam arrays, mesmo se vierem como string do banco
+    let varDiscounts = [];
+    try { varDiscounts = typeof dbEmp.variable_discounts === 'string' ? JSON.parse(dbEmp.variable_discounts) : (dbEmp.variable_discounts || []); } catch { varDiscounts = []; }
+
+    let varAdditions = [];
+    try { varAdditions = typeof dbEmp.variable_additions === 'string' ? JSON.parse(dbEmp.variable_additions) : (dbEmp.variable_additions || []); } catch { varAdditions = []; }
+
+    return {
+      id: dbEmp.id,
+      name: dbEmp.name,
+      email: dbEmp.email,
+      position: dbEmp.role || '', // Mapeia role -> position
+      department: dbEmp.department,
+      status: dbEmp.status as any, // Cast simples para o status da UI
+      hireDate: dbEmp.admission_date, // Mapeia admission_date -> hireDate
+      phone: dbEmp.phone || '',
+      contractType: dbEmp.contract_type || 'CLT',
+      birthDate: dbEmp.birth_date || '',
+      salary: dbEmp.salary || 0,
+      manager: dbEmp.manager || '',
+      workSchedule: dbEmp.work_schedule || '09:00 - 18:00',
+      unit: dbEmp.unit || '',
+      role: dbEmp.role || '',
+      admissionDate: dbEmp.admission_date,
+      baseSalary: dbEmp.base_salary || 0,
+      fixedDiscounts: dbEmp.fixed_discounts || 0,
+      inss_value: dbEmp.inss_value || 0,
+      hasInsalubrity: dbEmp.has_insalubrity || false,
+      insalubrityAmount: dbEmp.insalubrity_amount || 0,
+      hasNightShift: dbEmp.has_night_shift || false,
+      nightShiftAmount: dbEmp.night_shift_amount || 0,
+      contractedHours: dbEmp.contracted_hours || 220,
+      pisPasep: dbEmp.pis_pasep || '',
+      pixKey: dbEmp.pix_key || '',
+      vacationDueDate: dbEmp.vacation_due_date || '',
+      vacationLimitDate: dbEmp.vacation_limit_date || '',
+      variable_discounts: varDiscounts,
+      variable_additions: varAdditions,
+      avatar_url: dbEmp.avatar_url,
+    } as unknown as Employee
+  });
 
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300); // 300ms de atraso

@@ -126,9 +126,6 @@ export default function Payroll() {
     const overtimeHours = overtimeData[employee.id] || 0;
     const overtimeValue = overtimeHours * hourlyRate * 1.5;
 
-    // Descontos
-    const discounts = Number(employee.fixedDiscounts) || 0;
-
     // Adicionais Variáveis
     let variableAdditionsTotal = 0;
     try {
@@ -144,6 +141,22 @@ export default function Payroll() {
 
     const totalAdditions = insalubrity + nightShift + overtimeValue + variableAdditionsTotal;
     
+    // Descontos Variáveis
+    let variableDiscountsTotal = 0;
+    try {
+      const vDiscounts = Array.isArray(employee.variable_discounts) ? employee.variable_discounts : [];
+      variableDiscountsTotal = vDiscounts.reduce((acc: number, curr: any) => {
+        let val = Number(curr.value);
+        if (isNaN(val) && typeof curr.value === 'string') { val = Number(curr.value.replace(',', '.')); }
+        return acc + (val || 0);
+      }, 0);
+    } catch (e) {
+      variableDiscountsTotal = 0;
+    }
+
+    // Descontos (Fixos + Variáveis)
+    const discounts = (Number(employee.fixedDiscounts) || 0) + variableDiscountsTotal;
+
     // Base de Cálculo do INSS (Salário Base + Adicionais)
     const inssBase = baseSalary + totalAdditions;
     
