@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Calendar as CalendarIcon, Check, X, Clock, Plus, Palmtree, Thermometer, User, KeyRound, Search, Undo2, BarChart3, Paperclip, Download } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, X, Clock, Plus, Palmtree, Thermometer, User, KeyRound, Search, Undo2, BarChart3, Paperclip, Download, Trash2 } from 'lucide-react';
 import { format, parseISO, differenceInDays, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -52,6 +53,7 @@ const statusConfig = {
 
 export default function TimeOff() {
   const { requests, loading: loadingRequests, updateRequestStatus, addRequest } = useTimeOff();
+  const { requests, loading: loadingRequests, updateRequestStatus, addRequest, refetch } = useTimeOff();
   const { employees, loading: loadingEmployees, updateEmployee } = useEmployees();
 
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
@@ -221,6 +223,18 @@ export default function TimeOff() {
     });
     clearAttachment();
     setIsSavingRequest(false);
+  };
+
+  const handleDeleteRequest = async (id: string) => {
+    if (!window.confirm('Tem certeza que deseja apagar este registro permanentemente do histórico?')) return;
+    
+    const { error } = await supabase.from('time_off_requests').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro', description: 'Não foi possível apagar o registro.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Sucesso', description: 'Registro apagado com sucesso.' });
+      if (typeof refetch === 'function') refetch();
+    }
   };
 
   // Mapeia os campos do banco para o que a UI espera
@@ -526,6 +540,12 @@ export default function TimeOff() {
                     </div>
                   </div>
                   <Badge className={status.className}>{status.label}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={status.className}>{status.label}</Badge>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRequest(request.id)} title="Apagar registro">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               );
             })}
