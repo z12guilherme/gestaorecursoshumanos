@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar as CalendarIcon, Check, X, Clock, Plus, Palmtree, Thermometer, User, KeyRound, Search, Undo2, BarChart3, Paperclip, Download } from 'lucide-react';
 import { Calendar as CalendarIcon, Check, X, Clock, Plus, Palmtree, Thermometer, User, KeyRound, Search, Undo2, BarChart3, Paperclip, Download, Trash2 } from 'lucide-react';
 import { format, parseISO, differenceInDays, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -52,7 +51,6 @@ const statusConfig = {
 };
 
 export default function TimeOff() {
-  const { requests, loading: loadingRequests, updateRequestStatus, addRequest } = useTimeOff();
   const { requests, loading: loadingRequests, updateRequestStatus, addRequest, refetch } = useTimeOff();
   const { employees, loading: loadingEmployees, updateEmployee } = useEmployees();
 
