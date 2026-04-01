@@ -43,7 +43,6 @@ export default function Employees() {
   const { requests: timeOffRequests, updateRequest, refetch: refetchTimeOff } = useTimeOff();
   
   // Mapeia os dados do Supabase (DB) para o formato da UI (Employee)
-  const employees: Employee[] = dbEmployees.map((dbEmp: any) => {
   const employees: Employee[] = (dbEmployees || []).map((dbEmp: any) => {
     // Garante que os campos JSON sejam arrays, mesmo se vierem como string do banco
     let varDiscounts = [];
@@ -110,7 +109,6 @@ export default function Employees() {
       return emp;
     }
 
-    const isOnVacation = timeOffRequests.some(r => 
     const isOnVacation = (timeOffRequests || []).some(r => 
       r.employee_id === emp.id && 
       r.status === 'approved' && 
@@ -240,7 +238,6 @@ export default function Employees() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const activeRequests = timeOffRequests.filter(r => 
       const activeRequests = (timeOffRequests || []).filter(r => 
         r.employee_id === employeeId && 
         r.status === 'approved' && 
