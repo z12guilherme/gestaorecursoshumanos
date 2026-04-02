@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Calendar, User, Phone, CheckSquare, QrCode, Printer } from 'lucide-react';
+import { Calendar, User, Phone, CheckSquare, QrCode, Printer, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from '@/hooks/use-toast';
 
 interface Suggestion {
   id: string;
@@ -22,6 +23,7 @@ export default function Suggestions() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [isQrOpen, setIsQrOpen] = useState(false);
+  const { toast } = useToast();
   const publicLink = `${window.location.origin}/sugestoes-publico`;
 
   useEffect(() => {
@@ -51,6 +53,22 @@ export default function Suggestions() {
       fetchSuggestions();
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
+      toast({ title: 'Erro', description: 'Não foi possível atualizar o status.', variant: 'destructive' });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta mensagem permanentemente?')) return;
+
+    try {
+      const { error } = await supabase.from('suggestions').delete().eq('id', id);
+      if (error) throw error;
+      
+      setSuggestions(prev => prev.filter(s => s.id !== id));
+      toast({ title: 'Sucesso', description: 'Mensagem excluída com sucesso.' });
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      toast({ title: 'Erro', description: 'Não foi possível excluir a mensagem.', variant: 'destructive' });
     }
   };
 
@@ -115,9 +133,20 @@ export default function Suggestions() {
                       <Calendar className="h-3 w-3 mr-1" />
                       {format(new Date(item.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                     </div>
-                    {item.status === 'Nova' && (
-                      <Badge>Nova</Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {item.status === 'Nova' && (
+                        <Badge>Nova</Badge>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10" 
+                        onClick={() => handleDelete(item.id)}
+                        title="Excluir mensagem"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                   
                   <p className="text-sm text-foreground mb-4 whitespace-pre-wrap">{item.content}</p>
