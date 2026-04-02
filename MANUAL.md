@@ -1,198 +1,238 @@
-# 📘 Manual do Usuário - Sistema GestãoRH
+# 📘 Documentação Oficial do Usuário - Plataforma GestãoRH
 
-Bem-vindo ao **GestãoRH**, a plataforma integrada para administração de recursos humanos. Este documento serve como guia de referência para todas as funcionalidades do sistema, desde o cadastro de colaboradores até o uso do assistente de inteligência artificial.
+Bem-vindo à documentação oficial do **GestãoRH**, a plataforma corporativa completa para administração de Capital Humano (HCM). Este documento foi elaborado para servir como o guia definitivo de operação do sistema, detalhando fluxos de trabalho, regras de negócio e funcionalidades técnicas. 
+
+Projetado com foco em eficiência operacional, conformidade legal (LGPD) e experiência do usuário, o GestãoRH centraliza todas as rotinas do departamento pessoal e estratégico em um único ambiente seguro.
 
 ---
 
 ## 📑 Índice
 
-1.  [Visão Geral](#1-visão-geral)
-2.  [Gestão de Colaboradores](#2-gestão-de-colaboradores)
-3.  [Recrutamento e Seleção](#3-recrutamento-e-seleção)
-4.  [Férias e Ausências](#4-férias-e-ausências)
-5.  [Ponto Eletrônico](#5-ponto-eletrônico)
-6.  [Avaliação de Desempenho](#6-avaliação-de-desempenho)
-7.  [Comunicação Interna](#7-comunicação-interna)
-8.  [Ouvidoria e Sugestões](#8-ouvidoria-e-sugestões)
-9.  [🤖 Manual do Assistente IA](#9-manual-do-assistente-ia)
-10. [⚙️ Automações](#10-automações-scripts-python)
-11. [Configurações](#11-configurações)
+1.  [Visão Executiva e Dashboard](#1-visão-executiva-e-dashboard)
+2.  [Gestão de Colaboradores (Dossiê Digital)](#2-gestão-de-colaboradores-dossiê-digital)
+3.  [Folha de Pagamento e Holerites Digitais](#3-folha-de-pagamento-e-holerites-digitais)
+4.  [Controle de Frequência e Ponto Eletrônico](#4-controle-de-frequência-e-ponto-eletrônico)
+5.  [Férias e Afastamentos](#5-férias-e-afastamentos)
+6.  [Recrutamento e Seleção (ATS)](#6-recrutamento-e-seleção-ats)
+7.  [Avaliação de Desempenho](#7-avaliação-de-desempenho)
+8.  [Comunicação Interna e Ouvidoria](#8-comunicação-interna-e-ouvidoria)
+9.  [🤖 Assistente Virtual de IA](#9-assistente-virtual-de-ia)
+10. [⚙️ Automações de Rotina](#10-automações-de-rotina)
+11. [🛡️ Segurança, Auditoria e LGPD](#11-segurança-auditoria-e-lgpd)
+12. [Configurações do Sistema](#12-configurações-do-sistema)
 
 ---
 
-## 1. Visão Geral
+## 1. Visão Executiva e Dashboard
 
-Ao fazer login, você será direcionado ao **Dashboard**. Esta tela oferece uma visão panorâmica da empresa:
-*   **KPIs:** Total de colaboradores, funcionários ativos, pessoas em férias e afastados.
-*   **Gráficos:** Tendências de contratação e distribuição por departamento.
-*   **Atalhos:** Acesso rápido às principais funções.
+O **Dashboard** atua como a central de comando do departamento de RH, fornecendo indicadores-chave de desempenho (KPIs) em tempo real para embasar tomadas de decisão estratégicas.
+
+### Indicadores Disponíveis:
+- **Métricas de Headcount:** Contagem em tempo real de colaboradores ativos, total de registros, colaboradores em período de férias e profissionais afastados.
+- **Análise de Turnover:** Monitoramento do índice de rotatividade de pessoal, permitindo identificar tendências de retenção.
+- **Distribuição Demográfica:** Gráficos interativos ilustrando a alocação de custos e de pessoal por departamento.
+- **Alertas Operacionais:** Painel de notificações destacando pendências críticas, como férias a vencer nos próximos 30 dias e aniversariantes do mês.
 
 ---
 
-## 2. Gestão de Colaboradores
+## 2. Gestão de Colaboradores (Dossiê Digital)
 
-O módulo de colaboradores é o coração do sistema.
+O módulo de gestão unifica todas as informações cadastrais, contratuais e financeiras do quadro de funcionários, substituindo pastas físicas por um **Dossiê Digital** altamente seguro.
+
+### 2.1. Cadastro e Integração (Onboarding)
+- **Cadastro Individual:** Formulário segmentado em Dados Pessoais, Contratuais e Financeiros. Permite o registro de informações como CPF, PIS/PASEP, Cargo, Departamento, Unidade e Dados Bancários (Chave PIX).
+- **Importação em Massa:** Ferramenta para upload de planilhas (`.xlsx` ou `.csv`). O sistema valida automaticamente os cabeçalhos e processa dezenas de cadastros simultaneamente, ideal para migração de sistemas legados.
+
+### 2.2. Gestão Eletrônica de Documentos (GED)
+Dentro do perfil de cada colaborador, a aba **Documentos** permite o arquivamento seguro em nuvem de arquivos digitalizados.
+- Suporta envio de contratos, exames admissionais/demissionais, CNH e atestados.
+- Os arquivos são armazenados em *Buckets* protegidos no banco de dados, garantindo que apenas usuários autenticados com permissão de RH possam acessá-los.
+
+### 2.3. Movimentação e Desligamento
+- **Alteração de Status:** Transições de status (Ex: *Ativo* para *Afastado* ou *Desligado*) mantêm o histórico intacto no banco de dados.
+- **Gestão de Acessos:** Geração e redefinição segura de Senhas (PIN) individuais que o colaborador utilizará estritamente para o registro no Terminal de Ponto.
+
+---
+
+## 3. Folha de Pagamento e Holerites Digitais
+
+O GestãoRH automatiza etapas críticas do fechamento financeiro, reduzindo erros de cálculo e o tempo gasto na distribuição de contracheques.
+
+### 3.1. Configuração Financeira do Colaborador
+O sistema suporta regras complexas de remuneração:
+- **Proventos Fixos:** Salário Base, Adicional de Insalubridade, Adicional Noturno e Salário Família.
+- **Proventos e Descontos Variáveis:** Inserção de rubricas personalizadas mensais (Ex: Bonificações por Meta, Desconto de Farmácia, Adiantamentos).
+- **Cálculo Tributário Automático:** O sistema utiliza tabelas dinâmicas configuráveis de impostos (INSS e IRRF) para estimar os descontos legais aplicáveis sobre as bases de cálculo corretas.
+
+### 3.2. Emissão e Assinatura Eletrônica de Holerites
+O sistema elimina a necessidade de impressão de contracheques através de um fluxo digital auditável:
+1. **Geração e Disparo:** O RH gera o Holerite em formato PDF, que é automaticamente enviado para o e-mail pessoal do colaborador cadastrado.
+2. **Assinatura Digital (Touch/Mouse):** O colaborador recebe um link seguro, visualiza o documento e realiza a assinatura diretamente na tela do dispositivo (computador, tablet ou smartphone).
+3. **Autenticação e Carimbo de Tempo:** Ao assinar, o sistema captura o endereço IP, o dispositivo utilizado (User Agent) e a data/hora exata.
+4. **Comprovante Criptográfico:** Um hash único é gerado e impresso no rodapé do novo PDF corporativo, servindo como comprovação legal de recebimento do documento.
+
+### 3.3. Integração Bancária e Contábil
+- Exportação de arquivos padronizados (CNAB 240 ou CSV estruturado) para integração direta com sistemas de contabilidade terceirizados ou para processamento de pagamentos em lote junto a instituições financeiras.
+
+---
+
+## 4. Controle de Frequência e Ponto Eletrônico
+
+Uma solução moderna de registro de jornada que dispensa relógios de ponto físicos tradicionais (REP), substituindo-os por interfaces baseadas em nuvem com validação de localidade.
+
+### 4.1. Terminal do Colaborador (Modo Quiosque / PWA)
+- **Registro Rápido:** O colaborador acessa o terminal público da empresa, localiza seu nome ou digita sua matrícula, insere seu PIN criptografado e registra o evento (Entrada, Início Almoço, Fim Almoço, Saída).
+- **Geolocalização (GPS):** Se configurado, o sistema captura a latitude e longitude exatas no momento da batida do ponto, permitindo auditar o local de trabalho (ideal para equipes externas ou home office).
+
+### 4.2. Gestão de Frequência (Visão RH)
+- **Espelho de Ponto:** Painel gerencial que consolida todas as marcações.
+- **Mapa Interativo:** O RH pode visualizar em um mapa geográfico a procedência de cada batida de ponto registrada pelos colaboradores.
+- **Saldo de Horas:** Cálculo automatizado das horas trabalhadas frente à carga horária contratada (Ex: 09:00 - 18:00), identificando ausências, atrasos ou horas extras a serem tratadas.
+
+---
+
+## 5. Férias e Afastamentos
+
+Módulo dedicado à programação e compliance do cronograma de descanso anual, garantindo que a empresa não incorra em multas por vencimento de períodos aquisitivos.
+
+- **Painel de Solicitações:** Centraliza pedidos de férias ou submissão de atestados médicos. O sistema permite anexar o arquivo do atestado médico diretamente na solicitação.
+- **Fluxo de Aprovação:** O gestor analisa, aprova ou rejeita a solicitação.
+- **Automação de Status:** Ao aprovar um período (Ex: 10/11 a 20/11), o sistema assume a responsabilidade de alterar o status do colaborador para "Férias" na data de início e retorná-lo para "Ativo" no término, sem necessidade de intervenção manual.
+- **Visão Global:** Calendário interativo para visualização de conflitos de escala (garantindo que departamentos não fiquem desguarnecidos).
+
+---
+
+## 6. Recrutamento e Seleção (ATS)
+
+O GestãoRH conta com um *Applicant Tracking System* (ATS) integrado, simplificando a aquisição de novos talentos.
 
 ### Funcionalidades:
-*   **Listagem:** Visualize todos os funcionários com filtros por departamento e status.
-*   **Cadastro:** Adicione novos colaboradores manualmente preenchendo o formulário completo (Dados Pessoais, Cargo, Salário, etc.).
-*   **Documentos:** Na aba "Documentos" do perfil, faça upload de arquivos digitalizados (PDF/Imagens) como CNH, Contrato de Trabalho e Atestados.
-*   **Foto de Perfil:** Adicione uma foto ao perfil do colaborador. O sistema otimiza a imagem para economizar espaço, mas recomendamos o uso de fotos com até 500x500 pixels.
-*   **Financeiro:** Configure adicionais fixos (Insalubridade, Noturno), lançamentos variáveis (Gratificações, Bônus) e descontos eventuais (Farmácia, Adiantamentos) para cálculo preciso da folha. O sistema utiliza a tabela progressiva do INSS (2026) automaticamente.
-*   **Importação:** Utilize o botão de importação para carregar planilhas Excel com múltiplos funcionários de uma vez.
-*   **Perfil Detalhado:** Clique em um nome para ver o histórico completo, alterar senha do ponto ou editar dados.
-*   **Desligamento:** Processo de demissão que altera o status para "Desligado" e arquiva o histórico.
-*   **Holerite:** Gere o recibo de pagamento em PDF com base nos dados financeiros cadastrados, incluindo chave PIX.
+- **Gestão de Vagas:** Criação de descritivos de cargos, requisitos e publicação do status da vaga (Aberta, Em Andamento, Fechada).
+- **Banco de Talentos:** Repositório seguro para cadastro de candidatos, dados de contato e upload de currículos em PDF.
+- **Pipeline Visual (Kanban):** Gestão fluida do processo seletivo. O recrutador pode movimentar os candidatos arrastando-os entre as etapas personalizáveis:
+  1. *Inscrito*
+  2. *Triagem*
+  3. *Entrevista*
+  4. *Aprovado* / *Reprovado*
 
 ---
 
-## 3. Recrutamento e Seleção
+## 7. Avaliação de Desempenho
 
-Gerencie seus processos seletivos em um quadro visual (Kanban).
-
-*   **Vagas:** Crie e publique novas oportunidades de emprego.
-*   **Candidatos:** Cadastre candidatos e vincule-os às vagas.
-*   **Fluxo:** Arraste os candidatos entre as colunas: *Inscrito* → *Triagem* → *Entrevista* → *Aprovado*.
-
----
-
-## 4. Férias e Ausências
-
-Controle o calendário de folgas da equipe.
-
-*   **Solicitações:** Visualize pedidos de férias pendentes.
-*   **Aprovação:** Aprove ou rejeite solicitações com um clique. O sistema atualiza automaticamente o status do funcionário durante o período.
-*   **Calendário:** Visão mensal de quem estará ausente.
+Módulo voltado para o desenvolvimento contínuo e acompanhamento da performance do quadro funcional.
+- **Ciclos de Avaliação:** Permite a abertura de períodos de avaliação formal, onde líderes podem documentar o desempenho de seus liderados.
+- **Metricas Estruturadas:** Registro de notas globais, atingimento de metas pactuadas e desenvolvimento de competências comportamentais/técnicas (Hard Skills e Soft Skills).
+- **Feedback Oficial:** Arquivamento do histórico de feedbacks para fundamentar futuras promoções ou planos de recuperação de performance.
 
 ---
 
-## 5. Ponto Eletrônico
+## 8. Comunicação Interna e Ouvidoria
 
-O sistema possui dois modos de controle de ponto:
+O engajamento e a transparência são fomentados por meio de canais oficiais e seguros integrados à plataforma.
 
-1.  **Terminal de Ponto (Para o Funcionário):** Uma interface simplificada onde o colaborador seleciona seu nome e digita sua senha (PIN) para registrar entrada ou saída.
-2.  **Relatório de Ponto (Para o RH):** O gestor visualiza o espelho de ponto, com horários de entrada e saída, localização no mapa e cálculo de saldo de horas.
+### 8.1. Mural Digital Corporativo
+- Ferramenta de *Broadcast* para disparo de comunicados organizacionais.
+- Classificação visual por prioridade (Informativo, Importante, Urgente), garantindo que todos os usuários logados sejam imediatamente notificados no dashboard.
 
----
-
-## 6. Avaliação de Desempenho
-
-Realize ciclos de avaliação periódicos.
-*   Defina metas e competências.
-*   Registre feedbacks e notas para cada colaborador.
-*   Acompanhe a evolução profissional da equipe.
+### 8.2. Canal de Ouvidoria (Canal de Denúncias/Sugestões)
+- **Interface Pública:** Um portal web independente para recebimento de manifestações anônimas ou identificadas (exigência de compliance e políticas de boa governança).
+- **QR Code:** Geração automática de material visual (QR Code) para impressão e fixação nas dependências da empresa, facilitando o acesso via smartphones.
+- **Gestão de Tickets:** Painel interno restrito ao RH para triagem, investigação e arquivamento das manifestações recebidas.
 
 ---
 
-## 7. Comunicação Interna
+## 9. 🤖 Assistente Virtual de IA
 
-Mantenha a empresa informada através do **Mural de Avisos**.
-*   Crie comunicados com níveis de prioridade (Alta, Média, Baixa).
-*   Todos os usuários visualizam os avisos recentes no painel principal.
-
----
-
-## 8. Ouvidoria e Sugestões
-
-Gerencie o feedback recebido de clientes ou colaboradores externos.
-
-*   **Acesso Público:** O sistema gera uma página externa onde qualquer pessoa pode enviar sugestões.
-*   **QR Code:** No menu de Ouvidoria, clique em "Gerar QR Code" para imprimir um cartaz de divulgação.
-*   **Gestão:** O RH visualiza as mensagens recebidas, podendo marcá-las como lidas ou arquivadas.
-
----
-
-## 9. 🤖 Manual do Assistente IA
-
-O **Assistente Virtual** é uma ferramenta poderosa para agilizar tarefas repetitivas. Você pode conversar com ele naturalmente ou usar comandos numéricos.
+O GestãoRH é pioneiro na utilização de Processamento de Linguagem Natural (NLP) para facilitar a operação diária do RH. O Assistente Virtual traduz ordens descritas em português comum para ações complexas no banco de dados.
 
 ### 🚀 Como acessar
-Clique no menu **"Assistente IA"** na barra lateral.
+Localizado no menu lateral sob a rubrica **"Assistente IA"**.
 
 ### 📋 O que ele pode fazer?
-
-Abaixo estão os principais comandos que o assistente entende. Você não precisa digitar exatamente igual aos exemplos, ele entende variações!
+O algoritmo de reconhecimento de intenção compreende linguagem fluida e variações semânticas. Abaixo estão as categorias de operações suportadas:
 
 #### 1. Consultas Rápidas
-
 | O que você quer saber? | O que digitar (Exemplos) |
 | :--- | :--- |
-| **Contagem de Pessoal** | "Quantos funcionários temos?" <br> "Qual o total de colaboradores?" |
-| **Listar Funcionários** | "Listar todos os colaboradores" <br> "Quem trabalha no setor de Tecnologia?" <br> "Ver funcionários do RH" |
-| **Buscar Alguém** | "Buscar Mariana" <br> "Quem é João Silva?" <br> "Encontrar o funcionário Pedro" |
-
-#### 2. Gestão de Férias
-
-O assistente pode agendar e cancelar férias diretamente no sistema.
+| **Métricas / Headcount** | "Quantos funcionários temos?" <br> "Qual o total de colaboradores ativos?" |
+| **Filtros Departamentais** | "Listar todos do setor de Tecnologia" <br> "Quem trabalha no Financeiro?" |
+| **Busca Específica** | "Buscar a ficha da Mariana" <br> "Encontrar o funcionário Pedro Silva" |
 
 | Ação | O que digitar (Exemplos) |
 | :--- | :--- |
-| **Ver quem está fora** | "Quem está de férias?" <br> "Ver solicitações de férias" |
-| **Dar Férias** | "Dar férias para **Marcos Guilherme** de **01/12** a **15/12**" <br> "Agendar férias para **Ana** a partir de **10/11** até **20/11**" |
-| **Cancelar/Voltar** | "Encerrar férias de **Marcos**" <br> "Tirar férias de **Ana**" <br> *(Isso traz o funcionário de volta ao status 'Ativo')* |
+| **Ver quem está fora** | "Quem está de férias hoje?" <br> "Ver solicitações de ausência" |
+| **Agendar Férias** | "Dar férias para **Marcos Guilherme** de **01/12** a **15/12**" <br> "Agendar férias para **Ana** a partir de **10/11** até **20/11**" |
+| **Revogar Férias** | "Encerrar as férias do **Marcos**" <br> *(Retorna imediatamente o status para 'Ativo')* |
 
 #### 3. Recrutamento e Vagas
-
 | Ação | O que digitar (Exemplos) |
 | :--- | :--- |
-| **Ver Vagas** | "Quais são as vagas abertas?" <br> "Tem vaga para Desenvolvedor?" |
-| **Criar Nova Vaga** | "Abrir vaga de **Analista Financeiro** no departamento **Financeiro**" <br> "Criar vaga para **Recepcionista**" |
+| **Monitorar Vagas** | "Quais são as vagas abertas no momento?" <br> "Tem vaga para Desenvolvedor?" |
+| **Abertura de Requisição** | "Abrir vaga de **Analista Financeiro** no departamento **Financeiro**" |
 
 #### 4. Comunicação Interna
-
-Publique avisos no mural da empresa instantaneamente.
-
 | Ação | O que digitar (Exemplos) |
 | :--- | :--- |
-| **Publicar Aviso** | "Criar aviso: **Reunião Geral amanhã às 14h**" <br> "Novo aviso: **O escritório fechará no feriado**" |
+| **Disparo de Comunicado** | "Criar aviso: **Reunião Geral amanhã às 14h**" <br> "Novo aviso: **Feriado na próxima semana**" |
 
-#### 5. Admissão e Desligamento
-
+#### 5. Movimentação de Pessoal
 | Ação | O que digitar (Exemplos) |
 | :--- | :--- |
-| **Cadastrar (Individual)** | "Cadastre o funcionário **Lucas Pereira**, cargo **Designer**, no departamento **Marketing**" |
+| **Admissão Expressa** | "Cadastre o funcionário **Lucas Pereira**, cargo **Designer**, no departamento **Marketing**" |
 | **Cadastrar (Em Massa)** | "massa: **Nome1, Cargo1, Dept1; Nome2, Cargo2, Dept2**" <br> *(Útil para importar listas rápidas)* |
-| **Desligar** | "Demitir **Carlos Souza**" <br> "Desligar funcionário **Roberto**" |
+| **Desligamento Automático** | "Demitir **Carlos Souza**" <br> "Desligar o funcionário **Roberto** do sistema" |
 
-#### 💡 Dicas para o Chat
-*   **Datas:** Ao agendar férias, use o formato `DD/MM` ou `DD/MM/AAAA`.
-*   **Nomes:** Tente escrever o nome completo ou o primeiro nome corretamente.
-*   **Menu:** Se estiver perdido, digite **"Ajuda"** ou **"Menu"** para ver as opções numéricas.
-
----
-
-## 10. ⚙️ Automações (Scripts Python)
-
-O módulo de **Automações** permite gerar scripts em Python para executar tarefas repetitivas fora do sistema.
-
-### Funcionalidades:
-*   **Templates Prontos:** Modelos pré-configurados para tarefas comuns (ex: E-mails de Aniversário, Relatório de Ponto, Setup de Onboarding).
-*   **Criar com IA:** Descreva uma tarefa personalizada e a Inteligência Artificial escreverá o código para você.
-*   **Biblioteca:** Salve seus scripts gerados para uso futuro.
-
-### Como usar:
-1.  Acesse o menu **Automações**.
-2.  Escolha um template ou use a aba **"Criar com IA"**.
-3.  Preencha os parâmetros ou descreva a tarefa.
-4.  Clique em **Gerar Script**.
-5.  Copie o código ou faça o download do arquivo `.py` para executar em sua máquina.
+> **💡 Melhores Práticas de Interação:**
+> - **Precisão Temporal:** Ao referenciar datas, utilize o formato explícito `DD/MM` ou `DD/MM/AAAA`.
+> - **Ambiguidade de Nomes:** Em caso de homônimos, forneça o nome completo e o cargo para evitar ações no cadastro incorreto.
+> - **Navegação Guiada:** Caso não deseje usar linguagem livre, digite **"Ajuda"** ou **"Menu"** para acessar o modo de botões guiados numericamente.
 
 ---
 
-## 11. Configurações
+## 10. ⚙️ Automações de Rotina
 
-No menu **Configurações**, você pode personalizar o sistema:
+O ecossistema GestãoRH conta com um motor de automação que estende as capacidades do sistema para além de sua interface, permitindo a geração de rotinas personalizadas via scripts.
 
-*   **Perfil:** Altere sua foto de avatar e nome de exibição (ex: `[DEV] Marcos Guilherme` para `Admin RH`).
-*   **Empresa:** Atualize Razão Social e CNPJ para relatórios.
-*   **Notificações:** Ative ou desative alertas por e-mail.
-*   **Aparência:** (Em breve) Controle total sobre o tema Claro/Escuro.
+### Capacidades:
+- **Templates de Processos:** Modelos pré-validados para tarefas padronizadas, tais como:
+  - Disparo em lote de e-mails de feliz aniversário.
+  - Extração profunda e sanitização de dados de ponto.
+  - Setup automatizado de contas de TI no processo de Onboarding.
+- **Desenvolvimento Assistido por IA:** O analista descreve a automação necessária (Ex: *"Preciso de uma rotina que alerte se houver funcionários com mais de 30 horas extras"*), e a IA interna escreve o código Python completo da automação.
+- **Gestão de Acervo:** Salve e cataloge todas as automações operacionais no banco de dados da empresa para reaproveitamento futuro pela equipe de RH ou TI.
+
+---
+
+## 11. 🛡️ Segurança, Auditoria e LGPD
+
+A segurança da informação e a privacidade dos dados corporativos são premissas fundamentais da arquitetura do GestãoRH.
+
+### 11.1. Trilha de Auditoria Universal (Audit Logs)
+Garantindo total compliance e rastreabilidade, o banco de dados monitora e arquiva um registro imutável de **qualquer alteração sistêmica**.
+- **O que é monitorado:** Modificações salariais, alterações de cadastros, exclusões e demissões.
+- **Como funciona:** O painel de Auditoria exibe exatamente *Quem* fez a alteração, *Quando* ocorreu, e qual foi a mudança estrutural (apresentando um *Diff* claro mostrando o dado antigo e o novo dado inserido).
+
+### 11.2. Proteção de Dados Financeiros e RLS
+- **Row Level Security (RLS):** O banco de dados bloqueia requisições não autorizadas no nível da infraestrutura. Apenas usuários logados e com credenciais de administração têm autorização matemática de leitura nas tabelas.
+- **Views Seguras:** Dados sensíveis (como `base_salary` e descontos) são isolados da API pública do sistema. Interfaces não-administrativas (como as telas que o colaborador acessa no terminal de ponto) consomem apenas metadados esterilizados (Ex: Nome, Setor, Foto), garantindo que vazamentos de informações por engenharia reversa sejam impossíveis.
+
+### 11.3. Controles de Acesso
+- **Sessões via JWT:** A plataforma utiliza tokens de curta duração.
+- **Prevenção de Ataques:** Proteções contra força-bruta (Rate Limiting no login) e bloqueio contra auto-exclusão acidental por parte do Administrador do sistema.
+
+---
+
+## 12. Configurações do Sistema
+
+O módulo de **Configurações** destina-se ao Administrador Institucional para gerenciamento das variáveis globais da aplicação:
+
+- **Perfil Pessoal:** Gerenciamento da identidade do administrador operando o sistema (Foto de perfil, Nome de exibição).
+- **Dados Institucionais (White-label):** Atualização da Razão Social, CNPJ oficial, Endereço e Contatos. Essas informações são consumidas em tempo real pelo gerador de PDFs (Holerites, Relatórios e Dossiês).
+- **Preferências Operacionais:** Gestão da ativação ou desativação de notificações do sistema por e-mail.
+- **Personalização de Tema:** Escolha da preferência de interface (Claro / Escuro / Automático pelo Sistema Operacional).
 
 ---
 
 ### ❓ Suporte
 
-Caso encontre algum erro ou tenha dúvidas não cobertas por este manual, entre em contato com o suporte técnico ou consulte o arquivo `README.md` para detalhes técnicos de instalação.
-
----
-*Documento gerado automaticamente em 27/01/2026.*
+Para questões técnicas, instabilidade sistêmica, ou dúvidas operacionais não mitigadas por esta documentação, favor abrir um chamado junto ao departamento de Tecnologia (TI) responsável pela infraestrutura ou contatar o suporte através de **suporte@gestaorh.com**.
