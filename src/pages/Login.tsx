@@ -140,6 +140,7 @@ export default function LoginPage() {
             
             <div className="absolute bottom-4 left-0 right-0 text-center flex flex-col items-center gap-2">
                 <p className="text-[10px] text-slate-400">© 2026 Rede DMI. Todos os direitos reservados.</p>
+                <p className="text-[10px] text-slate-500 font-medium tracking-wide">Desenvolvido e Auditado por Marcos Guilherme</p>
             </div>
         </div>
 
