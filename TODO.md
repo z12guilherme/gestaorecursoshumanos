@@ -8,7 +8,7 @@
 - [x] Criar testes unitários para cálculo de folha/analytics (Exemplo criado em `analyticsService.test.ts`).
 - [x] Criar testes de integração para fluxo de Autenticação (`src/pages/Login.test.tsx`).
 - [x] Criar testes para transições de status de Ponto (`src/services/timeEntryService.test.ts`).
-- [x] **Meta:** Atingir 80% de cobertura nas regras de negócio.
+- [x] **Meta:*  * Atingir 80% de cobertura nas regras de negócio.
 
 
 ### 2. 👁️ Sistema de Auditoria (Audit Logs)
@@ -55,3 +55,5 @@
 - [x] Implementar gráficos de linha para evolução de custos. (`DashboardAnalytics.tsx`)
 - [x] Criar análise de Turnover/Crescimento (previsão e histórico). (`DashboardAnalytics.tsx`)
 - [x] Adicionar filtros de data e comparativos (Mês Atual vs Mês Anterior).
+
+- [ ] Crachá dinâmico para os funcionários

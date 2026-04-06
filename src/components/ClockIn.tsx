@@ -5,8 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, LogOut, MapPin } from "lucide-react";
+import { Clock, LogOut, MapPin, IdCard } from "lucide-react";
 import { PayslipButton } from "@/components/PayslipButton";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { EmployeeBadge } from "@/components/EmployeeBadge";
 
 interface SimpleEmployee {
   id: string;
@@ -221,17 +223,40 @@ export default function ClockIn() {
             </div>
           </div>
 
-          {/* Área do Holerite */}
-          <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg flex items-center justify-between border border-blue-100 dark:border-blue-900">
-            <div className="flex flex-col">
-              <span className="font-medium text-blue-900 dark:text-blue-300">Contra Cheque</span>
-              <span className="text-xs text-blue-700 dark:text-blue-400">Baixar documento assinado</span>
+          {/* Área de Documentos e Crachá */}
+          <div className="space-y-3">
+            {/* Área do Holerite */}
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg flex items-center justify-between border border-blue-100 dark:border-blue-900">
+              <div className="flex flex-col">
+                <span className="font-medium text-blue-900 dark:text-blue-300">Contra Cheque</span>
+                <span className="text-xs text-blue-700 dark:text-blue-400">Baixar documento assinado</span>
+              </div>
+              
+              <PayslipButton 
+                employee={authenticatedEmployee} 
+                referenceDate={new Date()}
+              />
             </div>
-            
-            <PayslipButton 
-              employee={authenticatedEmployee} 
-              referenceDate={new Date()}
-            />
+
+            {/* Área do Crachá */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg flex items-center justify-between border border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col">
+                <span className="font-medium text-slate-900 dark:text-slate-300">Crachá Funcional</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Versão digital e impressão</span>
+              </div>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <IdCard className="h-4 w-4" />
+                    Ver Crachá
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-sm flex flex-col items-center justify-center p-8 bg-slate-50/95 dark:bg-slate-900/95 border-none shadow-2xl rounded-2xl">
+                  <EmployeeBadge employee={authenticatedEmployee} />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">

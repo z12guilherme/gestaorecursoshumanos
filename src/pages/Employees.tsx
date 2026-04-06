@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Users, UserCheck, UserX, Calendar, LogOut, KeyRound, Link as LinkIcon } from 'lucide-react';
+import { Users, UserCheck, UserX, Calendar, LogOut, KeyRound, Link as LinkIcon, IdCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/lib/AuthContext';
@@ -29,6 +30,7 @@ import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { useDebounce } from '@/hooks/useDebounce';
 import { EvaluationLinkGenerator } from '@/components/performance/EvaluationLinkGenerator';
+import { EmployeeBadge } from '@/components/EmployeeBadge';
 
 export default function Employees() {
   const { 
@@ -97,6 +99,8 @@ export default function Employees() {
   const [passwordToUpdate, setPasswordToUpdate] = useState('');
   const [employeeToTerminate, setEmployeeToTerminate] = useState<Employee | null>(null);
   const [isLinkGeneratorOpen, setIsLinkGeneratorOpen] = useState(false);
+  const [isBadgeDialogOpen, setIsBadgeDialogOpen] = useState(false);
+  const [selectedBadgeEmployeeId, setSelectedBadgeEmployeeId] = useState<string>('');
   const { toast } = useToast();
 
   // Computa o status real baseado nas solicitações de férias ativas
@@ -481,6 +485,8 @@ export default function Employees() {
     terminated: employeesWithStatus.filter(e => e.status === 'terminated' || e.status === 'Desligado').length,
   };
 
+  const badgeEmployee = employees.find(e => e.id === selectedBadgeEmployeeId);
+
   return (
     <AppLayout title="Colaboradores" subtitle="Gerencie todos os colaboradores da empresa">
       <div className="space-y-6">
@@ -546,7 +552,11 @@ export default function Employees() {
         </div>
 
         {/* Filters */}
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsBadgeDialogOpen(true)} className="gap-2">
+                <IdCard className="h-4 w-4" />
+                Gerar Crachá
+            </Button>
             <Button variant="outline" onClick={() => setIsLinkGeneratorOpen(true)} className="gap-2">
                 <LinkIcon className="h-4 w-4" />
                 Gerar Link de Avaliação
@@ -632,6 +642,40 @@ export default function Employees() {
             open={isLinkGeneratorOpen}
             onOpenChange={setIsLinkGeneratorOpen}
         />
+
+        {/* Crachá Modal */}
+        <Dialog open={isBadgeDialogOpen} onOpenChange={setIsBadgeDialogOpen}>
+          <DialogContent className="sm:max-w-md flex flex-col items-center">
+            <DialogHeader className="w-full">
+              <DialogTitle>Gerar Crachá Funcional</DialogTitle>
+              <DialogDescription>
+                Selecione um colaborador para visualizar e baixar o crachá em PDF.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="w-full space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Colaborador</Label>
+                <Select onValueChange={setSelectedBadgeEmployeeId} value={selectedBadgeEmployeeId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um colaborador..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map(e => (
+                      <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {badgeEmployee && (
+              <div className="w-full flex justify-center py-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                <EmployeeBadge employee={badgeEmployee} />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         <AlertDialog open={!!employeeToTerminate} onOpenChange={(open) => !open && setEmployeeToTerminate(null)}>
           <AlertDialogContent>

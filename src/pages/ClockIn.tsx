@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { LogIn, LogOut, ArrowLeft, Megaphone, Pin, FileText, Download, LifeBuoy, Search, Copy, Check, MessageSquare, KeyRound, Clock, Calendar } from 'lucide-react';
+import { LogIn, LogOut, ArrowLeft, Megaphone, Pin, FileText, Download, LifeBuoy, Search, Copy, Check, MessageSquare, KeyRound, Clock, Calendar, IdCard } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useCommunication } from '@/hooks/useCommunication';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { PayslipButton } from '@/components/PayslipButton';
 import { PayslipViewerModal } from '@/components/PayslipViewerModal';
+import { EmployeeBadge } from '@/components/EmployeeBadge';
 
 export default function ClockInPage() {
   const { employees } = useEmployees();
@@ -47,6 +48,10 @@ export default function ClockInPage() {
   const [identifiedEmployee, setIdentifiedEmployee] = useState<Employee | null>(null);
   const [isPayslipViewerOpen, setIsPayslipViewerOpen] = useState(false);
   const { documents } = useDocuments(identifiedEmployee?.id);
+  
+  // Badge State
+  const [showBadgeDialog, setShowBadgeDialog] = useState(false);
+  const [badgeEmployee, setBadgeEmployee] = useState<Employee | null>(null);
   
   // Support States
   const [isSupportOpen, setIsSupportOpen] = useState(false);
@@ -205,13 +210,32 @@ export default function ClockInPage() {
   };
 
   const handleAccessDocuments = async () => {
-      if (!pin) return;
+      if (!pin) {
+        toast({ title: "PIN Obrigatório", description: "Digite seu PIN de 4 dígitos para acessar.", variant: "destructive" });
+        return;
+      }
       setLoading(true);
       const employee = await getEmployeeByPin(pin);
       
       if (employee) {
         setIdentifiedEmployee(employee);
         setShowDocumentsDialog(true);
+        setPin('');
+      }
+      setLoading(false);
+  };
+
+  const handleAccessBadge = async () => {
+      if (!pin) {
+        toast({ title: "PIN Obrigatório", description: "Digite seu PIN de 4 dígitos para ver o crachá.", variant: "destructive" });
+        return;
+      }
+      setLoading(true);
+      const employee = await getEmployeeByPin(pin);
+      
+      if (employee) {
+        setBadgeEmployee(employee);
+        setShowBadgeDialog(true);
         setPin('');
       }
       setLoading(false);
@@ -367,22 +391,30 @@ export default function ClockInPage() {
                       </Button>
                    </div>
 
-                   <div className="grid grid-cols-2 gap-4">
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <Button 
-                        className="h-16 flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                        className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
                         variant="ghost"
                         onClick={handleAccessDocuments}
                       >
-                         <FileText className="w-5 h-5" />
-                         Meus Documentos
+                         <FileText className="w-5 h-5 shrink-0" />
+                         Documentos
                       </Button>
                       <Button 
-                        className="h-16 flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                        className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                        variant="ghost"
+                        onClick={handleAccessBadge}
+                      >
+                         <IdCard className="w-5 h-5 shrink-0" />
+                         Crachá
+                      </Button>
+                      <Button 
+                        className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
                         variant="ghost"
                         onClick={() => setIsSupportOpen(true)}
                       >
-                         <LifeBuoy className="w-5 h-5" />
-                         Suporte / Ajuda
+                         <LifeBuoy className="w-5 h-5 shrink-0" />
+                         Suporte
                       </Button>
                    </div>
                 </CardContent>
@@ -511,6 +543,13 @@ export default function ClockInPage() {
             <DialogFooter>
                 <Button onClick={() => setShowDocumentsDialog(false)}>Fechar</Button>
             </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog do Crachá */}
+      <Dialog open={showBadgeDialog} onOpenChange={setShowBadgeDialog}>
+        <DialogContent className="sm:max-w-sm flex flex-col items-center justify-center p-8 bg-slate-50/95 dark:bg-slate-900/95 border-none shadow-2xl rounded-2xl">
+          {badgeEmployee && <EmployeeBadge employee={badgeEmployee} companyName={companySettings?.company_name} />}
         </DialogContent>
       </Dialog>
 
