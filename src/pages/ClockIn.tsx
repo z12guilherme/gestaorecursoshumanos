@@ -39,7 +39,7 @@ export default function ClockInPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [companySettings, setCompanySettings] = useState<any>({
-    company_name: 'Hospital Santa Fé',
+    company_name: 'Hospital DMI',
     cnpj: '04.232.442/0001-14'
   });
   
@@ -299,7 +299,7 @@ export default function ClockInPage() {
           {/* Logo & Company Name */}
           <div className="flex items-center gap-3">
              <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
-                SF
+                DMI
              </div>
              <div>
                 <h1 className="font-bold text-slate-800 leading-tight">{companySettings?.company_name}</h1>

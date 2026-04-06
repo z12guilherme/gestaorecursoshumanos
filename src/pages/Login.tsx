@@ -149,7 +149,7 @@ export default function LoginPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent z-20" />
             <img 
                 src={hsfBg} 
-                alt="Hospital Santa Fé" 
+                alt="Hospital DMI" 
                 className="absolute inset-0 w-full h-full object-cover"
             />
             <div className="absolute bottom-0 left-0 right-0 p-12 z-30 text-white">
