@@ -5,7 +5,7 @@ import { JobPostingCard } from '@/components/recruitment/JobPostingCard';
 import { Candidate } from '@/types/hr';
 import { Tabs, TabsContent, TabsList, TabsTrigger, TabsProps } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Plus, Briefcase, Users, Edit, Trash2, MoreHorizontal, Copy } from 'lucide-react';
+import { Plus, Briefcase, Users, Edit, Trash2, MoreHorizontal, Copy, Brain, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useRecruitment } from '@/hooks/useRecruitment';
@@ -56,6 +56,9 @@ export default function Recruitment() {
   const [jobToDelete, setJobToDelete] = useState<string | null>(null);
   const [jobForm, setJobForm] = useState({ title: '', department: '', location: '', type: 'Integral', description: '' });
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [isAiScreeningOpen, setIsAiScreeningOpen] = useState(false);
+  const [aiScreeningLoading, setAiScreeningLoading] = useState(false);
+  const [aiResults, setAiResults] = useState<any[]>([]);
   const { toast } = useToast();
 
   const handleMoveCandidate = async (candidateId: string, newStatus: Candidate['status']) => {
@@ -83,6 +86,28 @@ export default function Recruitment() {
       description: 'O candidato foi removido permanentemente.',
       variant: 'destructive',
     });
+  };
+
+  const runAiScreening = () => {
+    if (!selectedJobId) {
+      toast({ title: 'Selecione uma vaga', description: 'Por favor, selecione uma vaga na aba Vagas antes de usar a triagem de IA.', variant: 'destructive' });
+      return;
+    }
+    setIsAiScreeningOpen(true);
+    setAiScreeningLoading(true);
+    
+    // Simulação de processamento de currículos com IA
+    setTimeout(() => {
+      const job = jobs.find(j => j.id === selectedJobId);
+      const results = filteredCandidates.map(c => ({
+        ...c,
+        matchScore: Math.floor(Math.random() * 40) + 60, // Gera score entre 60% e 99%
+        keywords: ['React', 'Comunicação', 'Proatividade', 'Gestão', 'Liderança', 'Design', 'Agile', 'Vendas'].sort(() => 0.5 - Math.random()).slice(0, 3)
+      })).sort((a, b) => b.matchScore - a.matchScore);
+      
+      setAiResults(results);
+      setAiScreeningLoading(false);
+    }, 2500);
   };
 
   const filteredCandidates = selectedJobId 
@@ -199,6 +224,11 @@ export default function Recruitment() {
               <TabsTrigger value="jobs">Vagas</TabsTrigger>
             </TabsList>
             
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900 dark:text-purple-400 dark:hover:bg-purple-900/20" onClick={runAiScreening}>
+                <Brain className="h-4 w-4" />
+                Triagem com IA
+              </Button>
             <Dialog open={isJobDialogOpen} onOpenChange={setIsJobDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2" onClick={handleOpenCreateJobDialog}>
@@ -271,6 +301,7 @@ export default function Recruitment() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           <TabsContent value="pipeline" className="space-y-4">
@@ -315,6 +346,57 @@ export default function Recruitment() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Modal de Triagem por IA */}
+        <Dialog open={isAiScreeningOpen} onOpenChange={setIsAiScreeningOpen}>
+          <DialogContent className="sm:max-w-[700px]">
+             <DialogHeader>
+               <DialogTitle className="flex items-center gap-2"><Brain className="h-5 w-5 text-purple-500" /> Triagem Inteligente de Currículos</DialogTitle>
+               <DialogDescription>A IA analisou os currículos dos candidatos para a vaga selecionada e gerou um Score de Compatibilidade (Match).</DialogDescription>
+             </DialogHeader>
+             
+             {aiScreeningLoading ? (
+               <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="relative">
+                     <Brain className="h-12 w-12 text-purple-500 animate-pulse" />
+                     <Sparkles className="h-5 w-5 text-amber-400 absolute -top-1 -right-1 animate-bounce" />
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground animate-pulse">Lendo PDFs e mapeando habilidades...</p>
+               </div>
+             ) : (
+               <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+                  {aiResults.length === 0 ? (
+                    <p className="text-center text-muted-foreground">Nenhum candidato encontrado para esta vaga.</p>
+                  ) : (
+                    aiResults.map((candidate, idx) => (
+                      <div key={candidate.id} className="flex items-center justify-between p-4 border rounded-xl bg-card hover:bg-accent/50 transition-colors shadow-sm">
+                         <div className="flex items-center gap-4">
+                            <div className="font-bold text-xl text-slate-300 dark:text-slate-700 w-8">#{idx + 1}</div>
+                            <div>
+                              <p className="font-semibold text-base">{candidate.name}</p>
+                              <div className="flex gap-1.5 mt-1.5">
+                                 {candidate.keywords.map((k: string) => <Badge key={k} variant="secondary" className="text-[10px] px-2 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-100">{k}</Badge>)}
+                              </div>
+                            </div>
+                         </div>
+                         <div className="flex items-center gap-6">
+                            <div className="text-right">
+                               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Match Score</p>
+                               <p className={`text-2xl font-bold ${candidate.matchScore >= 85 ? 'text-emerald-500' : candidate.matchScore >= 75 ? 'text-amber-500' : 'text-red-500'}`}>
+                                 {candidate.matchScore}%
+                               </p>
+                            </div>
+                            <Button size="sm" variant={candidate.status === 'screening' || candidate.status === 'Triagem' ? "secondary" : "default"} onClick={() => handleMoveCandidate(candidate.id, 'screening')} disabled={candidate.status === 'screening' || candidate.status === 'Triagem'}>
+                              {candidate.status === 'screening' || candidate.status === 'Triagem' ? <><CheckCircle2 className="h-4 w-4 mr-1" /> Em Triagem</> : 'Mover p/ Triagem'}
+                            </Button>
+                         </div>
+                      </div>
+                    ))
+                  )}
+               </div>
+             )}
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

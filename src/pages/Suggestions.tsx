@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Calendar, User, Phone, CheckSquare, QrCode, Printer, Trash2 } from 'lucide-react';
+import { Calendar, User, Phone, CheckSquare, QrCode, Printer, Trash2, Brain, AlertTriangle, Smile, Meh } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -44,6 +44,20 @@ export default function Suggestions() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getAiSentiment = (text: string) => {
+    const criticalWords = ['processo', 'assédio', 'assedio', 'absurdo', 'péssimo', 'pessimo', 'ruim', 'demora', 'procon', 'advogado', 'lixo', 'urgente'];
+    const positiveWords = ['excelente', 'ótimo', 'otimo', 'parabéns', 'parabens', 'bom', 'rápido', 'gostei', 'elogio', 'incrível', 'maravilhoso'];
+    
+    const lowerText = text.toLowerCase();
+    if (criticalWords.some(w => lowerText.includes(w))) {
+      return { label: 'Crítico', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200', icon: AlertTriangle, action: 'Ação sugerida: Encaminhar imediatamente para a diretoria/jurídico.' };
+    }
+    if (positiveWords.some(w => lowerText.includes(w))) {
+      return { label: 'Positivo', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200', icon: Smile, action: 'Ação sugerida: Compartilhar elogio com a equipe envolvida.' };
+    }
+    return { label: 'Neutro', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border-slate-200', icon: Meh, action: 'Ação sugerida: Acompanhamento padrão pelo atendimento.' };
   };
 
   const markAsRead = async (id: string) => {
@@ -128,6 +142,10 @@ export default function Suggestions() {
             {suggestions.map((item) => (
               <Card key={item.id} className={`border-l-4 ${item.status === 'Nova' ? 'border-l-blue-500' : 'border-l-gray-300'}`}>
                 <CardContent className="p-4">
+                  {(() => {
+                    const sentiment = getAiSentiment(item.content);
+                    return (
+                      <>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3 mr-1" />
@@ -164,6 +182,20 @@ export default function Suggestions() {
                     )}
                   </div>
 
+                  {/* Análise de IA */}
+                  <div className="bg-secondary/40 p-3 rounded-md mt-4 border border-border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                        <Brain className="h-3 w-3 text-purple-500" /> Análise de IA
+                      </span>
+                      <Badge variant="outline" className={`${sentiment.color} text-[10px] py-0 h-5`}>
+                        <sentiment.icon className="h-3 w-3 mr-1" />
+                        {sentiment.label}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground italic">{sentiment.action}</p>
+                  </div>
+
                   {item.status === 'Nova' && (
                     <Button 
                       variant="outline" 
@@ -174,6 +206,9 @@ export default function Suggestions() {
                       <CheckSquare className="h-3 w-3 mr-2" /> Marcar como lida
                     </Button>
                   )}
+                      </>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             ))}
