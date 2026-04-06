@@ -99,7 +99,7 @@ export function AppSidebar() {
           />
           {!isCollapsed && (
             <div className="flex flex-col">
-              <span className="font-semibold text-sidebar-foreground">GestaoRH</span>
+              <span className="font-semibold text-sidebar-foreground">RH - Rede DMI</span>
               <span className="text-xs text-muted-foreground">Gestão de Pessoas</span>
             </div>
           )}
