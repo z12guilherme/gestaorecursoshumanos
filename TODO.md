@@ -55,5 +55,26 @@
 - [x] Implementar gráficos de linha para evolução de custos. (`DashboardAnalytics.tsx`)
 - [x] Criar análise de Turnover/Crescimento (previsão e histórico). (`DashboardAnalytics.tsx`)
 - [x] Adicionar filtros de data e comparativos (Mês Atual vs Mês Anterior).
-
 - [x] Crachá dinâmico para os funcionários
+
+---
+
+## 🔵 Futuro (Novas Propostas e Evolução)
+
+### 8. 🛡️ Segurança Avançada e Acessos
+- [ ] Implementar **Autenticação Multifator (MFA/2FA) via TOTP** (Google/Microsoft Authenticator) de forma customizada (independente do tier pago do Supabase).
+- [ ] Criar fluxo de Setup de MFA (Geração de Secret Base32 e QR Code) e validação no Login.
+- [ ] Criar gerenciamento de sessões ativas (permitir que o usuário encerre sessões abertas em outros dispositivos).
+
+### 9. 📱 Experiência Offline e PWA
+- [ ] Configurar Service Workers robustos para caching offline (Vite PWA).
+- [ ] Implementar **Sincronização Offline no Terminal de Ponto** (salvar batida localmente no IndexedDB e sincronizar com o Supabase quando houver rede).
+
+### 10. 🤖 Expansão da Inteligência Artificial
+- [ ] Adicionar funcionalidade de *Parsing* de Currículos no módulo ATS (extrair dados de PDF automaticamente com IA).
+- [ ] Implementar modelo preditivo de IA para alertar sobre alto risco de turnover com base em dados de faltas, avaliações e horas extras.
+
+### 11. 🧪 Testes E2E (End-to-End)
+- [ ] Configurar **Playwright** ou **Cypress** no projeto.
+- [ ] Criar testes automatizados para fluxos críticos: Assinatura de Holerite, Bater Ponto e Fluxo de Admissão.
+- [ ] Integrar rodada de testes E2E na pipeline de CI/CD (ex: GitHub Actions).
