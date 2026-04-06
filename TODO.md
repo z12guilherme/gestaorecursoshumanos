@@ -56,4 +56,4 @@
 - [x] Criar análise de Turnover/Crescimento (previsão e histórico). (`DashboardAnalytics.tsx`)
 - [x] Adicionar filtros de data e comparativos (Mês Atual vs Mês Anterior).
 
-- [ ] Crachá dinâmico para os funcionários
+- [x] Crachá dinâmico para os funcionários
