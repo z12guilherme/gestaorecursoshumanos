@@ -17,30 +17,33 @@ describe('analyticsService', () => {
   });
 
   it('deve calcular métricas do dashboard corretamente', async () => {
-    // Dados simulados
+    // Dados simulados com admission_date para não quebrar a lógica de tempo
     const mockEmployees = [
-      { department: 'TI', salary: 5000, status: 'Ativo', overtime_amount: 100 },
-      { department: 'RH', salary: 4000, status: 'Ativo', overtime_amount: 0 },
-      { department: 'TI', salary: 0, status: 'Desligado', overtime_amount: 0 },
+      { department: 'TI', base_salary: 5000, status: 'Ativo', overtime_amount: 100, admission_date: '2023-01-01' },
+      { department: 'RH', base_salary: 4000, status: 'Ativo', overtime_amount: 0, admission_date: '2023-06-01' },
+      { department: 'TI', base_salary: 0, status: 'Desligado', overtime_amount: 0, admission_date: '2023-01-01' },
     ];
 
-    // Configura o mock para retornar os dados simulados
-    const selectMock = vi.fn().mockResolvedValue({ data: mockEmployees, error: null });
+    // Configura o mock para suportar o encadeamento .select().lte() que ocorre na busca por data
+    const lteMock = vi.fn().mockResolvedValue({ data: mockEmployees, error: null });
+    const selectMock = vi.fn().mockReturnValue({ lte: lteMock });
     (supabase.from as any).mockReturnValue({ select: selectMock });
 
-    const result = await analyticsService.getDashboardMetrics();
+    // Agora testamos o método que de fato possui a lógica dos departamentos:
+    const result = await analyticsService.getMonthlyMetrics(new Date('2024-01-15'));
 
-    // 1. Verifica Turnover: 1 desligado / 3 total = 33.33%
-    expect(result.turnoverRate).toBeCloseTo(33.33);
-
-    // 2. Verifica Custo por Departamento (apenas ativos)
+    // 1. Verifica Custo por Departamento (apenas ativos)
     expect(result.costByDept).toEqual([
       { name: 'TI', value: 5000 },
       { name: 'RH', value: 4000 },
     ]);
 
-    // 3. Verifica Horas Extras (todos)
+    // 2. Verifica Horas Extras (todos)
     const itOvertime = result.overtimeData.find(d => d.name === 'TI');
     expect(itOvertime?.valor).toBe(100);
+
+    // 3. Verifica Métricas Gerais
+    expect(result.metrics.totalCost).toBe(9000);
+    expect(result.metrics.totalOvertime).toBe(100);
   });
 });

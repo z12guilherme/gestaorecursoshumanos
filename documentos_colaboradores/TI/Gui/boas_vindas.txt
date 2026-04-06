@@ -1,0 +1,4 @@
+Bem-vindo(a), Gui!
+
+Este é o seu diretório para documentos relacionados à empresa.
+Departamento: TI

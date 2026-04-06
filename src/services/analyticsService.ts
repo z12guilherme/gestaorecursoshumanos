@@ -32,7 +32,7 @@ export const analyticsService = {
   async getDashboardMetrics(): Promise<AnalyticsData> {
     const { data: employees, error } = await supabase
       .from("employees")
-      .select("department, salary, status, overtime_amount, admission_date");
+      .select("department, base_salary, status, overtime_amount, admission_date");
 
     if (error) throw error;
     if (!employees) return { costByDept: [], overtimeData: [], turnoverRate: 0 };
@@ -71,7 +71,7 @@ export const analyticsService = {
 
     const { data: employees, error } = await supabase
       .from("employees")
-      .select("department, salary, status, overtime_amount, admission_date")
+      .select("department, base_salary, status, overtime_amount, admission_date")
       .lte("admission_date", monthEnd.toISOString().substring(0, 10)); // Admitted before month ends
 
     if (error) throw error;
@@ -94,7 +94,7 @@ export const analyticsService = {
 
     activeEmployees.forEach((emp) => {
       const dept = emp.department || "Sem Depto";
-      const salary = Number(emp.salary) || 0;
+      const salary = Number(emp.base_salary) || 0;
       const overtime = Number(emp.overtime_amount) || 0;
 
       costByDeptMap[dept] = (costByDeptMap[dept] || 0) + salary;
