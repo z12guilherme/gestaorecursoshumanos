@@ -51,8 +51,9 @@ export default function LoginPage() {
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col-reverse lg:flex-row min-h-[600px]">
         
         {/* Left Column - Form */}
-        <div className="w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center relative animate-in fade-in slide-in-from-left-8 duration-700">
-            <div className="text-center mb-8">
+        <div className="w-full lg:w-1/2 p-8 md:p-12 flex flex-col relative animate-in fade-in slide-in-from-left-8 duration-700">
+          <div className="flex-1 flex flex-col justify-center">
+            <div className="text-center mb-6">
                 <div className="inline-flex p-4 rounded-3xl bg-blue-50/50 mb-6 shadow-sm ring-1 ring-blue-100">
                     <img src="/icone.png" className="w-12 h-12 object-contain" alt="logo" />
                 </div>
@@ -129,19 +130,17 @@ export default function LoginPage() {
                     Área do Funcionário
                 </button>
                 
-                <div className="flex justify-center">
+                <div className="flex flex-col items-center gap-3 pt-2">
                    <ManualModal />
-                </div>
-
-                <div className="flex justify-center pt-8">
-                    <SecurityBadge />
+                   <SecurityBadge />
                 </div>
             </div>
-            
-            <div className="absolute bottom-4 left-0 right-0 text-center flex flex-col items-center gap-2">
-                <p className="text-[10px] text-slate-400">© 2026 Rede DMI. Todos os direitos reservados.</p>
-                <p className="text-[10px] text-slate-500 font-medium tracking-wide">Desenvolvido e Auditado por Marcos Guilherme</p>
-            </div>
+          </div>
+          
+          <div className="mt-8 text-center flex flex-col items-center gap-1.5">
+              <p className="text-[10px] text-slate-400">© 2026 Rede DMI. Todos os direitos reservados.</p>
+              <p className="text-[10px] text-slate-500 font-medium tracking-wide">Desenvolvido e Auditado por Marcos Guilherme</p>
+          </div>
         </div>
 
         {/* Right Column - Image */}
