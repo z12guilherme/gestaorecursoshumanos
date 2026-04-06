@@ -246,7 +246,7 @@ export default function TimeOff() {
   const pendingRequests = mappedRequests.filter(r => r.status === 'pending');
   const processedRequests = mappedRequests.filter(r => r.status !== 'pending');
 
-  const employeesOnVacation = employees.filter(e => e.status === 'vacation' || e.status === 'Férias');
+  const absentEmployees = employees.filter(e => ['vacation', 'Férias', 'leave', 'Afastado'].includes(e.status));
   const todayKey = format(new Date(), 'yyyy-MM-dd');
   const sickTodayCount = mappedRequests.filter(r => r.type === 'sick' && r.status === 'approved' && r.startDate <= todayKey && r.endDate >= todayKey).length;
 
@@ -296,8 +296,8 @@ export default function TimeOff() {
                 <Palmtree className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{employeesOnVacation.length}</p>
-                <p className="text-xs text-muted-foreground">Em férias</p>
+                <p className="text-2xl font-bold text-foreground">{absentEmployees.length}</p>
+                <p className="text-xs text-muted-foreground">Em férias/afastados</p>
               </div>
             </CardContent>
           </Card>
@@ -373,23 +373,23 @@ export default function TimeOff() {
           </CardContent>
         </Card>
 
-        {/* Relatório de Férias Ativas */}
+        {/* Relatório de Ausências Ativas */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Palmtree className="h-5 w-5 text-blue-500" />
-              Relatório de Férias Ativas
+              Relatório de Férias e Afastamentos
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {employeesOnVacation.length === 0 ? (
+            {absentEmployees.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">
-                Nenhum colaborador está de férias no momento.
+                Nenhum colaborador está de férias ou afastado no momento.
               </p>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {employeesOnVacation.map((employee) => {
-                  const activeRequest = filteredRequests.find(r => r.employee_id === employee.id && r.status === 'approved' && r.type === 'vacation');
+                {absentEmployees.map((employee) => {
+                  const activeRequest = filteredRequests.find(r => r.employee_id === employee.id && r.status === 'approved');
                   const returnDate = activeRequest ? addDays(new Date(activeRequest.end_date + 'T00:00:00'), 1) : null;
                   return (
                     <div key={employee.id} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
@@ -402,6 +402,13 @@ export default function TimeOff() {
                         <div className="flex-1">
                           <p className="font-medium text-sm text-foreground">{employee.name}</p>
                           <p className="text-xs text-muted-foreground">{employee.department}</p>
+                          <Badge variant="outline" className={`mt-1 text-[10px] ${
+                            employee.status === 'leave' || employee.status === 'Afastado' 
+                              ? 'border-red-200 text-red-600 bg-red-50 dark:bg-red-900/10' 
+                              : 'border-blue-200 text-blue-600 bg-blue-50 dark:bg-blue-900/10'
+                          }`}>
+                            {employee.status === 'leave' || employee.status === 'Afastado' ? 'Afastado' : 'Férias'}
+                          </Badge>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
