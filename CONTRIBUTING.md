@@ -1,6 +1,6 @@
 # Guia de Contribuição
 
-Obrigado pelo interesse em contribuir para o Sistema de Gestão de Recursos Humanos (GestaoRH)!
+Obrigado pelo interesse em contribuir para o Sistema de Gestão de Recursos Humanos ( RH - Rede DMI)!
 
 ## Como Contribuir
 

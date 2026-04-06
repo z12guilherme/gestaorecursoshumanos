@@ -5,7 +5,7 @@ import webpush from 'https://esm.sh/web-push@3.6.7';
 // npx supabase secrets set VAPID_PUBLIC_KEY=...
 // npx supabase secrets set VAPID_PRIVATE_KEY=...
 webpush.setVapidDetails(
-  'mailto:admin@gestaorh.com',
+  'mailto:admin@ RH - Rede DMI.com',
   Deno.env.get('VAPID_PUBLIC_KEY')!,
   Deno.env.get('VAPID_PRIVATE_KEY')!
 );

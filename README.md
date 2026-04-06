@@ -1,8 +1,8 @@
-# 🚀 Sistema de Gestão de Recursos Humanos (GestaoRH)
+# 🚀 Sistema de Gestão de Recursos Humanos ( RH - Rede DMI)
 
 Um sistema moderno, intuitivo e completo para a gestão de recursos humanos, projetado para otimizar processos administrativos e estratégicos. Construído com as mais recentes tecnologias web e integrado a um backend robusto para oferecer uma experiência de usuário fluida e responsiva.
 
-![GestaoRH Screenshot](./img/print.JPG)
+![ RH - Rede DMI Screenshot](./img/print.JPG)
 
 > **🔗 Demonstração Online:** [Acesse o sistema aqui](https://gestaorecursoshumanos.vercel.app/login)
 

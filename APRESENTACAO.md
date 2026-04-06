@@ -1,4 +1,4 @@
-# 🚀 Apresentação do Produto: GestãoRH
+# 🚀 Apresentação do Produto: RH - Rede DMI
 ## Visão Geral
 O **GestãoRH** é uma plataforma completa de Gestão de Capital Humano (HCM) desenvolvida para modernizar, automatizar e simplificar as rotinas do departamento pessoal. Focada em eficiência operacional e na experiência do colaborador, a solução integra processos burocráticos e estratégicos em um único ambiente seguro e intuitivo.
 

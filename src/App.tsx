@@ -45,7 +45,7 @@ const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
-    document.title = "RH - Rede DMI";
+    document.title = " RH - Rede DMI";
   }, []);
 
   return (

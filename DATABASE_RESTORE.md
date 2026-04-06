@@ -1,6 +1,6 @@
 # 🗄️ Guia de Restauração do Banco de Dados (Supabase)
 
-Este documento contém o esquema do banco de dados e as instruções necessárias para subir o projeto **GestaoRH** novamente no Supabase.
+Este documento contém o esquema do banco de dados e as instruções necessárias para subir o projeto ** RH - Rede DMI** novamente no Supabase.
 
 ## 1. Variáveis de Ambiente
 

@@ -23,7 +23,7 @@ export function ManualModal() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
               <BookOpen className="h-6 w-6 text-primary" />
-              Manual do Sistema GestãoRH
+              Manual do Sistema RH - Rede DMI
             </DialogTitle>
             <DialogDescription>
               Guia completo de funcionalidades e operações do sistema.

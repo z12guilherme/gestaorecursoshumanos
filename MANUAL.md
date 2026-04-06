@@ -1,8 +1,8 @@
-# 📘 Documentação Oficial do Usuário - Plataforma GestãoRH
+# 📘 Documentação Oficial do Usuário - Plataforma RH - Rede DMI
 
 Bem-vindo à documentação oficial do **GestãoRH**, a plataforma corporativa completa para administração de Capital Humano (HCM). Este documento foi elaborado para servir como o guia definitivo de operação do sistema, detalhando fluxos de trabalho, regras de negócio e funcionalidades técnicas. 
 
-Projetado com foco em eficiência operacional, conformidade legal (LGPD) e experiência do usuário, o GestãoRH centraliza todas as rotinas do departamento pessoal e estratégico em um único ambiente seguro.
+Projetado com foco em eficiência operacional, conformidade legal (LGPD) e experiência do usuário, o RH - Rede DMI centraliza todas as rotinas do departamento pessoal e estratégico em um único ambiente seguro.
 
 ---
 
@@ -56,7 +56,7 @@ Dentro do perfil de cada colaborador, a aba **Documentos** permite o arquivament
 
 ## 3. Folha de Pagamento e Holerites Digitais
 
-O GestãoRH automatiza etapas críticas do fechamento financeiro, reduzindo erros de cálculo e o tempo gasto na distribuição de contracheques.
+O RH - Rede DMI automatiza etapas críticas do fechamento financeiro, reduzindo erros de cálculo e o tempo gasto na distribuição de contracheques.
 
 ### 3.1. Configuração Financeira do Colaborador
 O sistema suporta regras complexas de remuneração:
@@ -104,7 +104,7 @@ Módulo dedicado à programação e compliance do cronograma de descanso anual, 
 
 ## 6. Recrutamento e Seleção (ATS)
 
-O GestãoRH conta com um *Applicant Tracking System* (ATS) integrado, simplificando a aquisição de novos talentos.
+O RH - Rede DMI conta com um *Applicant Tracking System* (ATS) integrado, simplificando a aquisição de novos talentos.
 
 ### Funcionalidades:
 - **Gestão de Vagas:** Criação de descritivos de cargos, requisitos e publicação do status da vaga (Aberta, Em Andamento, Fechada).
@@ -143,7 +143,7 @@ O engajamento e a transparência são fomentados por meio de canais oficiais e s
 
 ## 9. 🤖 Assistente Virtual de IA
 
-O GestãoRH é pioneiro na utilização de Processamento de Linguagem Natural (NLP) para facilitar a operação diária do RH. O Assistente Virtual traduz ordens descritas em português comum para ações complexas no banco de dados.
+O RH - Rede DMI é pioneiro na utilização de Processamento de Linguagem Natural (NLP) para facilitar a operação diária do RH. O Assistente Virtual traduz ordens descritas em português comum para ações complexas no banco de dados.
 
 ### 🚀 Como acessar
 Localizado no menu lateral sob a rubrica **"Assistente IA"**.
@@ -191,7 +191,7 @@ O algoritmo de reconhecimento de intenção compreende linguagem fluida e varia�
 
 ## 10. ⚙️ Automações de Rotina
 
-O ecossistema GestãoRH conta com um motor de automação que estende as capacidades do sistema para além de sua interface, permitindo a geração de rotinas personalizadas via scripts.
+O ecossistema RH - Rede DMI conta com um motor de automação que estende as capacidades do sistema para além de sua interface, permitindo a geração de rotinas personalizadas via scripts.
 
 ### Capacidades:
 - **Templates de Processos:** Modelos pré-validados para tarefas padronizadas, tais como:
@@ -205,7 +205,7 @@ O ecossistema GestãoRH conta com um motor de automação que estende as capacid
 
 ## 11. 🛡️ Segurança, Auditoria e LGPD
 
-A segurança da informação e a privacidade dos dados corporativos são premissas fundamentais da arquitetura do GestãoRH.
+A segurança da informação e a privacidade dos dados corporativos são premissas fundamentais da arquitetura do RH - Rede DMI.
 
 ### 11.1. Trilha de Auditoria Universal (Audit Logs)
 Garantindo total compliance e rastreabilidade, o banco de dados monitora e arquiva um registro imutável de **qualquer alteração sistêmica**.
@@ -235,4 +235,4 @@ O módulo de **Configurações** destina-se ao Administrador Institucional para 
 
 ### ❓ Suporte
 
-Para questões técnicas, instabilidade sistêmica, ou dúvidas operacionais não mitigadas por esta documentação, favor abrir um chamado junto ao departamento de Tecnologia (TI) responsável pela infraestrutura ou contatar o suporte através de **suporte@gestaorh.com**.
+Para questões técnicas, instabilidade sistêmica, ou dúvidas operacionais não mitigadas por esta documentação, favor abrir um chamado junto ao departamento de Tecnologia (TI) responsável pela infraestrutura ou contatar o suporte através de **suporte@ RH - Rede DMI.com**.

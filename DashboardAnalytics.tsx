@@ -84,7 +84,7 @@ export function DashboardAnalytics() {
       body: {
         user_ids: [user.id],
         payload: {
-          title: "Teste GestãoRH 🚀",
+          title: "Teste RH - Rede DMI 🚀",
           body: `Notificação enviada às ${new Date().toLocaleTimeString()}`
         }
       }

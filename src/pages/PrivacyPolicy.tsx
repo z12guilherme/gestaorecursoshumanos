@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
             <div className="text-justify leading-relaxed">
               <h2>1. Introdução</h2>
               <br />
-              <p>A GestaoRH Inc. respeita sua privacidade e está comprometida em protegê-la através do nosso cumprimento desta política. Esta política descreve os tipos de informações que podemos coletar de você ou que você pode fornecer ao usar o sistema GestaoRH ("Serviço") e nossas práticas para coletar, usar, manter, proteger e divulgar essas informações.</p>
+              <p>A  RH - Rede DMI Inc. respeita sua privacidade e está comprometida em protegê-la através do nosso cumprimento desta política. Esta política descreve os tipos de informações que podemos coletar de você ou que você pode fornecer ao usar o sistema  RH - Rede DMI ("Serviço") e nossas práticas para coletar, usar, manter, proteger e divulgar essas informações.</p>
               <br /><br />
               <h2>2. Informações que Coletamos</h2>
               <br />
@@ -48,7 +48,7 @@ export default function PrivacyPolicy() {
               <br /><br />
               <h2>6. Contato</h2>
               <br />
-              <p>Para fazer perguntas ou comentar sobre esta política de privacidade e nossas práticas de privacidade, entre em contato conosco em <a href="mailto:privacidade@gestaorh.com" className="text-primary hover:underline">contato@inovedev.com.br</a>.</p>
+              <p>Para fazer perguntas ou comentar sobre esta política de privacidade e nossas práticas de privacidade, entre em contato conosco em <a href="mailto:privacidade@ RH - Rede DMI.com" className="text-primary hover:underline">contato@inovedev.com.br</a>.</p>
             </div>
           </div>
         </div>
