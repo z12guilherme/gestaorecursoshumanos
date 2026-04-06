@@ -649,7 +649,7 @@ export default function Employees() {
             <DialogHeader className="w-full">
               <DialogTitle>Gerar Crachá Funcional</DialogTitle>
               <DialogDescription>
-                Selecione um colaborador para visualizar e baixar o crachá em PDF.
+                Selecione um colaborador para visualizar o crachá digital.
               </DialogDescription>
             </DialogHeader>
             

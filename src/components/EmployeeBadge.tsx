@@ -1,8 +1,6 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { QrCode, Download, User } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { QrCode, User } from 'lucide-react';
 
 interface Employee {
   id: string;
@@ -21,67 +19,6 @@ export const EmployeeBadge: React.FC<EmployeeBadgeProps> = ({
   employee,
   companyName = "HOSPITAL DMI LTDA" // Valor padrão adaptado ao seu contexto
 }) => {
-
-  const handleDownloadPDF = async () => {
-    // Criar o documento no tamanho de um cartão PVC padrão (54mm x 86mm)
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: [54, 86]
-    });
-
-    // Fundo do crachá
-    doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, 54, 86, 'F');
-
-    // Faixa superior (Azul)
-    doc.setFillColor(41, 128, 185); 
-    doc.rect(0, 0, 54, 15, 'F');
-
-    // Nome da Empresa
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(companyName, 27, 10, { align: "center" });
-
-    // Placeholder do Avatar (Círculo cinza)
-    // Nota: Para inserir a imagem real com jsPDF, ela precisa estar em base64. 
-    // O placeholder circular serve como marcação para impressão.
-    doc.setFillColor(230, 230, 230);
-    doc.circle(27, 35, 14, 'F');
-    
-    // Pega o primeiro e último nome
-    const nameParts = employee.name.split(' ');
-    const shortName = nameParts.length > 1 
-      ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}` 
-      : employee.name;
-
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text(shortName.toUpperCase(), 27, 56, { align: "center" });
-
-    // Cargo e Departamento
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text((employee.role || 'COLABORADOR').toUpperCase(), 27, 62, { align: "center" });
-    
-    doc.setFontSize(7);
-    doc.text((employee.department || 'GERAL').toUpperCase(), 27, 66, { align: "center" });
-
-    // Linha separadora
-    doc.setDrawColor(200, 200, 200);
-    doc.line(10, 70, 44, 70);
-
-    // ID / Matrícula (Simulação do local do QR Code/Barras)
-    doc.setFontSize(6);
-    doc.setTextColor(150, 150, 150);
-    doc.text(`MATRÍCULA: ${employee.id.substring(0, 8).toUpperCase()}`, 27, 80, { align: "center" });
-
-    // Baixar o PDF
-    doc.save(`Cracha_${employee.name.replace(/\s+/g, '_')}.pdf`);
-  };
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -129,12 +66,6 @@ export const EmployeeBadge: React.FC<EmployeeBadgeProps> = ({
           </p>
         </div>
       </div>
-
-      {/* Botão de Exportação */}
-      <Button onClick={handleDownloadPDF} variant="outline" className="w-full max-w-[216px] gap-2">
-        <Download className="h-4 w-4" />
-        Baixar Crachá (PDF)
-      </Button>
     </div>
   );
 };
