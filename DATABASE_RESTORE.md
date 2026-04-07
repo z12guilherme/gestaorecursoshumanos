@@ -384,6 +384,48 @@ CREATE TABLE IF NOT EXISTS public.payslip_acknowledgments (
   CONSTRAINT payslip_acknowledgments_unique_ref UNIQUE (employee_id, reference_date)
 );
 
+-- 15. Tabela de Chamados (Ouvidoria/RH)
+CREATE TABLE IF NOT EXISTS public.tickets (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  ticket_num TEXT NOT NULL,
+  employee_name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  priority TEXT NOT NULL DEFAULT 'medium',
+  hr_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 16. Atualização de Perfis (Cargo)
+ALTER TABLE IF EXISTS public.profiles ADD COLUMN IF NOT EXISTS display_role TEXT;
+
+-- 17. Correções de Segurança (Pentest) - View Pública de Funcionários
+-- Oculta dados financeiros sensíveis (base_salary, fixed_discounts, etc.)
+CREATE OR REPLACE VIEW public.employees_public AS
+SELECT 
+  id, name, email, role, department, unit, status, admission_date, 
+  created_at, phone, contract_type, birth_date, manager, work_schedule, 
+  avatar_url, contracted_hours
+FROM public.employees;
+
+-- 18. Correções de Segurança (Pentest) - Trigger Anti-Lockout
+CREATE OR REPLACE FUNCTION public.prevent_self_deletion()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.id = auth.uid() THEN
+    RAISE EXCEPTION 'Ação bloqueada: Não é permitido excluir o próprio usuário administrador.';
+  END IF;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_prevent_self_deletion ON public.employees;
+CREATE TRIGGER trigger_prevent_self_deletion
+BEFORE DELETE ON public.employees
+FOR EACH ROW EXECUTE FUNCTION public.prevent_self_deletion();
+
 -- 15. Sistema de Auditoria (Audit Logs)
 CREATE TABLE public.audit_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
