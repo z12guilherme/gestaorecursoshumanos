@@ -9,9 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { User, Building2, Bell, Palette, Upload, Loader2, Camera } from 'lucide-react';
+import { User, Building2, Bell, Palette, Upload, Loader2, Camera, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { MfaSetup } from '@/components/settings/MfaSetup';
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);
@@ -196,6 +197,7 @@ export default function Settings() {
     { id: 'profile', label: 'Perfil', icon: User },
     { id: 'company', label: 'Empresa', icon: Building2 },
     { id: 'notifications', label: 'Notificações', icon: Bell },
+    { id: 'security', label: 'Segurança', icon: Shield },
     { id: 'appearance', label: 'Aparência', icon: Palette },
   ];
 
@@ -355,6 +357,10 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {activeTab === 'security' && (
+            <MfaSetup />
           )}
 
           {activeTab === 'appearance' && (

@@ -61,9 +61,10 @@
 
 ## 🔵 Futuro (Novas Propostas e Evolução)
 
-### 8. 🛡️ Segurança Avançada e Acessos
-- [ ] Implementar **Autenticação Multifator (MFA/2FA) via TOTP** (Google/Microsoft Authenticator) de forma customizada (independente do tier pago do Supabase).
-- [ ] Criar fluxo de Setup de MFA (Geração de Secret Base32 e QR Code) e validação no Login.
+### 8. 🛡️ Segurança Avançada e Acessos (Em Andamento 🚀)
+- [x] Implementar **Autenticação Multifator (MFA/2FA) via TOTP** (Google/Microsoft Authenticator).
+- [x] Criar fluxo de Setup de MFA (Geração de QR Code) na tela de configurações.
+- [ ] Validar código TOTP no fluxo de Login (Step-up AAL2).
 - [ ] Criar gerenciamento de sessões ativas (permitir que o usuário encerre sessões abertas em outros dispositivos).
 
 ### 9. 📱 Experiência Offline e PWA

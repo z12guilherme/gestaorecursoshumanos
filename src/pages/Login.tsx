@@ -6,20 +6,37 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ManualModal } from "@/components/ManualModal";
 import { SecurityBadge } from "@/components/auth/SecurityBadge";
 import hsfBg from "@/assets/hsf.jpeg";
-import { Mail, Lock, ArrowRight, Clock, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, ArrowRight, Clock, CheckCircle2, Shield } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showMfa, setShowMfa] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
+  const [factorId, setFactorId] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { session } = useAuth();
 
   useEffect(() => {
-    if (session) {
-      navigate("/");
-    }
+    const checkMfaAndNavigate = async () => {
+      if (session) {
+        const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (!error && data.nextLevel === 'aal2' && data.currentLevel === 'aal1') {
+          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const totpFactor = factors?.totp.find(f => f.status === 'verified');
+          if (totpFactor) {
+            setFactorId(totpFactor.id);
+            setShowMfa(true);
+            setIsLoading(false); // Destrava o botão do MFA
+            return; // Interrompe para forçar a digitação do código
+          }
+        }
+        navigate("/");
+      }
+    };
+    checkMfaAndNavigate();
   }, [session, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,11 +52,37 @@ export default function LoginPage() {
       if (error) {
         throw error;
       }
-      navigate("/");
     } catch (error: any) {
       toast({
         title: "Erro ao entrar",
         description: "Email ou senha incorretos. Verifique suas credenciais.",
+        variant: "destructive"
+      });
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const challenge = await supabase.auth.mfa.challenge({ factorId });
+      if (challenge.error) throw challenge.error;
+
+      const verify = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challenge.data.id,
+        code: mfaCode,
+      });
+
+      if (verify.error) throw verify.error;
+      
+      setIsLoading(false);
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Código inválido",
+        description: "Verifique o aplicativo autenticador e tente novamente.",
         variant: "destructive"
       });
       setIsLoading(false);
@@ -61,9 +104,40 @@ export default function LoginPage() {
                 <p className="text-slate-500 mt-3 text-sm">Acesse sua conta para gerenciar o RH</p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-5 max-w-sm mx-auto w-full">
-                <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-600 ml-1">E-mail Corporativo</label>
+            {showMfa ? (
+                <form onSubmit={handleVerifyMfa} className="space-y-5 max-w-sm mx-auto w-full animate-in fade-in zoom-in-95 duration-300">
+                    <div className="text-center mb-6">
+                        <Shield className="h-12 w-12 mx-auto text-blue-600 mb-3" />
+                        <h5 className="text-xl font-bold text-slate-900">Verificação em Duas Etapas</h5>
+                        <p className="text-sm text-slate-500 mt-2">Digite o código de 6 dígitos gerado pelo seu aplicativo autenticador.</p>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="relative group">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                            <input
+                                type="text"
+                                maxLength={6}
+                                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50/30 focus:bg-white placeholder:text-slate-400 text-center tracking-widest text-2xl font-mono"
+                                placeholder="000000"
+                                value={mfaCode}
+                                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div className="pt-2">
+                        <button type="submit" disabled={isLoading || mfaCode.length !== 6} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none">
+                            {isLoading ? "Verificando..." : "Validar Acesso"}
+                        </button>
+                    </div>
+                    <button type="button" onClick={() => { setShowMfa(false); setIsLoading(false); supabase.auth.signOut(); }} className="w-full text-sm text-slate-500 hover:text-slate-700 mt-4 text-center">
+                        Cancelar e voltar ao login
+                    </button>
+                </form>
+            ) : (
+                <form onSubmit={handleLogin} className="space-y-5 max-w-sm mx-auto w-full animate-in fade-in duration-300">
+                    <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-600 ml-1">E-mail Corporativo</label>
                     <div className="relative group">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                         <input
@@ -109,7 +183,8 @@ export default function LoginPage() {
                         )}
                     </button>
                 </div>
-            </form>
+                </form>
+            )}
 
             <div className="mt-8 relative flex items-center justify-center max-w-sm mx-auto w-full">
                 <div className="absolute inset-0 flex items-center">
