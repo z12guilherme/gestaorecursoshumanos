@@ -306,6 +306,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
             </div>
             
             <FinancialDataForm formData={formData} setFormData={setFormData} />
+            
+            <EmployeeDocuments employeeId={employee?.id} />
           </div>
           <DialogFooter className="mt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
