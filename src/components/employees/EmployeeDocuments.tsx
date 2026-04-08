@@ -1,169 +1,112 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, FileText, Upload, Download, Loader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { FileText, Download, Trash2, Loader2 } from 'lucide-react';
 
-interface Document {
-  id: string;
-  name: string;
-  url: string;
-  created_at: string;
-}
-
-interface EmployeeDocumentsProps {
-  employeeId: string;
-}
-
-export function EmployeeDocuments({ employeeId }: EmployeeDocumentsProps) {
-  const [documents, setDocuments] = useState<Document[]>([]);
+export function EmployeeDocuments({ employeeId }: { employeeId?: string }) {
+  const [docs, setDocs] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    fetchDocuments();
+    if (employeeId) fetchDocs();
   }, [employeeId]);
 
-  const fetchDocuments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("employee_documents")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setDocuments(data || []);
-    } catch (error) {
-      console.error("Erro ao buscar documentos:", error);
-    } finally {
-      setLoading(false);
+  const fetchDocs = async () => {
+    if (!employeeId) return;
+    const { data, error } = await supabase.storage.from('documents').list(employeeId);
+    if (error) {
+      console.error("Erro ao listar:", error);
+      return;
+    }
+    if (data) {
+      const docsWithUrls = data.filter(d => d.name !== '.emptyFolderPlaceholder').map(d => {
+        const { data: urlData } = supabase.storage.from('documents').getPublicUrl(`${employeeId}/${d.name}`);
+        return { name: d.name, url: urlData.publicUrl, id: d.id };
+      });
+      setDocs(docsWithUrls);
     }
   };
 
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !employeeId) return;
+    setUploading(true);
     try {
-      setUploading(true);
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${employeeId}/${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // 1. Upload para o Storage
-      const { error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // 2. Obter URL Pública
-      const { data: { publicUrl } } = supabase.storage
-        .from("documents")
-        .getPublicUrl(filePath);
-
-      // 3. Salvar referência no Banco
-      const { error: dbError } = await supabase
-        .from("employee_documents")
-        .insert({
-          employee_id: employeeId,
-          name: file.name,
-          url: publicUrl,
-        });
-
-      if (dbError) throw dbError;
-
-      toast({ title: "Sucesso", description: "Documento enviado com sucesso!" });
-      fetchDocuments();
-    } catch (error) {
-      console.error("Erro no upload:", error);
-      toast({ title: "Erro", description: "Falha ao enviar documento.", variant: "destructive" });
+      const file = e.target.files[0];
+      const { error } = await supabase.storage.from('documents').upload(`${employeeId}/${Date.now()}_${file.name}`, file);
+      if (error) throw error;
+      toast({ title: 'Documento salvo!' });
+      fetchDocs();
+    } catch (err) {
+      toast({ title: 'Erro ao fazer upload', variant: 'destructive' });
     } finally {
       setUploading(false);
+      e.target.value = ''; // clear input
     }
   };
 
-  const handleDelete = async (id: string, url: string) => {
-    try {
-      // Extrair o path do arquivo da URL para deletar do storage
-      // Ex: .../documents/uuid/file.pdf -> uuid/file.pdf
-      const path = url.split("/documents/")[1];
-
-      if (path) {
-        await supabase.storage.from("documents").remove([path]);
-      }
-
-      const { error } = await supabase
-        .from("employee_documents")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
-      toast({ title: "Deletado", description: "Documento removido." });
-      setDocuments(documents.filter((doc) => doc.id !== id));
-    } catch (error) {
-      console.error("Erro ao deletar:", error);
-      toast({ title: "Erro", description: "Não foi possível deletar.", variant: "destructive" });
+  const handleDelete = async (name: string) => {
+    if (!window.confirm('Excluir documento permanentemente?')) return;
+    
+    const { error } = await supabase.storage.from('documents').remove([`${employeeId}/${name}`]);
+    
+    if (error) {
+      console.error('Erro ao deletar:', error);
+      toast({ 
+        title: 'Erro ao excluir', 
+        description: 'Sem permissão para deletar. Verifique as políticas (RLS) no Supabase.', 
+        variant: 'destructive' 
+      });
+    } else {
+      toast({ title: 'Documento excluído com sucesso!' });
+      fetchDocs();
     }
   };
+
+  if (!employeeId) {
+    return (
+      <div className="mt-6 border-t pt-6">
+        <h3 className="text-lg font-medium mb-2">Documentação Anexada</h3>
+        <p className="text-sm text-muted-foreground">Salve o colaborador recém-criado primeiro para poder anexar documentos a ele.</p>
+      </div>
+    );
+  }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Documentos Digitalizados</CardTitle>
-        <div className="flex items-center gap-2">
-          <Input
-            type="file"
-            id="file-upload"
-            className="hidden"
-            onChange={handleUpload}
-            disabled={uploading}
-          />
-          <Button asChild disabled={uploading}>
-            <label htmlFor="file-upload" className="cursor-pointer">
-              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-              Novo Documento
-            </label>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="text-center py-4">Carregando...</div>
-        ) : documents.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">Nenhum documento anexado.</div>
+    <div className="mt-6 border-t pt-6">
+      <h3 className="text-lg font-medium mb-4">Documentação Anexada</h3>
+      <div className="flex items-center gap-4 mb-4">
+        <Input type="file" onChange={handleUpload} disabled={uploading} className="max-w-md" />
+        {uploading && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+      </div>
+      <div className="bg-slate-50 dark:bg-slate-900/50 rounded-md border p-4 max-h-[250px] overflow-y-auto">
+        {docs.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">Nenhum documento encontrado nesta pasta.</p>
         ) : (
-          <div className="space-y-4">
-            {documents.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-8 w-8 text-blue-500" />
-                  <div>
-                    <p className="font-medium">{doc.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Enviado em {new Date(doc.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
+          <ul className="space-y-2">
+            {docs.map(doc => (
+              <li key={doc.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-slate-800 rounded-lg border shadow-sm">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <FileText className="h-5 w-5 shrink-0 text-blue-500" />
+                  <span className="text-sm font-medium truncate" title={doc.name}>
+                    {doc.name.split('_').slice(1).join('_') || doc.name}
+                  </span>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" asChild>
-                    <a href={doc.url} target="_blank" rel="noopener noreferrer" download>
-                      <Download className="h-4 w-4" />
-                    </a>
+                <div className="flex gap-1 shrink-0">
+                  <Button type="button" size="icon" variant="ghost" onClick={() => window.open(doc.url, '_blank')} title="Baixar/Visualizar">
+                    <Download className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(doc.id, doc.url)}>
-                    <Trash2 className="h-4 w-4 text-red-500" />
+                  <Button type="button" size="icon" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(doc.name)} title="Excluir">
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

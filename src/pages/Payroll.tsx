@@ -21,6 +21,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Payroll() {
   const { employees: dbEmployees, loading } = useEmployees();
@@ -28,6 +31,7 @@ export default function Payroll() {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [selectedEmployeeForView, setSelectedEmployeeForView] = useState<any>(null);
+  const { toast } = useToast();
   
   // Mapeia os dados do banco (snake_case) para o formato esperado (camelCase)
   const employees = dbEmployees.map((emp: any) => {
@@ -165,7 +169,10 @@ export default function Payroll() {
       const valStr = String(employee.inss_value).replace(',', '.');
       manualInss = Number(valStr) || 0;
     }
-    const estimatedTax = manualInss > 0 ? manualInss : calculateINSS(inssBase);
+    
+    // Se for terceirizado ou PJ, isenta INSS padrão a menos que preenchido
+    const isOutsourced = employee.contractType === 'Terceirizado' || employee.contract_type === 'Terceirizado' || employee.contractType === 'PJ' || employee.contract_type === 'PJ';
+    const estimatedTax = manualInss > 0 ? manualInss : (isOutsourced ? 0 : calculateINSS(inssBase));
 
     const totalDiscounts = discounts + estimatedTax;
     const netSalary = baseSalary + totalAdditions - totalDiscounts;
@@ -326,6 +333,31 @@ export default function Payroll() {
     setSelectedEmployeeForView(employeeData);
     setIsViewerOpen(true);
   };
+  
+  const [isTerceirizadoOpen, setIsTerceirizadoOpen] = useState(false);
+  const [terceirizadoData, setTerceirizadoData] = useState({ name: '', role: 'Terceirizado', pix_key: '', base_salary: '' });
+
+  const handleAddTerceirizado = async () => {
+    try {
+      const { error } = await supabase.from('employees').insert([{
+        name: terceirizadoData.name,
+        role: terceirizadoData.role,
+        department: 'Terceirizados',
+        contract_type: 'Terceirizado',
+        base_salary: Number(terceirizadoData.base_salary) || 0,
+        pix_key: terceirizadoData.pix_key,
+        status: 'active',
+        password: Math.floor(1000 + Math.random() * 9000).toString()
+      }]);
+      if (error) throw error;
+      toast({ title: 'Terceirizado cadastrado com sucesso!' });
+      setIsTerceirizadoOpen(false);
+      setTerceirizadoData({ name: '', role: 'Terceirizado', pix_key: '', base_salary: '' });
+      setTimeout(() => window.location.reload(), 1000);
+    } catch(err) {
+      toast({ title: 'Erro ao cadastrar', variant: 'destructive' });
+    }
+  };
 
   return (
     <AppLayout title="Salários e Pagamentos" subtitle="Gestão financeira e folha de ponto">
@@ -339,7 +371,11 @@ export default function Payroll() {
               className="w-full md:w-64"
             />
           </div>
-          <DropdownMenu>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsTerceirizadoOpen(true)}>
+              + Terceirizado
+            </Button>
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="bg-emerald-600 hover:bg-emerald-700 gap-2">
                 <Download className="h-4 w-4" />
@@ -359,6 +395,7 @@ export default function Payroll() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
 
         <Card>
@@ -376,6 +413,7 @@ export default function Payroll() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Colaborador</TableHead>
+                  <TableHead>Chave PIX</TableHead>
                   <TableHead>Salário Base</TableHead>
                   <TableHead>Adicionais</TableHead>
                   <TableHead>Horas Extras</TableHead>
@@ -401,6 +439,9 @@ export default function Payroll() {
                         <TableCell>
                           <div className="font-medium">{emp.name}</div>
                           <div className="text-xs text-muted-foreground">{emp.role}</div>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {emp.pix_key || '-'}
                         </TableCell>
                         <TableCell>R$ {calc.baseSalary.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell>
@@ -466,6 +507,37 @@ export default function Payroll() {
           employee={selectedEmployeeForView}
           referenceDate={new Date()}
         />
+        
+        <Dialog open={isTerceirizadoOpen} onOpenChange={setIsTerceirizadoOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cadastrar Terceirizado</DialogTitle>
+              <DialogDescription>Adicione rapidamente um prestador de serviço (Terceirizado) à folha de pagamento.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Nome Completo</Label>
+                <Input value={terceirizadoData.name} onChange={e => setTerceirizadoData({...terceirizadoData, name: e.target.value})} placeholder="Nome do terceirizado" />
+              </div>
+              <div className="space-y-2">
+                <Label>Serviço/Função</Label>
+                <Input value={terceirizadoData.role} onChange={e => setTerceirizadoData({...terceirizadoData, role: e.target.value})} placeholder="Ex: Segurança, Limpeza" />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor Acordado (R$)</Label>
+                <Input type="number" value={terceirizadoData.base_salary} onChange={e => setTerceirizadoData({...terceirizadoData, base_salary: e.target.value})} placeholder="2000.00" />
+              </div>
+              <div className="space-y-2">
+                <Label>Chave PIX</Label>
+                <Input value={terceirizadoData.pix_key} onChange={e => setTerceirizadoData({...terceirizadoData, pix_key: e.target.value})} placeholder="CPF, Email ou Celular" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsTerceirizadoOpen(false)}>Cancelar</Button>
+              <Button onClick={handleAddTerceirizado}>Salvar Terceirizado</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

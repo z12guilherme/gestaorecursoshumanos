@@ -190,7 +190,29 @@ export default function Reports() {
     const vacation = Number(emp.vacation_amount) || 0;
     const vacationThird = Number(emp.vacation_third_amount) || 0;
 
-    acc.payroll += base + insalubrityValue + nightShiftValue + familySalary + overtime + vacation + vacationThird;
+    let varAdditions = 0;
+    try {
+      const adds = Array.isArray(emp.variable_additions) ? emp.variable_additions : JSON.parse(emp.variable_additions || '[]');
+      varAdditions = adds.reduce((s:number, a:any) => s + (Number(a.value) || 0), 0);
+    } catch(e) {}
+
+    let varDiscounts = 0;
+    try {
+      const discs = Array.isArray(emp.variable_discounts) ? emp.variable_discounts : JSON.parse(emp.variable_discounts || '[]');
+      varDiscounts = discs.reduce((s:number, d:any) => s + (Number(d.amount || d.value) || 0), 0);
+    } catch(e) {}
+
+    const fixedDiscounts = Number(emp.fixed_discounts) || 0;
+    
+    let inss = 0;
+    if (emp.inss_value) {
+      inss = Number(String(emp.inss_value).replace(',', '.')) || 0;
+    } else if (emp.contract_type !== 'Terceirizado' && emp.contract_type !== 'PJ' && emp.contractType !== 'Terceirizado' && emp.contractType !== 'PJ') {
+      inss = (base + insalubrityValue + nightShiftValue + overtime + varAdditions) * 0.09;
+    }
+
+    const netSalary = base + insalubrityValue + nightShiftValue + familySalary + overtime + vacation + vacationThird + varAdditions - (fixedDiscounts + varDiscounts + inss);
+    acc.payroll += netSalary > 0 ? netSalary : 0;
     
     if (emp.vacationDueDate) {
         const due = new Date(emp.vacationDueDate);

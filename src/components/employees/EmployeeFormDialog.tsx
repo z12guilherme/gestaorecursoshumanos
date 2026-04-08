@@ -1,3 +1,4 @@
+import { EmployeeDocuments } from './EmployeeDocuments';
 import { useState, useEffect } from 'react';
 import { Employee } from '@/types/hr';
 import {

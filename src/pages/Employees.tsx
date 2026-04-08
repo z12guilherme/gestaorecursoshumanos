@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Users, UserCheck, UserX, Calendar, LogOut, KeyRound, Link as LinkIcon, IdCard } from 'lucide-react';
+import { Users, UserCheck, UserX, Calendar, LogOut, KeyRound, Link as LinkIcon, IdCard, FolderOpen, FileText, Download, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/lib/AuthContext';
