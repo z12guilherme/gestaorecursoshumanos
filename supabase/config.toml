@@ -1,1 +1,5 @@
 project_id = "oyqeqdbjysqhwwloluyu"
+[auth.captcha]
+enabled = true
+provider = "hcaptcha"
+secret = "env(HCAPTCHA_SECRET)"

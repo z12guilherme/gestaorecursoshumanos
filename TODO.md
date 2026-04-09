@@ -64,14 +64,14 @@
 ### 8. 🛡️ Segurança Avançada e Acessos (Em Andamento 🚀)
 - [x] Implementar **Autenticação Multifator (MFA/2FA) via TOTP** (Google/Microsoft Authenticator).
 - [x] Criar fluxo de Setup de MFA (Geração de QR Code) na tela de configurações.
-- [ ] Validar código TOTP no fluxo de Login (Step-up AAL2).
+- [x] Validar código TOTP no fluxo de Login (Step-up AAL2).
 - [ ] Criar gerenciamento de sessões ativas (permitir que o usuário encerre sessões abertas em outros dispositivos).
 
-### 9. 📱 Experiência Offline e PWA
-- [ ] Configurar Service Workers robustos para caching offline (Vite PWA).
-- [ ] Implementar **Sincronização Offline no Terminal de Ponto** (salvar batida localmente no IndexedDB e sincronizar com o Supabase quando houver rede).
+### 9. 📱 Experiência Offline e PWA (Em Andamento 🚀)
+- [x] Configurar Service Workers robustos para caching offline (Vite PWA).
+- [x] Implementar **Sincronização Offline no Terminal de Ponto** (salvar batida localmente no IndexedDB e sincronizar com o Supabase quando houver rede).
 
-### 10. 🤖 Expansão da Inteligência Artificial
+### 10. 🤖 Expansão da Inteligência Artificial (Em Andamento 🚀)
 - [ ] Adicionar funcionalidade de *Parsing* de Currículos no módulo ATS (extrair dados de PDF automaticamente com IA).
 - [ ] Implementar modelo preditivo de IA para alertar sobre alto risco de turnover com base em dados de faltas, avaliações e horas extras.
 

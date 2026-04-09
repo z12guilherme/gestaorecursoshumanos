@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { PayslipButton } from '@/components/PayslipButton';
 import { PayslipViewerModal } from '@/components/PayslipViewerModal';
 import { EmployeeBadge } from '@/components/EmployeeBadge';
+import { offlineDb } from '@/lib/offlineDb';
 
 export default function ClockInPage() {
   const { employees } = useEmployees();
@@ -72,6 +73,30 @@ export default function ClockInPage() {
     return () => clearInterval(timer);
   }, []);
 
+  // Sincronização Offline Automática
+  useEffect(() => {
+    const syncOfflineEntries = async () => {
+      if (!navigator.onLine) return;
+      
+      const pending = await offlineDb.getPendingEntries();
+      if (pending.length > 0) {
+        toast({ title: 'Sincronizando...', description: `Enviando ${pending.length} registros offline para o servidor.` });
+        for (const entry of pending) {
+          const { id, ...entryData } = entry;
+          const { error } = await supabase.from('time_entries').insert(entryData);
+          if (!error && id) {
+            await offlineDb.deleteEntry(id);
+          }
+        }
+        toast({ title: 'Sincronização Concluída!', description: 'Todos os registros offline foram enviados com sucesso.', className: 'bg-emerald-600 text-white border-none' });
+      }
+    };
+
+    window.addEventListener('online', syncOfflineEntries);
+    syncOfflineEntries(); // Tenta sincronizar ao abrir a tela se estiver online
+    return () => window.removeEventListener('online', syncOfflineEntries);
+  }, []);
+
   const getEmployeeByPin = async (inputPin: string) => {
     // 1. Tenta encontrar na lista carregada (se disponível)
     let employee = employees.find(e => e.password === inputPin);
@@ -114,39 +139,45 @@ export default function ClockInPage() {
     }
 
     // Validação de sequência de ponto
-    const { data: lastEntry } = await supabase
-      .from('time_entries')
-      .select('type')
-      .eq('employee_id', employee.id)
-      .order('timestamp', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    if (navigator.onLine) {
+      try {
+        const { data: lastEntry } = await supabase
+          .from('time_entries')
+          .select('type')
+          .eq('employee_id', employee.id)
+          .order('timestamp', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-    // Se não há registro anterior, a primeira ação deve ser 'in'
-    if (!lastEntry && type !== 'in') {
-      toast({
-        title: "Ação Inválida",
-        description: "Seu primeiro registro do dia deve ser uma entrada.",
-        variant: "destructive"
-      });
-      setLoading(false);
-      setPin('');
-      return;
-    }
+        // Se não há registro anterior, a primeira ação deve ser 'in'
+        if (!lastEntry && type !== 'in') {
+          toast({
+            title: "Ação Inválida",
+            description: "Seu primeiro registro do dia deve ser uma entrada.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          setPin('');
+          return;
+        }
 
-    if (lastEntry) {
-      const isLastIn = lastEntry.type === 'in' || lastEntry.type === 'lunch_end';
-      const isLastOut = lastEntry.type === 'out' || lastEntry.type === 'lunch_start';
+        if (lastEntry) {
+          const isLastIn = lastEntry.type === 'in' || lastEntry.type === 'lunch_end';
+          const isLastOut = lastEntry.type === 'out' || lastEntry.type === 'lunch_start';
 
-      if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
-        toast({
-          title: "Ação Inválida",
-          description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'}. A próxima ação deve ser de ${isLastIn ? 'saída' : 'entrada'}.`,
-          variant: "destructive"
-        });
-        setLoading(false);
-        setPin('');
-        return;
+          if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
+            toast({
+              title: "Ação Inválida",
+              description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'}. A próxima ação deve ser de ${isLastIn ? 'saída' : 'entrada'}.`,
+              variant: "destructive"
+            });
+            setLoading(false);
+            setPin('');
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Modo offline ou erro de rede: ignorando validação restrita de sequência.");
       }
     }
 
@@ -188,21 +219,32 @@ export default function ClockInPage() {
       return;
     }
 
-    const { error } = await supabase.from('time_entries').insert({
+    const entryData = {
       employee_id: employee.id,
       timestamp: new Date().toISOString(),
       type,
       ...locationData,
-    });
+    };
 
-    if (error) {
-        toast({ title: "Erro", description: "Falha ao registrar ponto.", variant: "destructive" });
+    if (navigator.onLine) {
+      const { error } = await supabase.from('time_entries').insert(entryData);
+      if (error) {
+          toast({ title: "Erro", description: "Falha ao registrar ponto no servidor.", variant: "destructive" });
+      } else {
+          toast({
+              title: `Ponto Registrado!`,
+              description: `${employee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} às ${format(new Date(), 'HH:mm')}.`,
+              className: "bg-green-600 text-white border-none"
+          });
+      }
     } else {
-        toast({
-            title: `Ponto Registrado!`,
-            description: `${employee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} às ${format(new Date(), 'HH:mm')}.`,
-            className: "bg-green-600 text-white border-none"
-        });
+      // Salva localmente via IndexedDB se estiver sem internet
+      await offlineDb.saveEntry(entryData);
+      toast({
+          title: `Ponto Salvo Offline 📡`,
+          description: `${employee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} guardado. Será enviado quando a conexão voltar.`,
+          className: "bg-amber-500 text-white border-none"
+      });
     }
 
     setLoading(false);

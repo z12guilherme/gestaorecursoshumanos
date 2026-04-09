@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -7,6 +7,7 @@ import { ManualModal } from "@/components/ManualModal";
 import { SecurityBadge } from "@/components/auth/SecurityBadge";
 import hsfBg from "@/assets/hsf.jpeg";
 import { Mail, Lock, ArrowRight, Clock, CheckCircle2, Shield } from "lucide-react";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,6 +16,8 @@ export default function LoginPage() {
   const [showMfa, setShowMfa] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
   const [factorId, setFactorId] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
+  const captchaRef = useRef<HCaptcha>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { session } = useAuth();
@@ -41,18 +44,32 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validação opcional: forçar que o CAPTCHA seja resolvido antes de enviar
+    if (!captchaToken) {
+      toast({
+        title: "Verificação necessária",
+        description: "Por favor, resolva o CAPTCHA antes de entrar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: { captchaToken },
       });
 
       if (error) {
         throw error;
       }
     } catch (error: any) {
+      captchaRef.current?.resetCaptcha(); // Reseta o captcha em caso de erro
+      setCaptchaToken(undefined);
       toast({
         title: "Erro ao entrar",
         description: "Email ou senha incorretos. Verifique suas credenciais.",
@@ -168,10 +185,19 @@ export default function LoginPage() {
                     </div>
                 </div>
 
+                <div className="flex justify-center py-2">
+                    <HCaptcha
+                        ref={captchaRef}
+                        sitekey={import.meta.env.VITE_HCAPTCHA_SITE_KEY || "SUA_SITE_KEY_AQUI"}
+                        onVerify={(token) => setCaptchaToken(token)}
+                        onExpire={() => setCaptchaToken(undefined)}
+                    />
+                </div>
+
                 <div className="pt-2">
                     <button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={isLoading || !captchaToken}
                         className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                     >
                         {isLoading ? (
