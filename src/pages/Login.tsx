@@ -70,9 +70,10 @@ export default function LoginPage() {
     } catch (error: any) {
       captchaRef.current?.resetCaptcha(); // Reseta o captcha em caso de erro
       setCaptchaToken(undefined);
+      console.error("Erro detalhado do Supabase:", error); // Mostra o erro no Inspecionar do navegador
       toast({
-        title: "Erro ao entrar",
-        description: "Email ou senha incorretos. Verifique suas credenciais.",
+        title: error?.message === "Invalid captcha token" ? "Falha de Segurança" : "Erro ao entrar",
+        description: error?.message === "Invalid captcha token" ? "A verificação do robô (Captcha) falhou." : "Email ou senha incorretos ou erro de conexão.",
         variant: "destructive"
       });
       setIsLoading(false);
