@@ -197,7 +197,7 @@ export default function Employees() {
           avatarUrl = publicUrlData.publicUrl;
         } catch (imgError) {
           console.error("Erro no upload da imagem:", imgError);
-          toast({ title: "Aviso", description: "Erro ao salvar a foto, mas os dados serão salvos.", variant: "warning" });
+          toast({ title: "Aviso:", description: "Erro ao salvar a foto, mas os dados serão salvos.", variant: "warning" });
         }
       }
 
