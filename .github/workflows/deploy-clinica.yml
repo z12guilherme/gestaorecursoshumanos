@@ -1,0 +1,13 @@
+name: Atualizar Sistema da Clinica
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar Vercel Deploy Hook
+        run: curl -X POST ${{ secrets.CLINIC_DEPLOY_HOOK }}
