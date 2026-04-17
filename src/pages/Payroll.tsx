@@ -32,7 +32,7 @@ export default function Payroll() {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [selectedEmployeeForView, setSelectedEmployeeForView] = useState<any>(null);
   const { toast } = useToast();
-  
+
   // Mapeia os dados do banco (snake_case) para o formato esperado (camelCase)
   const employees = dbEmployees.map((emp: any) => {
     // Garante que os campos JSON sejam arrays, mesmo se vierem como string do banco
@@ -82,7 +82,7 @@ export default function Payroll() {
         .select('value')
         .eq('key', 'inss_table')
         .single();
-      
+
       if (data && Array.isArray(data.value)) {
         setInssTable(data.value);
       }
@@ -92,7 +92,7 @@ export default function Payroll() {
         .from('settings')
         .select('company_name, cnpj')
         .maybeSingle();
-        
+
       if (settings) setCompanySettings(settings);
     };
     fetchTaxTable();
@@ -121,11 +121,11 @@ export default function Payroll() {
     const baseSalary = Number(employee.baseSalary) || 0;
     const hours = Number(employee.contractedHours) || 220;
     const hourlyRate = hours > 0 ? baseSalary / hours : 0;
-    
+
     // Adicionais
     const insalubrity = employee.hasInsalubrity ? (Number(employee.insalubrity_amount) || 0) : 0;
     const nightShift = employee.hasNightShift ? (Number(employee.night_shift_amount) || 0) : 0;
-    
+
     // Horas Extras (50% de acréscimo exemplo)
     const overtimeHours = overtimeData[employee.id] || 0;
     const overtimeValue = overtimeHours * hourlyRate * 1.5;
@@ -144,7 +144,7 @@ export default function Payroll() {
     }
 
     const totalAdditions = insalubrity + nightShift + overtimeValue + variableAdditionsTotal;
-    
+
     // Descontos Variáveis
     let variableDiscountsTotal = 0;
     try {
@@ -163,13 +163,13 @@ export default function Payroll() {
 
     // Base de Cálculo do INSS (Salário Base + Adicionais)
     const inssBase = baseSalary + totalAdditions;
-    
+
     let manualInss = 0;
     if (employee.inss_value) {
       const valStr = String(employee.inss_value).replace(',', '.');
       manualInss = Number(valStr) || 0;
     }
-    
+
     // Se for terceirizado ou PJ, isenta INSS padrão a menos que preenchido
     const isOutsourced = employee.contractType === 'Terceirizado' || employee.contract_type === 'Terceirizado' || employee.contractType === 'PJ' || employee.contract_type === 'PJ';
     const estimatedTax = manualInss > 0 ? manualInss : (isOutsourced ? 0 : calculateINSS(inssBase));
@@ -188,14 +188,14 @@ export default function Payroll() {
     };
   };
 
-  const filteredEmployees = employees.filter(emp => 
+  const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const generatePDF = () => {
     const doc = new jsPDF();
-    
+
     doc.setFontSize(14);
     doc.text(companySettings?.company_name || 'EMPRESA DEMONSTRAÇÃO', 14, 15);
     doc.setFontSize(10);
@@ -230,7 +230,7 @@ export default function Payroll() {
 
     // --- Carimbo do Empregador ---
     let finalY = (doc as any).lastAutoTable.finalY + 30;
-    
+
     // Verifica se precisa de nova página
     if (finalY > 250) {
       doc.addPage();
@@ -252,16 +252,16 @@ export default function Payroll() {
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
     doc.text((companySettings?.company_name || 'EMPRESA').substring(0, 25), stampX + stampWidth / 2, stampY + 6, { align: 'center' });
-    
+
     doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
     doc.text(companySettings?.cnpj || 'CNPJ: 00.000.000/0001-00', stampX + stampWidth / 2, stampY + 10, { align: 'center' });
-    
+
     doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, stampX + 2, stampY + 15);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(5);
     doc.text('GestãoRH System', stampX + 22, stampY + 15);
-    
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(5);
     doc.text('ASSINATURA DO EMPREGADOR', stampX + stampWidth / 2, stampY + 20, { align: 'center' });
@@ -333,7 +333,7 @@ export default function Payroll() {
     setSelectedEmployeeForView(employeeData);
     setIsViewerOpen(true);
   };
-  
+
   const [isTerceirizadoOpen, setIsTerceirizadoOpen] = useState(false);
   const [terceirizadoData, setTerceirizadoData] = useState({ name: '', role: 'Terceirizado', pix_key: '', base_salary: '' });
 
@@ -354,7 +354,7 @@ export default function Payroll() {
       setIsTerceirizadoOpen(false);
       setTerceirizadoData({ name: '', role: 'Terceirizado', pix_key: '', base_salary: '' });
       setTimeout(() => window.location.reload(), 1000);
-    } catch(err) {
+    } catch (err) {
       toast({ title: 'Erro ao cadastrar', variant: 'destructive' });
     }
   };
@@ -364,8 +364,8 @@ export default function Payroll() {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex gap-2 w-full md:w-auto">
-            <Input 
-              placeholder="Buscar colaborador..." 
+            <Input
+              placeholder="Buscar colaborador..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full md:w-64"
@@ -376,25 +376,25 @@ export default function Payroll() {
               + Terceirizado
             </Button>
             <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="bg-emerald-600 hover:bg-emerald-700 gap-2">
-                <Download className="h-4 w-4" />
-                Exportar
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={generatePDF} className="cursor-pointer">
-                Relatório PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
-                Arquivo CSV (Contabilidade)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportCNAB} className="cursor-pointer">
-                Arquivo CNAB 240 (Banco)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+                  <Download className="h-4 w-4" />
+                  Exportar
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={generatePDF} className="cursor-pointer">
+                  Relatório PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
+                  Arquivo CSV (Contabilidade)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCNAB} className="cursor-pointer">
+                  Arquivo CNAB 240 (Banco)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -453,9 +453,9 @@ export default function Payroll() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Input 
-                              type="number" 
-                              className="w-20 h-8" 
+                            <Input
+                              type="number"
+                              className="w-20 h-8"
                               placeholder="0h"
                               min="0"
                               onChange={(e) => handleOvertimeChange(emp.id, e.target.value)}
@@ -469,15 +469,15 @@ export default function Payroll() {
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               title="Visualizar"
                               onClick={() => handleViewPayslip(emp, calc)}
                             >
                               <Eye className="h-4 w-4 text-muted-foreground" />
                             </Button>
-                            <PayslipButton 
+                            <PayslipButton
                               employee={{
                                 ...emp,
                                 insalubrity_amount: calc.insalubrity,
@@ -488,7 +488,7 @@ export default function Payroll() {
                                   ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
                                   { description: "INSS (2026)", value: calc.estimatedTax }
                                 ]
-                              }} 
+                              }}
                             />
                           </div>
                         </TableCell>
@@ -501,13 +501,13 @@ export default function Payroll() {
           </CardContent>
         </Card>
 
-        <PayslipViewerModal 
+        <PayslipViewerModal
           open={isViewerOpen}
           onOpenChange={setIsViewerOpen}
           employee={selectedEmployeeForView}
           referenceDate={new Date()}
         />
-        
+
         <Dialog open={isTerceirizadoOpen} onOpenChange={setIsTerceirizadoOpen}>
           <DialogContent>
             <DialogHeader>
@@ -517,19 +517,19 @@ export default function Payroll() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Nome Completo</Label>
-                <Input value={terceirizadoData.name} onChange={e => setTerceirizadoData({...terceirizadoData, name: e.target.value})} placeholder="Nome do terceirizado" />
+                <Input value={terceirizadoData.name} onChange={e => setTerceirizadoData({ ...terceirizadoData, name: e.target.value })} placeholder="Nome do terceirizado" />
               </div>
               <div className="space-y-2">
                 <Label>Serviço/Função</Label>
-                <Input value={terceirizadoData.role} onChange={e => setTerceirizadoData({...terceirizadoData, role: e.target.value})} placeholder="Ex: Segurança, Limpeza" />
+                <Input value={terceirizadoData.role} onChange={e => setTerceirizadoData({ ...terceirizadoData, role: e.target.value })} placeholder="Ex: Segurança, Limpeza" />
               </div>
               <div className="space-y-2">
                 <Label>Valor Acordado (R$)</Label>
-                <Input type="number" value={terceirizadoData.base_salary} onChange={e => setTerceirizadoData({...terceirizadoData, base_salary: e.target.value})} placeholder="2000.00" />
+                <Input type="number" value={terceirizadoData.base_salary} onChange={e => setTerceirizadoData({ ...terceirizadoData, base_salary: e.target.value })} placeholder="2000.00" />
               </div>
               <div className="space-y-2">
                 <Label>Chave PIX</Label>
-                <Input value={terceirizadoData.pix_key} onChange={e => setTerceirizadoData({...terceirizadoData, pix_key: e.target.value})} placeholder="CPF, Email ou Celular" />
+                <Input value={terceirizadoData.pix_key} onChange={e => setTerceirizadoData({ ...terceirizadoData, pix_key: e.target.value })} placeholder="CPF, Email ou Celular" />
               </div>
             </div>
             <DialogFooter>
