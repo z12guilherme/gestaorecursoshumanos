@@ -32,18 +32,41 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { EvaluationLinkGenerator } from '@/components/performance/EvaluationLinkGenerator';
 import { EmployeeBadge } from '@/components/EmployeeBadge';
 
+// Função auxiliar para formatar datas e garantir que dados em branco vão como "null" para o banco
+const sanitizeDate = (dateString?: string | null) => {
+  if (!dateString || dateString.trim() === "") return null;
+
+  // Se já estiver no formato do Banco (YYYY-MM-DD), retorna como está
+  if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return dateString;
+  }
+
+  // Se vier no formato BR (DD/MM/YYYY), converte para YYYY-MM-DD
+  if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+    const [day, month, year] = dateString.split('/');
+    return `${year}-${month}-${day}`;
+  }
+
+  try {
+    const dateObj = new Date(dateString);
+    if (!isNaN(dateObj.getTime())) return dateObj.toISOString().split('T')[0];
+  } catch (e) { }
+
+  return null;
+};
+
 export default function Employees() {
-  const { 
-    employees: dbEmployees, 
-    loading, 
-    addEmployee, 
-    updateEmployee, 
+  const {
+    employees: dbEmployees,
+    loading,
+    addEmployee,
+    updateEmployee,
     deleteEmployee,
-    refetch 
+    refetch
   } = useEmployees();
   const { signOut } = useAuth();
   const { requests: timeOffRequests, updateRequest, refetch: refetchTimeOff } = useTimeOff();
-  
+
   // Mapeia os dados do Supabase (DB) para o formato da UI (Employee)
   const employees: Employee[] = (dbEmployees || []).map((dbEmp: any) => {
     // Garante que os campos JSON sejam arrays, mesmo se vierem como string do banco
@@ -113,9 +136,9 @@ export default function Employees() {
       return emp;
     }
 
-    const isOnVacation = (timeOffRequests || []).some(r => 
-      r.employee_id === emp.id && 
-      r.status === 'approved' && 
+    const isOnVacation = (timeOffRequests || []).some(r =>
+      r.employee_id === emp.id &&
+      r.status === 'approved' &&
       r.type === 'vacation' &&
       new Date(r.start_date + 'T00:00:00') <= today &&
       new Date(r.end_date + 'T00:00:00') >= today
@@ -124,11 +147,11 @@ export default function Employees() {
   });
 
   const filteredEmployees = employeesWithStatus.filter((employee) => {
-    const matchesSearch = 
+    const matchesSearch =
       employee.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
       employee.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
       employee.position.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
-    
+
     const matchesDepartment = departmentFilter === 'all' || employee.department === departmentFilter;
     const matchesStatus = statusFilter === 'all' || employee.status === statusFilter;
 
@@ -150,7 +173,7 @@ export default function Employees() {
     setIsFormOpen(true);
   };
 
-    const handleSave = async (employeeData: Partial<Employee>, photoFile?: File) => {
+  const handleSave = async (employeeData: Partial<Employee>, photoFile?: File) => {
     try {
       let avatarUrl = employeeData.avatar_url;
 
@@ -170,7 +193,7 @@ export default function Employees() {
           const { data: publicUrlData } = supabase.storage
             .from('avatars')
             .getPublicUrl(fileName);
-            
+
           avatarUrl = publicUrlData.publicUrl;
         } catch (imgError) {
           console.error("Erro no upload da imagem:", imgError);
@@ -187,10 +210,10 @@ export default function Employees() {
         department: employeeData.department!,
         status: employeeData.status || 'active',
         avatar_url: employeeData.avatar_url,
-        admission_date: employeeData.hireDate || (employeeData as any).admissionDate || new Date().toISOString(),
+        admission_date: sanitizeDate(employeeData.hireDate || (employeeData as any).admissionDate) || new Date().toISOString(),
         phone: employeeData.phone,
         contract_type: employeeData.contractType,
-        birth_date: employeeData.birthDate,
+        birth_date: sanitizeDate(employeeData.birthDate),
         salary: employeeData.salary,
         manager: employeeData.manager,
         work_schedule: employeeData.workSchedule,
@@ -206,8 +229,8 @@ export default function Employees() {
         contracted_hours: (employeeData as any).contractedHours,
         pis_pasep: (employeeData as any).pisPasep,
         pix_key: (employeeData as any).pixKey,
-        vacation_due_date: (employeeData as any).vacationDueDate,
-        vacation_limit_date: (employeeData as any).vacationLimitDate,
+        vacation_due_date: sanitizeDate((employeeData as any).vacationDueDate),
+        vacation_limit_date: sanitizeDate((employeeData as any).vacationLimitDate),
         variable_discounts: (employeeData as any).variable_discounts,
         variable_additions: (employeeData as any).variable_additions,
       };
@@ -221,17 +244,17 @@ export default function Employees() {
 
       if (result.error) throw result.error;
 
-      toast({ 
-        title: "Sucesso", 
-        description: selectedEmployee ? "Colaborador atualizado" : "Colaborador criado" 
+      toast({
+        title: "Sucesso",
+        description: selectedEmployee ? "Colaborador atualizado" : "Colaborador criado"
       });
       setIsFormOpen(false);
     } catch (error: any) {
       console.error("Erro ao salvar:", error);
-      toast({ 
-        title: "Erro", 
-        description: error.message || "Falha ao salvar colaborador.", 
-        variant: "destructive" 
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao salvar colaborador.",
+        variant: "destructive"
       });
     }
   };
@@ -241,10 +264,10 @@ export default function Employees() {
       // 1. Encontra TODAS as solicitações de férias ativas para este funcionário
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
-      const activeRequests = (timeOffRequests || []).filter(r => 
-        r.employee_id === employeeId && 
-        r.status === 'approved' && 
+
+      const activeRequests = (timeOffRequests || []).filter(r =>
+        r.employee_id === employeeId &&
+        r.status === 'approved' &&
         r.type === 'vacation' &&
         new Date(r.start_date + 'T00:00:00') <= today &&
         new Date(r.end_date + 'T00:00:00') >= today
@@ -259,7 +282,7 @@ export default function Employees() {
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
-        
+
         // Atualiza todas as solicitações em paralelo de forma segura
         await Promise.all(activeRequests.map(async (req) => {
           if (typeof updateRequest === 'function') {
@@ -270,13 +293,13 @@ export default function Employees() {
             if (error) throw error;
           }
         }));
-        
+
         await refetchTimeOff(); // Atualiza a lista de férias
         if (typeof refetchTimeOff === 'function') {
           await refetchTimeOff(); // Atualiza a lista de férias
         }
       }
-      
+
       await refetch(); // Atualiza a lista de colaboradores para garantir o status 'active'
       toast({
         title: "Férias encerradas",
@@ -302,7 +325,7 @@ export default function Employees() {
 
   const handleSavePassword = async () => {
     if (!selectedEmployee) return;
-    
+
     await updateEmployee(selectedEmployee.id, { password: passwordToUpdate });
 
     toast({
@@ -318,7 +341,7 @@ export default function Employees() {
 
   const confirmTerminate = async () => {
     if (!employeeToTerminate) return;
-    
+
     try {
       // Altera o status para 'terminated' em vez de deletar o registro
       const { error } = await updateEmployee(employeeToTerminate.id, { status: 'terminated' });
@@ -403,10 +426,10 @@ export default function Employees() {
       const workbook = new ExcelJS.Workbook();
       const arrayBuffer = await file.arrayBuffer();
       await workbook.xlsx.load(arrayBuffer);
-      
+
       const worksheet = workbook.worksheets[0];
       const jsonData: any[] = [];
-      
+
       const headers: string[] = [];
       worksheet.getRow(1).eachCell((cell, colNumber) => {
         headers[colNumber] = cell.text;
@@ -418,12 +441,12 @@ export default function Employees() {
         row.eachCell((cell, colNumber) => {
           const header = headers[colNumber];
           if (header) {
-             let value = cell.value;
-             if (typeof value === 'object' && value !== null) {
-                if ('text' in value) value = (value as any).text;
-                else if ('result' in value) value = (value as any).result;
-             }
-             rowData[header] = value;
+            let value = cell.value;
+            if (typeof value === 'object' && value !== null) {
+              if ('text' in value) value = (value as any).text;
+              else if ('result' in value) value = (value as any).result;
+            }
+            rowData[header] = value;
           }
         });
         jsonData.push(rowData);
@@ -432,11 +455,11 @@ export default function Employees() {
       let count = 0;
       for (const row of jsonData) {
         if (!row['Nome'] && !row['Nome Completo']) continue;
-        
+
         const formatDate = (val: any) => {
-            if (val instanceof Date) return val.toISOString();
-            if (typeof val === 'string') return val;
-            return new Date().toISOString();
+          if (val instanceof Date) return val.toISOString();
+          if (typeof val === 'string') return val;
+          return new Date().toISOString();
         };
 
         await addEmployee({
@@ -491,7 +514,7 @@ export default function Employees() {
     <AppLayout title="Colaboradores" subtitle="Gerencie todos os colaboradores da empresa">
       <div className="space-y-6">
         {loading && <div className="text-sm text-muted-foreground">Carregando dados do servidor...</div>}
-        
+
         {/* Stats */}
         <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <Card>
@@ -553,14 +576,14 @@ export default function Employees() {
 
         {/* Filters */}
         <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsBadgeDialogOpen(true)} className="gap-2">
-                <IdCard className="h-4 w-4" />
-                Gerar Crachá
-            </Button>
-            <Button variant="outline" onClick={() => setIsLinkGeneratorOpen(true)} className="gap-2">
-                <LinkIcon className="h-4 w-4" />
-                Gerar Link de Avaliação
-            </Button>
+          <Button variant="outline" onClick={() => setIsBadgeDialogOpen(true)} className="gap-2">
+            <IdCard className="h-4 w-4" />
+            Gerar Crachá
+          </Button>
+          <Button variant="outline" onClick={() => setIsLinkGeneratorOpen(true)} className="gap-2">
+            <LinkIcon className="h-4 w-4" />
+            Gerar Link de Avaliação
+          </Button>
         </div>
         <EmployeeFilters
           searchTerm={searchTerm}
@@ -638,9 +661,9 @@ export default function Employees() {
         </Dialog>
 
         <EvaluationLinkGenerator
-            employees={dbEmployees}
-            open={isLinkGeneratorOpen}
-            onOpenChange={setIsLinkGeneratorOpen}
+          employees={dbEmployees}
+          open={isLinkGeneratorOpen}
+          onOpenChange={setIsLinkGeneratorOpen}
         />
 
         {/* Crachá Modal */}
@@ -652,7 +675,7 @@ export default function Employees() {
                 Selecione um colaborador para visualizar o crachá digital.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="w-full space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Colaborador</Label>
