@@ -1,24 +1,53 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Fluxos Críticos de RH', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/rest/v1/**', async (route) => {
+      const url = new URL(route.request().url());
 
-    test('Colaborador deve conseguir bater o ponto com sucesso', async ({ page }) => {
-        // Navega para a interface do terminal de ponto
-        await page.goto('/time-off');
+      if (url.pathname.includes('/settings')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            company_name: 'Hospital DMI',
+            cnpj: '04.232.442/0001-14',
+          }),
+        });
+        return;
+      }
 
-        // Espera a página de Ponto Eletrônico carregar
-        await expect(page).toHaveTitle(/RH - Rede DMI/);
-
-        // Simula a interação do usuário buscando sua matrícula/nome
-        // Exemplo: considerando que existe um input com placeholder "Digite seu PIN ou Nome"
-        // await page.getByPlaceholder('Digite seu PIN ou Nome').fill('1234');
-
-        // Clica no botão de Registrar Ponto
-        // await page.getByRole('button', { name: 'Registrar Entrada' }).click();
-
-        // Verifica se a mensagem de sucesso apareceu na tela
-        // await expect(page.locator('.toast-success')).toContainText('Ponto registrado com sucesso');
-
-        // Nota: Como o Supabase e os dados mockados dependem do ambiente local, este teste pode ser ajustado conforme a interface final construída.
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
     });
+  });
+
+  test('usuário sem sessão é redirecionado para o login', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole('heading', { name: /bem-vindo de volta/i })).toBeVisible();
+  });
+
+  test('acesso rápido do colaborador abre o portal e permite voltar ao login', async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+
+    await page.getByRole('button', { name: /área do funcionário/i }).click();
+
+    await expect(page).toHaveURL(/\/clock-in$/);
+    await expect(page.getByText(/portal do colaborador/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /registrar entrada/i })).toBeVisible();
+
+    await page.getByRole('button', { name: /suporte/i }).click();
+    const supportDialog = page.getByRole('dialog');
+    await expect(supportDialog).toContainText(/central de atendimento ao colaborador/i);
+    await page.keyboard.press('Escape');
+    await expect(supportDialog).not.toBeVisible();
+
+    await page.getByRole('button', { name: /acesso administrativo/i }).click();
+    await expect(page).toHaveURL(/\/login$/);
+  });
 });
