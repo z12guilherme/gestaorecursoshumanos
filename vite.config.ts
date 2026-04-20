@@ -12,8 +12,9 @@ export default defineConfig({
   // 1. Added build configuration for code splitting
   build: {
     // Increases the warning limit so Vite doesn't complain about the vendor file
-    chunkSizeWarningLimit: 3000, 
+    chunkSizeWarningLimit: 3000,
     rollupOptions: {
+      external: ["dompurify"],
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
@@ -24,7 +25,7 @@ export default defineConfig({
             if (id.includes('@supabase')) return 'supabase';
             if (id.includes('lucide-react')) return 'lucide';
             if (id.includes('date-fns')) return 'date-fns';
-            
+
             // O restante vai para o vendor padrão
             return 'vendor';
           }
@@ -259,6 +260,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  optimizeDeps: {
+    exclude: ["dompurify"],
   },
   test: {
     globals: true,
