@@ -72,10 +72,10 @@
 - [x] Implementar **Sincronização Offline no Terminal de Ponto** (salvar batida localmente no IndexedDB e sincronizar com o Supabase quando houver rede).
 
 ### 10. 🤖 Expansão da Inteligência Artificial (Em Andamento 🚀)
-- [ ] Adicionar funcionalidade de *Parsing* de Currículos no módulo ATS (extrair dados de PDF automaticamente com IA).
-- [ ] Implementar modelo preditivo de IA para alertar sobre alto risco de turnover com base em dados de faltas, avaliações e horas extras.
+- [x] Adicionar funcionalidade de *Parsing* de Currículos no módulo ATS (extrair dados de PDF automaticamente com IA).
+- [x] Implementar modelo preditivo de IA para alertar sobre alto risco de turnover com base em dados de faltas, avaliações e horas extras.
 
 ### 11. 🧪 Testes E2E (End-to-End)
-- [ ] Configurar **Playwright** ou **Cypress** no projeto.
-- [ ] Criar testes automatizados para fluxos críticos: Assinatura de Holerite, Bater Ponto e Fluxo de Admissão.
-- [ ] Integrar rodada de testes E2E na pipeline de CI/CD (ex: GitHub Actions).
+- [x] Configurar **Playwright** no projeto.
+- [x] Criar testes automatizados para fluxos críticos: Assinatura de Holerite, Bater Ponto e Fluxo de Admissão.
+- [x] Integrar rodada de testes E2E na pipeline de CI/CD (ex: GitHub Actions).
