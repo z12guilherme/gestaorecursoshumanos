@@ -70,6 +70,10 @@ export async function predictTurnoverRisk(
         score += 20;
         factors.push('Estagnação de cargo (> 2 anos sem promoção)');
     }
+    if (metrics.lastPerformanceScore < 5) {
+        score += 15;
+        factors.push('Baixo desempenho na última avaliação');
+    }
 
     const riskLevel = score > 60 ? 'Alto' : score > 30 ? 'Médio' : 'Baixo';
 
