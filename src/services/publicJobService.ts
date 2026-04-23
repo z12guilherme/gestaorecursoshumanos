@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabase";
 
+export const JOB_STATUS_OPEN = "Aberta";
+
 export interface JobPosting {
     id: string;
     title: string;
@@ -11,16 +13,18 @@ export interface JobPosting {
     created_at: string;
 }
 
+export type JobPostingSummary = Omit<JobPosting, "description" | "requirements">;
+
 export const publicJobService = {
     /**
      * Busca todas as vagas que estão com status 'Aberta'.
      * Ideal para ser consumido pela página pública de carreiras.
      */
-    async getOpenJobs(): Promise<JobPosting[]> {
+    async getOpenJobs(): Promise<JobPostingSummary[]> {
         const { data, error } = await supabase
             .from("jobs")
             .select("id, title, department, location, status, created_at")
-            .eq("status", "Aberta")
+            .eq("status", JOB_STATUS_OPEN)
             .order("created_at", { ascending: false });
 
         if (error) {
@@ -28,7 +32,7 @@ export const publicJobService = {
             throw error;
         }
 
-        return data || [];
+        return (data || []) as JobPostingSummary[];
     },
 
     /**
@@ -39,10 +43,14 @@ export const publicJobService = {
         const { data, error } = await supabase.from("jobs").select("*").eq("id", jobId).single();
 
         if (error) {
+            // O Supabase lança PGRST116 quando o .single() não encontra resultados na tabela
+            if (error.code === "PGRST116") {
+                return null;
+            }
             console.error(`Erro ao buscar detalhes da vaga ${jobId}:`, error);
             throw error;
         }
 
-        return data;
+        return data as JobPosting;
     },
 };

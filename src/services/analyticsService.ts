@@ -36,7 +36,7 @@ export const analyticsService = {
 
     if (error) throw error;
     if (!employees) return { costByDept: [], overtimeData: [], turnoverRate: 0 };
-    
+
     // This function now mainly provides data for historical charts.
     // The actual data fetching for these would be more complex.
     // We return dummy data to match the component's expectation.
@@ -62,29 +62,28 @@ export const analyticsService = {
     const monthEnd = endOfMonth(date);
     const monthStart = startOfMonth(date);
 
-    // To get historical state, we need to query based on admission and termination dates.
-    // Since we don't have termination_date, we make an approximation:
-    // - Active employees are those with status 'Ativo' admitted before the end of the month.
-    // - Terminated employees for turnover calculation are those with status 'Desligado'
-    //   who were admitted in the last year, to simulate a rolling turnover.
-    // A proper implementation would require a `termination_date` column or use of an audit log.
+    // O cálculo agora é 100% preciso utilizando a coluna termination_date.
+    // Consideramos ativos no mês quem foi admitido antes do fim do mês e não foi demitido antes do início do mês.
 
     const { data: employees, error } = await supabase
       .from("employees")
-      .select("department, base_salary, status, overtime_amount, admission_date")
+      .select("department, base_salary, status, overtime_amount, admission_date, termination_date")
       .lte("admission_date", monthEnd.toISOString().substring(0, 10)); // Admitted before month ends
 
     if (error) throw error;
-    if (!employees) return { 
+    if (!employees) return {
       metrics: { totalCost: 0, totalOvertime: 0, turnoverRate: 0, headcount: 0 },
-      costByDept: [], 
-      overtimeData: [] 
+      costByDept: [],
+      overtimeData: []
     };
 
-    // For a given month, we consider employees who were 'Ativo' at any point during it.
-    // Without termination dates, we can only reliably calculate for the *current* month from the 'Ativo' status.
-    // For past months, this logic is an approximation. We assume 'Ativo' means they were active.
-    const activeEmployees = employees.filter(e => e.status === 'Ativo');
+    const activeEmployees = employees.filter(e => {
+      if (e.termination_date) {
+        return new Date(e.termination_date) >= monthStart; // Só não é ativo se foi demitido ANTES de o mês começar
+      }
+      // Fallback de segurança para dados antigos (antes da criação desta coluna)
+      return e.status === 'Ativo' || e.status === 'active' || e.status === 'Férias' || e.status === 'vacation' || e.status === 'Afastado' || e.status === 'leave';
+    });
 
     // --- Calculations ---
     const costByDeptMap: Record<string, number> = {};
@@ -106,21 +105,23 @@ export const analyticsService = {
     const costByDept = Object.keys(costByDeptMap).map(key => ({ name: key, value: costByDeptMap[key] }));
     const overtimeData = Object.keys(overtimeByDeptMap).map(key => ({ name: key, valor: overtimeByDeptMap[key] }));
 
-    // Turnover Calculation (Approximation)
-    // Employees terminated within the month. We can't know this for sure.
-    // Let's calculate a rolling 12-month turnover rate up to the given date for simplicity.
-    const oneYearBefore = subYears(date, 1);
-    const recentHires = employees.filter(e => new Date(e.admission_date) >= oneYearBefore);
-    const recentTerminations = recentHires.filter(e => e.status === 'Desligado').length;
-    const avgHeadcount = (employees.length + recentHires.length) / 2; // very rough avg
-    const turnoverRate = avgHeadcount > 0 ? (recentTerminations / avgHeadcount) * 100 : 0;
+    // Turnover Calculation (Precise)
+    // Funcionários desligados exatamente dentro deste mês
+    const terminatedThisMonth = employees.filter(e => {
+      if (!e.termination_date) return false; // Sem data, não entra no cálculo exato deste mês
+      const termDate = new Date(e.termination_date);
+      return termDate >= monthStart && termDate <= monthEnd;
+    }).length;
+
+    const headcount = activeEmployees.length;
+    const turnoverRate = headcount > 0 ? (terminatedThisMonth / headcount) * 100 : 0;
 
     return {
       metrics: {
         totalCost,
         totalOvertime,
         turnoverRate,
-        headcount: activeEmployees.length,
+        headcount,
       },
       costByDept,
       overtimeData,

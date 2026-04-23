@@ -7,7 +7,7 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Coffee, LogIn, LogOut, MapPin, MessageSquare, Download, Clock, FileText } from 'lucide-react';
+import { CheckCircle2, XCircle, Coffee, LogIn, LogOut, MapPin, MessageSquare, Download, Clock, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -31,21 +31,25 @@ interface TimeEntry {
 }
 
 interface EmployeeStatus {
-    id: string;
-    name: string;
-    department: string;
-    hasRegistered: boolean;
-    workedHours: string;
+  id: string;
+  name: string;
+  department: string;
+  hasRegistered: boolean;
+  workedHours: string;
 }
 
 export default function Timesheet() {
   const { employees, loading: loadingEmployees } = useEmployees();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [dailyAllEntries, setDailyAllEntries] = useState<TimeEntry[]>([]);
   const [employeeStatus, setEmployeeStatus] = useState<EmployeeStatus[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(true);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
-  const [mapLocation, setMapLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [mapLocation, setMapLocation] = useState<{ lat: number, lng: number } | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 50;
   const parentRef = useRef<HTMLDivElement>(null);
   const debouncedDate = useDebounce(selectedDate, 500);
 
@@ -59,39 +63,52 @@ export default function Timesheet() {
   useEffect(() => {
     async function fetchEntries() {
       setLoadingEntries(true);
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('id, timestamp, type, employee_id, latitude, longitude, notes, employees(name)')
-        .gte('timestamp', `${debouncedDate}T00:00:00.000Z`)
-        .lte('timestamp', `${debouncedDate}T23:59:59.999Z`)
-        .order('timestamp', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching time entries:', error);
-        setEntries([]);
-      } else {
-        setEntries(data as TimeEntry[]);
+      try {
+        const { data, count } = await timeEntryService.getEntries(page, pageSize, debouncedDate, filterEmployeeId);
+        setEntries(data as any[]);
+        setTotalCount(count);
+      } catch (error) {
+        console.error('Erro ao buscar registros paginados:', error);
+      } finally {
+        setLoadingEntries(false);
       }
-      setLoadingEntries(false);
     }
 
     fetchEntries();
+  }, [debouncedDate, page, filterEmployeeId]);
+
+  // Efeito secundário (apenas quando a data muda) para alimentar a coluna de status
+  useEffect(() => {
+    async function fetchDailySummary() {
+      try {
+        const data = await timeEntryService.getDailyEntriesForSummary(debouncedDate);
+        setDailyAllEntries(data as any[]);
+      } catch (error) {
+        console.error('Erro ao buscar resumo diário:', error);
+      }
+    }
+    fetchDailySummary();
   }, [debouncedDate]);
 
+  // Reseta a página para 1 sempre que trocar a data ou o filtro de funcionário
   useEffect(() => {
-      if (employees.length > 0) {
-          const activeEmployees = employees.filter(e => e.status === 'active' || e.status === 'Ativo');
+    setPage(1);
+  }, [debouncedDate, filterEmployeeId]);
 
-          const statusList = activeEmployees.map(emp => ({
-              id: emp.id,
-              name: emp.name,
-              department: emp.department || 'N/A',
-              hasRegistered: entries.some(e => e.employee_id === emp.id),
-              workedHours: timeEntryService.calculateDailyHours(entries.filter(e => e.employee_id === emp.id))
-          }));
-          setEmployeeStatus(statusList);
-      }
-  }, [employees, entries]);
+  useEffect(() => {
+    if (employees.length > 0) {
+      const activeEmployees = employees.filter(e => e.status === 'active' || e.status === 'Ativo');
+
+      const statusList = activeEmployees.map(emp => ({
+        id: emp.id,
+        name: emp.name,
+        department: emp.department || 'N/A',
+        hasRegistered: dailyAllEntries.some(e => e.employee_id === emp.id),
+        workedHours: timeEntryService.calculateDailyHours(dailyAllEntries.filter(e => e.employee_id === emp.id) as any)
+      }));
+      setEmployeeStatus(statusList);
+    }
+  }, [employees, dailyAllEntries]);
 
   const loading = loadingEmployees || loadingEntries;
 
@@ -116,19 +133,19 @@ export default function Timesheet() {
     const worksheet = workbook.addWorksheet('Ponto Diário');
 
     worksheet.columns = [
-        { header: 'Funcionário', key: 'Funcionário', width: 30 },
-        { header: 'Departamento', key: 'Departamento', width: 20 },
-        { header: 'Status', key: 'Status', width: 15 },
-        { header: 'Horas Trabalhadas', key: 'Horas Trabalhadas', width: 20 },
-        { header: 'Data', key: 'Data', width: 15 }
+      { header: 'Funcionário', key: 'Funcionário', width: 30 },
+      { header: 'Departamento', key: 'Departamento', width: 20 },
+      { header: 'Status', key: 'Status', width: 15 },
+      { header: 'Horas Trabalhadas', key: 'Horas Trabalhadas', width: 20 },
+      { header: 'Data', key: 'Data', width: 15 }
     ];
 
     const dataToExport = employeeStatus.map(emp => ({
-        'Funcionário': emp.name,
-        'Departamento': emp.department,
-        'Status': emp.hasRegistered ? 'Presente' : 'Ausente',
-        'Horas Trabalhadas': emp.workedHours,
-        'Data': format(new Date(selectedDate), 'dd/MM/yyyy')
+      'Funcionário': emp.name,
+      'Departamento': emp.department,
+      'Status': emp.hasRegistered ? 'Presente' : 'Ausente',
+      'Horas Trabalhadas': emp.workedHours,
+      'Data': format(new Date(selectedDate), 'dd/MM/yyyy')
     }));
 
     worksheet.addRows(dataToExport);
@@ -149,7 +166,7 @@ export default function Timesheet() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.text("CÓDIGO DE ÉTICA E CONDUTA", 105, 20, { align: "center" });
-    
+
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
     doc.text("Este documento estabelece os princípios éticos da nossa empresa.", 20, 40);
@@ -157,7 +174,7 @@ export default function Timesheet() {
     doc.text("2. Integridade e transparência nas ações.", 20, 60);
     doc.text("3. Compromisso com a qualidade e segurança.", 20, 70);
     doc.text("4. Confidencialidade das informações.", 20, 80);
-    
+
     doc.save("Codigo_de_Etica.pdf");
   };
 
@@ -172,75 +189,75 @@ export default function Timesheet() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Coluna de Status Diário */}
         <div className="lg:col-span-1 space-y-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Status do Ponto - {format(new Date(selectedDate + 'T12:00:00'), 'dd/MM/yyyy')}</CardTitle>
-                    <CardDescription>Verifique quem já registrou o ponto hoje.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="mb-4"
-                    />
-                    <div ref={parentRef} className="max-h-[60vh] overflow-y-auto pr-2">
-                        {loading ? (
-                            <p>Carregando...</p>
-                        ) : (
-                            <div
-                                style={{
-                                    height: `${rowVirtualizer.getTotalSize()}px`,
-                                    width: '100%',
-                                    position: 'relative',
-                                }}
-                            >
-                                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                                    const emp = employeeStatus[virtualRow.index];
-                                    return (
-                                        <div
-                                            key={emp.id}
-                                            style={{
-                                                position: 'absolute',
-                                                top: 0,
-                                                left: 0,
-                                                width: '100%',
-                                                height: `${virtualRow.size}px`,
-                                                transform: `translateY(${virtualRow.start}px)`,
-                                            }}
-                                            className="pb-3"
-                                        >
-                                            <div 
-                                                className={cn(
-                                                    "flex items-center justify-between p-2 rounded-md border cursor-pointer transition-colors hover:bg-accent",
-                                                    filterEmployeeId === emp.id ? "bg-accent border-primary" : ""
-                                                )}
-                                                onClick={() => setFilterEmployeeId(prev => prev === emp.id ? null : emp.id)}
-                                            >
-                                                <div>
-                                                    <p className="font-medium text-sm">{emp.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{emp.department}</p>
-                                                    {emp.hasRegistered && (
-                                                    <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
-                                                        <Clock className="h-3 w-3" />
-                                                        {emp.workedHours}
-                                                    </p>
-                                                    )}
-                                                </div>
-                                                <Badge variant={emp.hasRegistered ? 'default' : 'destructive'}>
-                                                    {emp.hasRegistered ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
-                                                    {emp.hasRegistered ? 'Registrou' : 'Não Registrou'}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+          <Card>
+            <CardHeader>
+              <CardTitle>Status do Ponto - {format(new Date(selectedDate + 'T12:00:00'), 'dd/MM/yyyy')}</CardTitle>
+              <CardDescription>Verifique quem já registrou o ponto hoje.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="mb-4"
+              />
+              <div ref={parentRef} className="max-h-[60vh] overflow-y-auto pr-2">
+                {loading ? (
+                  <p>Carregando...</p>
+                ) : (
+                  <div
+                    style={{
+                      height: `${rowVirtualizer.getTotalSize()}px`,
+                      width: '100%',
+                      position: 'relative',
+                    }}
+                  >
+                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                      const emp = employeeStatus[virtualRow.index];
+                      return (
+                        <div
+                          key={emp.id}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: `${virtualRow.size}px`,
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
+                          className="pb-3"
+                        >
+                          <div
+                            className={cn(
+                              "flex items-center justify-between p-2 rounded-md border cursor-pointer transition-colors hover:bg-accent",
+                              filterEmployeeId === emp.id ? "bg-accent border-primary" : ""
+                            )}
+                            onClick={() => setFilterEmployeeId(prev => prev === emp.id ? null : emp.id)}
+                          >
+                            <div>
+                              <p className="font-medium text-sm">{emp.name}</p>
+                              <p className="text-xs text-muted-foreground">{emp.department}</p>
+                              {emp.hasRegistered && (
+                                <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
+                                  <Clock className="h-3 w-3" />
+                                  {emp.workedHours}
+                                </p>
+                              )}
                             </div>
-                        )}
-                         {employeeStatus.length === 0 && !loading && <p className="text-sm text-muted-foreground text-center py-4">Nenhum funcionário ativo encontrado.</p>}
-                    </div>
-                </CardContent>
-            </Card>
+                            <Badge variant={emp.hasRegistered ? 'default' : 'destructive'}>
+                              {emp.hasRegistered ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                              {emp.hasRegistered ? 'Registrou' : 'Não Registrou'}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {employeeStatus.length === 0 && !loading && <p className="text-sm text-muted-foreground text-center py-4">Nenhum funcionário ativo encontrado.</p>}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Coluna de Registros */}
@@ -250,7 +267,7 @@ export default function Timesheet() {
               <div>
                 <CardTitle>Registros do Dia {filterEmployeeId && "(Filtrado)"}</CardTitle>
                 <CardDescription>
-                    {filterEmployeeId ? "Exibindo registros do funcionário selecionado." : "Lista de todas as marcações de ponto para a data selecionada."}
+                  {filterEmployeeId ? "Exibindo registros do funcionário selecionado." : "Lista de todas as marcações de ponto para a data selecionada."}
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={handleExport}>
@@ -260,14 +277,13 @@ export default function Timesheet() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="text-center py-10">Carregando registros...</div>
+                <div className="flex justify-center py-10"><p className="text-muted-foreground">Carregando registros...</p></div>
               ) : entries.length > 0 ? (
-                <ul className="space-y-3">
-                  {entries
-                    .filter(e => !filterEmployeeId || e.employee_id === filterEmployeeId)
-                    .map((entry) => (
-                    <li key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-                      <div>
+                <>
+                  <ul className="space-y-3">
+                    {entries.map((entry) => (
+                      <li key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                        <div>
                           <p className="font-semibold">{entry.employees?.name || 'Funcionário não encontrado'}</p>
                           <p className="text-sm text-muted-foreground">
                             {format(new Date(entry.timestamp), 'HH:mm:ss')}
@@ -285,10 +301,37 @@ export default function Timesheet() {
                             )}
                           </div>
                         </div>
-                      {getBadgeForType(entry.type)}
-                    </li>
-                  ))}
-                </ul>
+                        {getBadgeForType(entry.type)}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Controles de Paginação */}
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+                    <div className="text-sm text-muted-foreground">
+                      Mostrando {entries.length} de {totalCount} registros
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm font-medium">Página {page} de {Math.ceil(totalCount / pageSize) || 1}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => p < Math.ceil(totalCount / pageSize) ? p + 1 : p)}
+                        disabled={page >= Math.ceil(totalCount / pageSize) || totalCount === 0}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="text-center py-10 text-muted-foreground">
                   Nenhum registro de ponto para esta data.
@@ -305,20 +348,20 @@ export default function Timesheet() {
             <DialogTitle>Localização do Registro</DialogTitle>
           </DialogHeader>
           <div className="aspect-video w-full bg-muted rounded-md overflow-hidden relative border border-border">
-             {mapLocation && (
-               <iframe
-                 width="100%"
-                 height="100%"
-                 src={`https://maps.google.com/maps?q=${mapLocation.lat},${mapLocation.lng}&z=15&output=embed`}
-                 style={{ border: 0 }}
-                 loading="lazy"
-                 allowFullScreen
-               />
-             )}
+            {mapLocation && (
+              <iframe
+                width="100%"
+                height="100%"
+                src={`https://maps.google.com/maps?q=${mapLocation.lat},${mapLocation.lng}&z=15&output=embed`}
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+              />
+            )}
           </div>
           <div className="flex justify-end">
             <Button variant="outline" onClick={() => window.open(`https://www.google.com/maps?q=${mapLocation?.lat},${mapLocation?.lng}`, '_blank')}>
-                Abrir no Google Maps
+              Abrir no Google Maps
             </Button>
           </div>
         </DialogContent>

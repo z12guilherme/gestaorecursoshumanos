@@ -5,9 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, LogOut, MapPin, IdCard } from "lucide-react";
+import { Clock, LogOut, MapPin, IdCard, User } from "lucide-react";
 import { PayslipButton } from "@/components/PayslipButton";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { EmployeeBadge } from "@/components/EmployeeBadge";
 
 interface SimpleEmployee {
@@ -24,6 +24,12 @@ export default function ClockIn() {
   
   // Estado do funcionário autenticado (com dados completos para o holerite)
   const [authenticatedEmployee, setAuthenticatedEmployee] = useState<any | null>(null);
+
+  // Estados para atualização de dados do funcionário
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [updateData, setUpdateData] = useState({ email: '', phone: '' });
+  const [updatePin, setUpdatePin] = useState("");
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     fetchEmployees();
@@ -67,6 +73,7 @@ export default function ClockIn() {
       if (error || !employee) throw new Error("Funcionário não encontrado");
 
       setAuthenticatedEmployee(employee);
+      setUpdateData({ email: employee.email || '', phone: employee.phone || '' });
       setPin(""); // Limpa o PIN por segurança
     } catch (error) {
       console.error("Erro de autenticação:", error);
@@ -120,6 +127,39 @@ export default function ClockIn() {
       toast({ title: "Erro", description: "Não foi possível registrar o ponto.", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateData = async () => {
+    if (!updatePin) {
+      toast({ title: "Erro", description: "Digite seu PIN para confirmar.", variant: "destructive" });
+      return;
+    }
+    setUpdating(true);
+    try {
+      const { data: validation, error: validationError } = await supabase.functions.invoke('validate-pin', {
+        body: { employee_id: authenticatedEmployee.id, pin: updatePin }
+      });
+
+      if (validationError || !validation || !validation.isValid) {
+        throw new Error("PIN incorreto");
+      }
+
+      const { error } = await supabase
+        .from('employees')
+        .update({ email: updateData.email, phone: updateData.phone })
+        .eq('id', authenticatedEmployee.id);
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: "Dados atualizados com sucesso!" });
+      setAuthenticatedEmployee({ ...authenticatedEmployee, email: updateData.email, phone: updateData.phone });
+      setIsUpdateDialogOpen(false);
+      setUpdatePin("");
+    } catch (error) {
+      toast({ title: "Erro", description: "PIN incorreto ou erro ao atualizar.", variant: "destructive" });
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -219,7 +259,7 @@ export default function ClockIn() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Documentos</span>
+              <span className="bg-background px-2 text-muted-foreground">Documentos e Dados</span>
             </div>
           </div>
 
@@ -254,6 +294,68 @@ export default function ClockIn() {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-sm flex flex-col items-center justify-center p-8 bg-slate-50/95 dark:bg-slate-900/95 border-none shadow-2xl rounded-2xl">
                   <EmployeeBadge employee={authenticatedEmployee} />
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Área de Atualização de Dados */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg flex items-center justify-between border border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col">
+                <span className="font-medium text-slate-900 dark:text-slate-300">Atualizar Cadastro</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Mantenha seus dados em dia</span>
+              </div>
+              
+              <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <User className="h-4 w-4" />
+                    Atualizar
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Atualizar Meus Dados</DialogTitle>
+                    <DialogDescription>
+                      Atualize suas informações de contato. É necessário confirmar com seu PIN.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Email Pessoal</label>
+                      <Input 
+                        value={updateData.email} 
+                        onChange={e => setUpdateData({...updateData, email: e.target.value})}
+                        placeholder="seu.email@exemplo.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Telefone / WhatsApp</label>
+                      <Input 
+                        value={updateData.phone} 
+                        onChange={e => setUpdateData({...updateData, phone: e.target.value})}
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                    <div className="space-y-2 pt-4 border-t">
+                      <label className="text-sm font-medium text-amber-600 dark:text-amber-500">
+                        Confirme com seu PIN
+                      </label>
+                      <Input 
+                        type="password" 
+                        maxLength={6}
+                        value={updatePin} 
+                        onChange={e => setUpdatePin(e.target.value)}
+                        placeholder="Digite seu PIN"
+                        className="text-center tracking-widest text-lg"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleUpdateData} disabled={updating}>
+                      {updating ? "Salvando..." : "Salvar Alterações"}
+                    </Button>
+                  </div>
                 </DialogContent>
               </Dialog>
             </div>

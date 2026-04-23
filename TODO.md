@@ -79,3 +79,25 @@
 - [x] Configurar **Playwright** no projeto.
 - [x] Criar testes automatizados para fluxos críticos: Assinatura de Holerite, Bater Ponto e Fluxo de Admissão.
 - [x] Integrar rodada de testes E2E na pipeline de CI/CD (ex: GitHub Actions).
+
+---
+
+## 🚀 Fase 2: V2 e Escalonamento
+
+### 1. Escalabilidade de UI (Paginação Server-side)
+> **Problema:** Tabelas de crescimento contínuo (Auditoria, Ponto) baixam todos os dados de uma vez, causando alto consumo de memória e lentidão.
+- [x] Refatorar `auditService.ts` para usar paginação (`.range()`) e contagem (`count: 'exact'`).
+- [x] Atualizar tela de Auditoria (`AuditLogs.tsx`) com controles de "Página Anterior" e "Próxima".
+- [x] Refatorar consultas grandes de `time_entries` para paginação no servidor.
+
+### 2. Precisão no Analytics e Modelo de Dados
+> **Problema:** O cálculo de Turnover depende de uma data exata de desligamento, que não existe na base atual.
+- [x] Executar Migration SQL para adicionar `termination_date` na tabela `employees`.
+- [x] Refatorar `analyticsService.ts` para usar a nova coluna nos cálculos históricos.
+
+### 3. Autoatendimento (Self-Service) de Atualização Cadastral
+> **Problema:** O RH perde muito tempo operacional digitando atualizações de dados básicos enviados pelos funcionários.
+- [x] Executar Migration SQL para criar a tabela `employee_update_requests`.
+- [x] Criar serviço `employeeUpdateService.ts` para gerenciar a fila de solicitações.
+- [x] Integrar a Inbox do RH (Aprovação/Rejeição) à tela de Chamados/Tickets existente.
+- [x] Integrar o formulário de atualização na tela do Colaborador, exigindo validação por Senha (PIN).

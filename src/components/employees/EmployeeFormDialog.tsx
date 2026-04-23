@@ -46,6 +46,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
     contract_type: 'CLT',
     status: 'active',
     admission_date: '',
+    termination_date: '',
     birth_date: '',
     base_salary: 0,
     fixed_discounts: 0,
@@ -76,6 +77,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
         contract_type: employee.contractType,
         status: employee.status,
         admission_date: employee.hireDate,
+        termination_date: (employee as any).termination_date || '',
         birth_date: employee.birthDate,
         base_salary: employee.baseSalary,
         fixed_discounts: employee.fixedDiscounts,
@@ -104,6 +106,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
         contract_type: 'CLT',
         status: 'active',
         admission_date: '',
+        termination_date: '',
         birth_date: '',
         base_salary: 0,
         fixed_discounts: 0,
@@ -130,7 +133,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
     // NOTA: Edge Function removida temporariamente para evitar erro 401/500.
     // Salvando diretamente no banco de dados.
     const payload = { ...formData };
-    
+
     // Remove senha vazia para não sobrescrever na edição
     if (!payload.password) {
       delete payload.password;
@@ -143,8 +146,15 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
       payload.password = '1234';
     }
 
+    // Tratamento para a data de desligamento
+    if (payload.status !== 'terminated' && payload.status !== 'Desligado') {
+      payload.termination_date = null; // Limpa a data se não estiver desligado
+    } else if (!payload.termination_date) {
+      payload.termination_date = new Date().toISOString().split('T')[0]; // Previne erro no banco se enviar vazio
+    }
+
     let error;
-    
+
     if (employee?.id) {
       const { error: updateError } = await supabase
         .from('employees')
@@ -269,6 +279,35 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="vacation">Férias</SelectItem>
+                  <SelectItem value="leave">Afastado</SelectItem>
+                  <SelectItem value="terminated">Desligado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {formData.status === 'terminated' && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                <Label htmlFor="terminationDate" className="text-red-600 font-semibold">Data de Desligamento</Label>
+                <Input
+                  id="terminationDate"
+                  type="date"
+                  value={formData.termination_date || ''}
+                  onChange={(e) => setFormData({ ...formData, termination_date: e.target.value })}
+                  required
+                />
+              </div>
+            )}
             <div className="col-span-2 space-y-2">
               <Label htmlFor="password">Senha do Ponto (PIN)</Label>
               <div className="relative">
@@ -304,9 +343,9 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
                 required
               />
             </div>
-            
+
             <FinancialDataForm formData={formData} setFormData={setFormData} />
-            
+
             <EmployeeDocuments employeeId={employee?.id} />
           </div>
           <DialogFooter className="mt-4">

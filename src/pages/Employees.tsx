@@ -121,6 +121,7 @@ export default function Employees() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [passwordToUpdate, setPasswordToUpdate] = useState('');
   const [employeeToTerminate, setEmployeeToTerminate] = useState<Employee | null>(null);
+  const [terminationDate, setTerminationDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [isLinkGeneratorOpen, setIsLinkGeneratorOpen] = useState(false);
   const [isBadgeDialogOpen, setIsBadgeDialogOpen] = useState(false);
   const [selectedBadgeEmployeeId, setSelectedBadgeEmployeeId] = useState<string>('');
@@ -344,7 +345,10 @@ export default function Employees() {
 
     try {
       // Altera o status para 'terminated' em vez de deletar o registro
-      const { error } = await updateEmployee(employeeToTerminate.id, { status: 'terminated' });
+      const { error } = await updateEmployee(employeeToTerminate.id, {
+        status: 'terminated',
+        termination_date: terminationDate
+      } as any);
 
       if (error) throw error;
 
@@ -361,6 +365,7 @@ export default function Employees() {
       });
     }
     setEmployeeToTerminate(null);
+    setTerminationDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
   const handleDownloadTemplate = async () => {
@@ -700,7 +705,12 @@ export default function Employees() {
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={!!employeeToTerminate} onOpenChange={(open) => !open && setEmployeeToTerminate(null)}>
+        <AlertDialog open={!!employeeToTerminate} onOpenChange={(open) => {
+          if (!open) {
+            setEmployeeToTerminate(null);
+            setTerminationDate(format(new Date(), 'yyyy-MM-dd'));
+          }
+        }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar Desligamento</AlertDialogTitle>
@@ -708,8 +718,21 @@ export default function Employees() {
                 Você tem certeza que deseja desligar o colaborador <strong>{employeeToTerminate?.name}</strong>? Esta ação alterará o status para "Desligado", mantendo o histórico no sistema.
               </AlertDialogDescription>
             </AlertDialogHeader>
+            <div className="py-4">
+              <Label htmlFor="quickTerminationDate" className="text-red-600 font-semibold mb-2 block">Data de Desligamento</Label>
+              <Input
+                id="quickTerminationDate"
+                type="date"
+                value={terminationDate}
+                onChange={(e) => setTerminationDate(e.target.value)}
+                required
+              />
+            </div>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setEmployeeToTerminate(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => {
+                setEmployeeToTerminate(null);
+                setTerminationDate(format(new Date(), 'yyyy-MM-dd'));
+              }}>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={confirmTerminate} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Confirmar</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
