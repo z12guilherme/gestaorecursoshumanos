@@ -101,3 +101,7 @@
 - [x] Criar serviço `employeeUpdateService.ts` para gerenciar a fila de solicitações.
 - [x] Integrar a Inbox do RH (Aprovação/Rejeição) à tela de Chamados/Tickets existente.
 - [x] Integrar o formulário de atualização na tela do Colaborador, exigindo validação por Senha (PIN).
+
+### 4. Sugestão do RH
+- [] Melhorar detalhes do Relatório de Ponto e separar por departamento / setor
+- [] Contra Cheque sair referente ao mês anterior. Ex: Se for puxado o contra cheque em Maio, ser referente ao mês de Abril.
