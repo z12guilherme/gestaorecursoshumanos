@@ -8,7 +8,7 @@ export interface TimeEntry {
   latitude?: number;
   longitude?: number;
   notes?: string;
-  employees?: { name: string } | null;
+  employees?: { name: string; department?: string } | null;
 }
 
 export const timeEntryService = {
@@ -21,7 +21,7 @@ export const timeEntryService = {
 
     let query = supabase
       .from('time_entries')
-      .select('id, timestamp, type, employee_id, latitude, longitude, notes, employees(name)', { count: 'exact' })
+      .select('id, timestamp, type, employee_id, latitude, longitude, notes, employees(name, department)', { count: 'exact' })
       .gte('timestamp', `${date}T00:00:00.000Z`)
       .lte('timestamp', `${date}T23:59:59.999Z`)
       .order('timestamp', { ascending: false })
@@ -103,5 +103,19 @@ export const timeEntryService = {
       default:
         return 'not_started';
     }
+  },
+
+  /**
+   * Agrupa os registros de ponto pelo departamento do funcionário.
+   */
+  groupEntriesByDepartment(entries: TimeEntry[]): Record<string, TimeEntry[]> {
+    return entries.reduce((acc, entry) => {
+      const dept = entry.employees?.department || 'Sem Departamento';
+      if (!acc[dept]) {
+        acc[dept] = [];
+      }
+      acc[dept].push(entry);
+      return acc;
+    }, {} as Record<string, TimeEntry[]>);
   }
 };

@@ -27,7 +27,7 @@ interface TimeEntry {
   latitude?: number;
   longitude?: number;
   notes?: string;
-  employees: { name: string; } | null;
+  employees: { name: string; department?: string } | null;
 }
 
 interface EmployeeStatus {
@@ -140,7 +140,7 @@ export default function Timesheet() {
       { header: 'Data', key: 'Data', width: 15 }
     ];
 
-    const dataToExport = employeeStatus.map(emp => ({
+    const dataToExport = [...employeeStatus].sort((a, b) => a.department.localeCompare(b.department)).map(emp => ({
       'Funcionário': emp.name,
       'Departamento': emp.department,
       'Status': emp.hasRegistered ? 'Presente' : 'Ausente',
@@ -280,31 +280,48 @@ export default function Timesheet() {
                 <div className="flex justify-center py-10"><p className="text-muted-foreground">Carregando registros...</p></div>
               ) : entries.length > 0 ? (
                 <>
-                  <ul className="space-y-3">
-                    {entries.map((entry) => (
-                      <li key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-                        <div>
-                          <p className="font-semibold">{entry.employees?.name || 'Funcionário não encontrado'}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(entry.timestamp), 'HH:mm:ss')}
-                          </p>
-                          <div className="flex gap-2 mt-1">
-                            {entry.notes && (
-                              <div className="flex items-center text-xs text-muted-foreground" title={entry.notes}>
-                                <MessageSquare className="w-3 h-3 mr-1" /> {entry.notes}
+                  <div className="space-y-6">
+                    {Object.entries(
+                      entries.reduce((acc, entry) => {
+                        const dept = entry.employees?.department || 'Sem Departamento';
+                        if (!acc[dept]) acc[dept] = [];
+                        acc[dept].push(entry);
+                        return acc;
+                      }, {} as Record<string, TimeEntry[]>)
+                    ).sort(([deptA], [deptB]) => deptA.localeCompare(deptB)).map(([department, deptEntries]) => (
+                      <div key={department} className="space-y-3">
+                        <h3 className="font-semibold text-base border-b pb-2 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">{department}</span>
+                          <Badge variant="secondary" className="text-xs bg-slate-100">{deptEntries.length} {deptEntries.length === 1 ? 'registro' : 'registros'}</Badge>
+                        </h3>
+                        <ul className="space-y-3">
+                          {deptEntries.map((entry) => (
+                            <li key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                              <div>
+                                <p className="font-semibold">{entry.employees?.name || 'Funcionário não encontrado'}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {format(new Date(entry.timestamp), 'HH:mm:ss')}
+                                </p>
+                                <div className="flex gap-2 mt-1">
+                                  {entry.notes && (
+                                    <div className="flex items-center text-xs text-muted-foreground" title={entry.notes}>
+                                      <MessageSquare className="w-3 h-3 mr-1" /> {entry.notes}
+                                    </div>
+                                  )}
+                                  {entry.latitude !== undefined && entry.latitude !== null && entry.longitude !== undefined && entry.longitude !== null && (
+                                    <div className="flex items-center text-xs text-blue-600 cursor-pointer hover:underline" onClick={() => setMapLocation({ lat: entry.latitude!, lng: entry.longitude! })}>
+                                      <MapPin className="w-3 h-3 mr-1" /> Localização
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                            {entry.latitude !== undefined && entry.latitude !== null && entry.longitude !== undefined && entry.longitude !== null && (
-                              <div className="flex items-center text-xs text-blue-600 cursor-pointer hover:underline" onClick={() => setMapLocation({ lat: entry.latitude!, lng: entry.longitude! })}>
-                                <MapPin className="w-3 h-3 mr-1" /> Localização
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {getBadgeForType(entry.type)}
-                      </li>
+                              {getBadgeForType(entry.type)}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
 
                   {/* Controles de Paginação */}
                   <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">

@@ -103,6 +103,6 @@
 - [x] Integrar o formulário de atualização na tela do Colaborador, exigindo validação por Senha (PIN).
 
 ### 4. Sugestão do RH
-- [] Melhorar detalhes do Relatório de Ponto e separar por departamento / setor
+- [x] Melhorar detalhes do Relatório de Ponto e separar por departamento / setor
 - [x] Contra Cheque sair referente ao mês anterior. Ex: Se for puxado o contra cheque em Maio, ser referente ao mês de Abril.
 - [x] Diminuir tamanho da assinatura do funcionário no contra cheque, pois está ocultando dados.
