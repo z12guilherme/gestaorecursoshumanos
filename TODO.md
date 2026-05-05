@@ -106,3 +106,12 @@
 - [x] Melhorar detalhes do Relatório de Ponto e separar por departamento / setor
 - [x] Contra Cheque sair referente ao mês anterior. Ex: Se for puxado o contra cheque em Maio, ser referente ao mês de Abril.
 - [x] Diminuir tamanho da assinatura do funcionário no contra cheque, pois está ocultando dados.
+
+---
+
+## 🏢 Fase 3: Modelo SaaS (Multi-Instância / Espelhamento)
+> **Objetivo:** Empacotar o sistema para ser facilmente replicado para cada novo cliente em infraestrutura própria (Vercel + Supabase do cliente), mantendo o código centralizado no seu GitHub.
+- [x] **Script de Setup Automático:** Consolidar todo o `DATABASE_RESTORE.md` (Tabelas, RLS, Storage Buckets, Triggers, Views Seguras) em um único script SQL (Migration) para subir o banco do cliente em 1 clique.
+- [x] **Seed Inicial:** Criar uma função no script para inserir automaticamente o primeiro usuário Administrador (RH) e as configurações em branco na tabela `settings`.
+- [ ] **White-label (Personalização):** Garantir que logotipos, cores e nomes da empresa sejam 100% puxados da tabela `settings` para facilitar o "re-branding" de cada cliente logo no primeiro acesso.
+- [ ] **Guia de Integração Rápida:** Criar um checklist interno (ex: `DEPLOY.md`) com o passo a passo exato de variáveis de ambiente do Vercel, chaves do EmailJS e do Supabase para fazer o setup de um cliente novo em 15 minutos.
