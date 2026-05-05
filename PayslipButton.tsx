@@ -3,7 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FileText } from 'lucide-react';
 import { Button } from './ui/button';
-import { format } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // Definição da interface baseada nos campos do banco de dados (employees)
@@ -50,18 +50,19 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.text(companyName, 14, 15);
-    
+
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(`CNPJ: ${companyCNPJ}`, 14, 20);
-    
+
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text("RECIBO DE PAGAMENTO DE SALÁRIO", 105, 15, { align: "center" });
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    const period = format(referenceDate, "MMMM 'de' yyyy", { locale: ptBR }).toUpperCase();
+    const targetDate = subMonths(referenceDate, 1);
+    const period = format(targetDate, "MMMM 'de' yyyy", { locale: ptBR }).toUpperCase();
     doc.text(`Referência: ${period}`, 195, 20, { align: "right" });
 
     // --- Caixa de Dados do Funcionário ---
@@ -99,25 +100,25 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     // Processar adicionais variáveis (JSONB)
     let varAdditions: any[] = [];
     try {
-        if (Array.isArray(employee.variable_additions)) {
-            varAdditions = employee.variable_additions;
-        } else if (typeof employee.variable_additions === 'string') {
-            varAdditions = JSON.parse(employee.variable_additions);
-            if (typeof varAdditions === 'string') { varAdditions = JSON.parse(varAdditions); }
-        }
+      if (Array.isArray(employee.variable_additions)) {
+        varAdditions = employee.variable_additions;
+      } else if (typeof employee.variable_additions === 'string') {
+        varAdditions = JSON.parse(employee.variable_additions);
+        if (typeof varAdditions === 'string') { varAdditions = JSON.parse(varAdditions); }
+      }
     } catch (e) { varAdditions = []; }
 
     if (Array.isArray(varAdditions)) {
-        varAdditions.forEach((d: any) => {
-            let val = Number(d.value);
-            if (isNaN(val) && typeof d.value === 'string') { val = Number(d.value.replace(',', '.')); }
-            if (!isNaN(val) && val > 0) {
-                earnings.push({ 
-                    desc: d.description ? d.description.toUpperCase() : "GRATIFICAÇÃO", 
-                    value: val 
-                });
-            }
-        });
+      varAdditions.forEach((d: any) => {
+        let val = Number(d.value);
+        if (isNaN(val) && typeof d.value === 'string') { val = Number(d.value.replace(',', '.')); }
+        if (!isNaN(val) && val > 0) {
+          earnings.push({
+            desc: d.description ? d.description.toUpperCase() : "GRATIFICAÇÃO",
+            value: val
+          });
+        }
+      });
     }
 
     const discounts = [
@@ -127,28 +128,28 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     // Processar descontos variáveis (JSONB)
     let varDiscounts: any[] = [];
     try {
-        if (Array.isArray(employee.variable_discounts)) {
-            varDiscounts = employee.variable_discounts;
-        } else if (typeof employee.variable_discounts === 'string') {
-            varDiscounts = JSON.parse(employee.variable_discounts);
-        }
+      if (Array.isArray(employee.variable_discounts)) {
+        varDiscounts = employee.variable_discounts;
+      } else if (typeof employee.variable_discounts === 'string') {
+        varDiscounts = JSON.parse(employee.variable_discounts);
+      }
     } catch (e) {
-        varDiscounts = [];
+      varDiscounts = [];
     }
-    
+
     if (Array.isArray(varDiscounts)) {
-        varDiscounts.forEach((d: any) => {
-            let val = Number(d.value);
-            if (isNaN(val) && typeof d.value === 'string') {
-                val = Number(d.value.replace(',', '.'));
-            }
-            if (!isNaN(val) && val > 0) {
-                discounts.push({ 
-                    desc: d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS", 
-                    value: val 
-                });
-            }
-        });
+      varDiscounts.forEach((d: any) => {
+        let val = Number(d.value);
+        if (isNaN(val) && typeof d.value === 'string') {
+          val = Number(d.value.replace(',', '.'));
+        }
+        if (!isNaN(val) && val > 0) {
+          discounts.push({
+            desc: d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS",
+            value: val
+          });
+        }
+      });
     }
 
     // Montar linhas da tabela
@@ -182,10 +183,10 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     doc.line(14, finalY + 2, 196, finalY + 2);
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    
+
     doc.text("Total Vencimentos", 110, finalY + 8);
     doc.text(formatCurrency(totalEarnings), 145, finalY + 8, { align: "right" });
-    
+
     doc.text("Total Descontos", 160, finalY + 8);
     doc.text(formatCurrency(totalDiscounts), 195, finalY + 8, { align: "right" });
 
@@ -206,7 +207,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     doc.line(100, pageHeight - 30, 190, pageHeight - 30);
     doc.text("Assinatura do Funcionário", 145, pageHeight - 25, { align: "center" });
 
-    doc.save(`Holerite_${employee.name.replace(/\s+/g, '_')}_${format(referenceDate, 'MM-yyyy')}.pdf`);
+    doc.save(`Holerite_${employee.name.replace(/\s+/g, '_')}_${format(targetDate, 'MM-yyyy')}.pdf`);
   };
 
   return (

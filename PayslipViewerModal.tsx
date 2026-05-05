@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Employee } from '@/hooks/useEmployees'; // Usando o tipo base, mas ciente que mais campos virão
-import { format } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 
@@ -15,13 +15,13 @@ interface PayslipViewerModalProps {
 
 // Tipo estendido para incluir todos os campos financeiros
 type FullEmployee = Employee & {
-    base_salary?: number;
-    insalubrity_amount?: number;
-    night_shift_amount?: number;
-    variable_additions?: { description: string; value: number }[];
-    variable_discounts?: { description: string; amount: number }[];
-    fixed_discounts?: number;
-    inss_value?: number;
+  base_salary?: number;
+  insalubrity_amount?: number;
+  night_shift_amount?: number;
+  variable_additions?: { description: string; value: number }[];
+  variable_discounts?: { description: string; amount: number }[];
+  fixed_discounts?: number;
+  inss_value?: number;
 };
 
 export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate }: PayslipViewerModalProps) {
@@ -44,7 +44,7 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
         const base = Number(fullEmployee.base_salary || 0);
         const insalubrity = Number(fullEmployee.insalubrity_amount || 0);
         const night = Number(fullEmployee.night_shift_amount || 0);
-        
+
         const additions = Array.isArray(fullEmployee.variable_additions) ? fullEmployee.variable_additions : [];
         const totalVariableAdditions = additions.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
 
@@ -61,10 +61,11 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
         doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
         doc.text('Demonstrativo de Pagamento', 105, 20, { align: 'center' });
-        
+
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Período de Referência: ${format(referenceDate, 'MMMM/yyyy', { locale: ptBR })}`, 14, 30);
+        const targetDate = subMonths(referenceDate, 1);
+        doc.text(`Período de Referência: ${format(targetDate, 'MMMM/yyyy', { locale: ptBR })}`, 14, 30);
         doc.text(`Funcionário: ${fullEmployee.name}`, 14, 35);
         doc.text(`Cargo: ${fullEmployee.role}`, 14, 40);
         doc.text(`Departamento: ${fullEmployee.department}`, 14, 45);

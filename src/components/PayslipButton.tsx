@@ -42,7 +42,7 @@ interface PayslipButtonProps {
 const trimCanvas = (canvas: HTMLCanvasElement) => {
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
-  
+
   const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const length = pixels.data.length;
   let top: number | null = null;
@@ -76,7 +76,7 @@ const trimCanvas = (canvas: HTMLCanvasElement) => {
 
 export const PayslipButton: React.FC<PayslipButtonProps> = ({
   employee,
-  companyName = "HOSPITAL DMI LTDA", 
+  companyName = "HOSPITAL DMI LTDA",
   companyCNPJ = "30.882.426/0001-87",
   referenceDate = new Date()
 }) => {
@@ -115,7 +115,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       const { data: { publicUrl } } = supabase.storage
         .from('documents')
         .getPublicUrl(fileName);
-      
+
       // 3. Enviar Link por E-mail
       await emailjs.send(
         'service_z5ccatp',
@@ -130,7 +130,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
         },
         '0ofiKy53c1RuwUoJ2'
       );
-      
+
       toast({
         title: "E-mail enviado",
         description: `Enviado para ${employee.email}. Pode levar alguns minutos para chegar.`,
@@ -183,7 +183,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
       setSignatureData(data);
       setIsDialogOpen(false);
-      
+
       // 2. Gerar PDF com os dados da assinatura recém criada
       const doc = generatePayslip(data);
       await sendPayslipEmail(doc);
@@ -218,11 +218,11 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text(companyName, 14, 15);
-    
+
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text(`CNPJ: ${companyCNPJ}`, 14, 20);
-    
+
     // Lado Direito: Título e Referência
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
@@ -252,7 +252,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     doc.setFontSize(9);
     doc.setTextColor(0);
     doc.setFont("helvetica", "bold");
-    
+
     // Usando substring para evitar sobreposição se o texto for muito longo
     doc.text(employee.id.substring(0, 6).toUpperCase(), 16, boxY + 10);
     doc.text(employee.name.toUpperCase().substring(0, 35), 35, boxY + 10);
@@ -273,25 +273,25 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     // Processar adicionais variáveis (JSONB)
     let varAdditions: any[] = [];
     try {
-        if (Array.isArray(employee.variable_additions)) {
-            varAdditions = employee.variable_additions;
-        } else if (typeof employee.variable_additions === 'string') {
-            varAdditions = JSON.parse(employee.variable_additions);
-            if (typeof varAdditions === 'string') { varAdditions = JSON.parse(varAdditions); }
-        }
+      if (Array.isArray(employee.variable_additions)) {
+        varAdditions = employee.variable_additions;
+      } else if (typeof employee.variable_additions === 'string') {
+        varAdditions = JSON.parse(employee.variable_additions);
+        if (typeof varAdditions === 'string') { varAdditions = JSON.parse(varAdditions); }
+      }
     } catch (e) { varAdditions = []; }
 
     if (Array.isArray(varAdditions)) {
-        varAdditions.forEach((d: any) => {
-            let val = Number(d.value);
-            if (isNaN(val) && typeof d.value === 'string') { val = Number(d.value.replace(',', '.')); }
-            if (!isNaN(val) && val > 0) {
-                earnings.push({ 
-                    desc: d.description ? d.description.toUpperCase() : "GRATIFICAÇÃO", 
-                    value: val 
-                });
-            }
-        });
+      varAdditions.forEach((d: any) => {
+        let val = Number(d.value);
+        if (isNaN(val) && typeof d.value === 'string') { val = Number(d.value.replace(',', '.')); }
+        if (!isNaN(val) && val > 0) {
+          earnings.push({
+            desc: d.description ? d.description.toUpperCase() : "GRATIFICAÇÃO",
+            value: val
+          });
+        }
+      });
     }
 
     const discounts = [
@@ -301,28 +301,28 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     // Processar descontos variáveis (JSONB)
     let varDiscounts: any[] = [];
     try {
-        if (Array.isArray(employee.variable_discounts)) {
-            varDiscounts = employee.variable_discounts;
-        } else if (typeof employee.variable_discounts === 'string') {
-            varDiscounts = JSON.parse(employee.variable_discounts);
-            // Proteção extra para strings aninhadas
-            if (typeof varDiscounts === 'string') { varDiscounts = JSON.parse(varDiscounts); }
-        }
+      if (Array.isArray(employee.variable_discounts)) {
+        varDiscounts = employee.variable_discounts;
+      } else if (typeof employee.variable_discounts === 'string') {
+        varDiscounts = JSON.parse(employee.variable_discounts);
+        // Proteção extra para strings aninhadas
+        if (typeof varDiscounts === 'string') { varDiscounts = JSON.parse(varDiscounts); }
+      }
     } catch (e) {
-        varDiscounts = [];
+      varDiscounts = [];
     }
-    
+
     if (Array.isArray(varDiscounts)) {
-        varDiscounts.forEach((d: any) => {
-            let val = Number(d.value);
-            if (isNaN(val) && typeof d.value === 'string') { val = Number(d.value.replace(',', '.')); }
-            if (!isNaN(val) && val > 0) {
-                discounts.push({ 
-                    desc: d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS", 
-                    value: val 
-                });
-            }
-        });
+      varDiscounts.forEach((d: any) => {
+        let val = Number(d.value);
+        if (isNaN(val) && typeof d.value === 'string') { val = Number(d.value.replace(',', '.')); }
+        if (!isNaN(val) && val > 0) {
+          discounts.push({
+            desc: d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS",
+            value: val
+          });
+        }
+      });
     }
 
     // Montar linhas da tabela
@@ -333,7 +333,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     const totalEarnings = earnings.reduce((acc, curr) => acc + curr.value, 0);
     const totalDiscounts = discounts.reduce((acc, curr) => acc + curr.value, 0);
     const netPay = totalEarnings - totalDiscounts;
-    
+
     // Cálculo das Bases (Excluindo Salário Família que não incide FGTS/INSS)
     const nonIncidentalValue = Number(employee.family_salary_amount) || 0;
     const calculationBase = Math.max(0, totalEarnings - nonIncidentalValue);
@@ -344,24 +344,24 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       head: [['Cód.', 'Descrição', 'Ref.', 'Vencimentos', 'Descontos']],
       body: rows,
       theme: 'grid',
-      styles: { 
-        fontSize: 8, 
+      styles: {
+        fontSize: 8,
         cellPadding: 2,
         lineColor: [220, 220, 220],
         lineWidth: 0.1,
       },
-      headStyles: { 
-        fillColor: [240, 240, 240], 
-        textColor: 20, 
+      headStyles: {
+        fillColor: [240, 240, 240],
+        textColor: 20,
         fontStyle: 'bold',
         lineWidth: 0.1,
         lineColor: [200, 200, 200]
       },
       columnStyles: {
-        0: { cellWidth: 12 }, 
-        1: { cellWidth: 'auto' }, 
+        0: { cellWidth: 12 },
+        1: { cellWidth: 'auto' },
         2: { cellWidth: 15, halign: 'center' },
-        3: { cellWidth: 30, halign: 'right' }, 
+        3: { cellWidth: 30, halign: 'right' },
         4: { cellWidth: 30, halign: 'right' },
       },
       margin: { left: 14, right: 14 }
@@ -378,7 +378,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.text("TOTAIS", 120, finalY + 6);
-    
+
     doc.setFont("helvetica", "normal");
     doc.text(formatCurrency(totalEarnings), 164, finalY + 6, { align: "right" });
     doc.text(formatCurrency(totalDiscounts), 194, finalY + 6, { align: "right" });
@@ -388,50 +388,50 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     doc.setFillColor(245, 245, 245);
     doc.rect(14, netY, 182, 12, "F");
     doc.rect(14, netY, 182, 12);
-    
+
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("LÍQUIDO A RECEBER", 16, netY + 7.5);
-    
+
     doc.setFontSize(12);
     doc.text(formatCurrency(netPay), 194, netY + 7.5, { align: "right" });
 
     // --- Rodapé Informativo (Bases de Cálculo) ---
     const footerInfoY = netY + 16;
     const boxWidth = 182 / 4; // 4 colunas
-    
+
     doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
-    
+
     // Dados estimados para compor o visual (em um cenário real, viriam do cálculo exato)
     const bases = [
-        { label: "Salário Base", value: formatCurrency(Number(employee.base_salary)) },
-        { label: "Sal. Contr. INSS", value: formatCurrency(calculationBase) },
-        { label: "Base Cálc. FGTS", value: formatCurrency(calculationBase) },
-        { label: "FGTS do Mês (8%)", value: formatCurrency(calculationBase * 0.08) },
+      { label: "Salário Base", value: formatCurrency(Number(employee.base_salary)) },
+      { label: "Sal. Contr. INSS", value: formatCurrency(calculationBase) },
+      { label: "Base Cálc. FGTS", value: formatCurrency(calculationBase) },
+      { label: "FGTS do Mês (8%)", value: formatCurrency(calculationBase * 0.08) },
     ];
 
     bases.forEach((item, index) => {
-        const x = 14 + (index * boxWidth);
-        doc.rect(x, footerInfoY, boxWidth, 10);
-        doc.text(item.label, x + 2, footerInfoY + 3);
-        doc.setFont("helvetica", "bold");
-        doc.text(item.value, x + boxWidth - 2, footerInfoY + 8, { align: "right" });
-        doc.setFont("helvetica", "normal");
+      const x = 14 + (index * boxWidth);
+      doc.rect(x, footerInfoY, boxWidth, 10);
+      doc.text(item.label, x + 2, footerInfoY + 3);
+      doc.setFont("helvetica", "bold");
+      doc.text(item.value, x + boxWidth - 2, footerInfoY + 8, { align: "right" });
+      doc.setFont("helvetica", "normal");
     });
 
     // Assinatura e Declaração
     const footerY = footerInfoY + 20;
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    
+
     doc.text(`Declaramos ter recebido a importância líquida de ${formatCurrency(netPay)}, referente ao pagamento do salário do mês acima.`, 14, footerY);
-    
-    const displayDate = currentSignatureData?.signed_at 
+
+    const displayDate = currentSignatureData?.signed_at
       ? format(new Date(currentSignatureData.signed_at), "dd/MM/yyyy")
       : "____/____/________";
     doc.text(`Data: ${displayDate}`, 14, footerY + 12);
-    
+
     // --- Assinatura da Empresa (Estática/Simulada) ---
     // Aqui você poderia carregar uma imagem de assets se tivesse
     doc.setFont("helvetica", "bold");
@@ -451,15 +451,15 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       // Inserir a imagem da assinatura desenhada
       if (currentSignatureData.signature_image) {
         // doc.addImage(imagem, formato, x, y, largura, altura)
-        doc.addImage(currentSignatureData.signature_image, 'PNG', 120, footerY - 8, 60, 20);
+        doc.addImage(currentSignatureData.signature_image, 'PNG', 130, footerY - 2, 40, 15);
       }
 
       const signY = footerY + 22;
       doc.setDrawColor(0, 100, 0); // Verde escuro
       doc.setTextColor(0, 100, 0);
       doc.setFontSize(6);
-      
-      const signDate = currentSignatureData.signed_at 
+
+      const signDate = currentSignatureData.signed_at
         ? format(new Date(currentSignatureData.signed_at), "dd/MM/yyyy 'às' HH:mm:ss")
         : format(new Date(), "dd/MM/yyyy HH:mm:ss");
 
@@ -476,10 +476,10 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
   return (
     <>
-      <Button 
-        onClick={() => setIsDialogOpen(true)} 
-        variant="default" 
-        size="sm" 
+      <Button
+        onClick={() => setIsDialogOpen(true)}
+        variant="default"
+        size="sm"
         className="gap-2"
       >
         <PenTool className="h-4 w-4" />
@@ -494,17 +494,17 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
               Para baixar seu holerite, você precisa confirmar o recebimento digitalmente.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="p-4 bg-muted rounded-md text-sm text-muted-foreground">
             <p>Eu, <strong>{employee.name}</strong>, declaro ter recebido a importância líquida discriminada neste recibo de pagamento.</p>
             <p className="mt-2 text-xs">Ao clicar em confirmar, será registrado o carimbo de tempo e dados do seu dispositivo como prova de assinatura.</p>
-            
+
             <div className="mt-4 bg-white border border-dashed border-gray-400 rounded-md p-2 flex flex-col items-center justify-center">
               <p className="text-xs text-gray-500 mb-1 w-full text-left">Desenhe sua assinatura abaixo:</p>
-              <SignatureCanvas 
+              <SignatureCanvas
                 ref={sigCanvas}
                 penColor="black"
-                canvasProps={{width: 400, height: 150, className: 'sigCanvas cursor-crosshair'}}
+                canvasProps={{ width: 400, height: 150, className: 'sigCanvas cursor-crosshair' }}
               />
               <Button variant="ghost" size="sm" onClick={clearSignature} className="mt-2 text-xs h-6">
                 <Eraser className="w-3 h-3 mr-1" /> Limpar Assinatura
