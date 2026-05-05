@@ -1,10 +1,10 @@
 import { useEmployees } from '@/hooks/useEmployees';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Briefcase, 
-  Star, 
-  Calendar, 
+import {
+  LayoutDashboard,
+  Users,
+  Briefcase,
+  Star,
+  Calendar,
   MessageSquare,
   Settings,
   Bot,
@@ -43,6 +43,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSettings } from '@/hooks/useSettings';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -71,8 +72,9 @@ export function AppSidebar() {
   const { theme, toggleTheme } = useTheme();
   const { signOut, session, profile, loading: authLoading } = useAuth();
   const { employees } = useEmployees();
+  const { settings } = useSettings();
   const isCollapsed = state === 'collapsed';
-  
+
   // Tenta encontrar o funcionário correspondente para definir o cargo (Role)
   const currentEmployee = employees.find(e => e.email === session?.user?.email);
 
@@ -92,14 +94,16 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border z-[100]">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <img 
-            src="/icone.png" 
-            alt="Logo" 
-            className="h-10 w-10 rounded-lg object-contain"
+          <img
+            src={settings?.avatar_url || "/icone.png"}
+            alt="Logo da Empresa"
+            className="h-10 w-10 rounded-lg object-contain bg-white p-1"
           />
           {!isCollapsed && (
             <div className="flex flex-col">
-              <span className="font-semibold text-sidebar-foreground"> RH - Rede DMI</span>
+              <span className="font-semibold text-sidebar-foreground truncate max-w-[140px]" title={settings?.company_name || "RH - Rede DMI"}>
+                {settings?.company_name || "RH - Rede DMI"}
+              </span>
               <span className="text-xs text-muted-foreground">Gestão de Pessoas</span>
             </div>
           )}

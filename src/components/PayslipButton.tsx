@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useSettings } from '@/hooks/useSettings';
 
 // Definição da interface baseada nos campos do banco de dados (employees)
 interface Employee {
@@ -76,16 +77,18 @@ const trimCanvas = (canvas: HTMLCanvasElement) => {
 
 export const PayslipButton: React.FC<PayslipButtonProps> = ({
   employee,
-  companyName = "HOSPITAL DMI LTDA",
-  companyCNPJ = "30.882.426/0001-87",
   referenceDate = new Date()
 }) => {
 
+  const { settings } = useSettings();
   const [loading, setLoading] = useState(false);
   const [signatureData, setSignatureData] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const sigCanvas = useRef<any>(null);
   const { toast } = useToast();
+
+  const companyName = settings?.company_name || "Nova Empresa Cliente";
+  const companyCNPJ = settings?.cnpj || "00.000.000/0001-00";
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -118,8 +121,8 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
       // 3. Enviar Link por E-mail
       await emailjs.send(
-        'service_z5ccatp',
-        'template_u3pgt98',
+        import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_z5ccatp',
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_u3pgt98',
         {
           to_name: employee.name,
           to_email: employee.email, // Importante: No template do EmailJS, o campo "To Email" deve ser {{to_email}}
@@ -128,7 +131,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
           message: 'Seu holerite assinado está disponível para download.',
           link: publicUrl // No seu template do EmailJS, use a variável {{link}}
         },
-        '0ofiKy53c1RuwUoJ2'
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '0ofiKy53c1RuwUoJ2'
       );
 
       toast({

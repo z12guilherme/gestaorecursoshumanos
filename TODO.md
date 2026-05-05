@@ -113,5 +113,5 @@
 > **Objetivo:** Empacotar o sistema para ser facilmente replicado para cada novo cliente em infraestrutura própria (Vercel + Supabase do cliente), mantendo o código centralizado no seu GitHub.
 - [x] **Script de Setup Automático:** Consolidar todo o `DATABASE_RESTORE.md` (Tabelas, RLS, Storage Buckets, Triggers, Views Seguras) em um único script SQL (Migration) para subir o banco do cliente em 1 clique.
 - [x] **Seed Inicial:** Criar uma função no script para inserir automaticamente o primeiro usuário Administrador (RH) e as configurações em branco na tabela `settings`.
-- [ ] **White-label (Personalização):** Garantir que logotipos, cores e nomes da empresa sejam 100% puxados da tabela `settings` para facilitar o "re-branding" de cada cliente logo no primeiro acesso.
-- [ ] **Guia de Integração Rápida:** Criar um checklist interno (ex: `DEPLOY.md`) com o passo a passo exato de variáveis de ambiente do Vercel, chaves do EmailJS e do Supabase para fazer o setup de um cliente novo em 15 minutos.
+- [x] **White-label (Personalização):** Garantir que logotipos, cores e nomes da empresa sejam 100% puxados da tabela `settings` para facilitar o "re-branding" de cada cliente logo no primeiro acesso.
+- [x] **Guia de Integração Rápida:** Criar um checklist interno (ex: `DEPLOY.md`) com o passo a passo exato de variáveis de ambiente do Vercel, chaves do EmailJS e do Supabase para fazer o setup de um cliente novo em 15 minutos.

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { User, Building2, Bell, Palette, Upload, Loader2, Camera, Shield } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const companyLogoRef = useRef<HTMLInputElement>(null);
   const { refreshProfile } = useAuth();
 
   // Estado para o perfil do usuário
@@ -38,6 +40,10 @@ export default function Settings() {
     cnpj: '',
     email: '',
     notifications_enabled: true,
+    avatar_url: '',
+    login_background_url: '',
+    login_title: '',
+    login_subtitle: '',
   });
 
   useEffect(() => {
@@ -56,7 +62,7 @@ export default function Settings() {
           .single();
 
         if (profileError) throw profileError;
-        
+
         setProfileData({
           id: user.id,
           full_name: profile.full_name || '',
@@ -79,6 +85,10 @@ export default function Settings() {
             cnpj: settings.cnpj || '',
             email: settings.email || '',
             notifications_enabled: settings.notifications_enabled ?? true,
+            avatar_url: settings.avatar_url || '',
+            login_background_url: settings.login_background_url || '',
+            login_title: settings.login_title || '',
+            login_subtitle: settings.login_subtitle || '',
           });
         }
 
@@ -94,7 +104,7 @@ export default function Settings() {
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) return;
-    
+
     const file = event.target.files[0];
     const fileExt = file.name.split('.').pop();
     const fileName = `${profileData.id}/${Date.now()}.${fileExt}`;
@@ -102,7 +112,7 @@ export default function Settings() {
 
     try {
       setSaving(true);
-      
+
       // 1. Upload para o bucket 'avatars'
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -134,10 +144,69 @@ export default function Settings() {
     }
   };
 
+  const handleCompanyLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `company/${Date.now()}.${fileExt}`;
+
+    try {
+      setSaving(true);
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      const publicUrlWithTimestamp = `${publicUrl}?t=${Date.now()}`;
+      setCompanySettings(prev => ({ ...prev, avatar_url: publicUrlWithTimestamp }));
+
+      toast({ title: "Logo carregada", description: "Clique em Salvar para confirmar a alteração." });
+    } catch (error: any) {
+      console.error('Error uploading company logo:', error);
+      toast({ title: "Erro no upload", description: "Verifique as permissões de storage.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+      if (companyLogoRef.current) companyLogoRef.current.value = '';
+    }
+  };
+
+  const handleCompanyBackgroundUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `backgrounds/${Date.now()}.${fileExt}`;
+
+    try {
+      setSaving(true);
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      const publicUrlWithTimestamp = `${publicUrl}?t=${Date.now()}`;
+      setCompanySettings(prev => ({ ...prev, login_background_url: publicUrlWithTimestamp }));
+
+      toast({ title: "Fundo de login carregado", description: "Clique em Salvar para confirmar." });
+    } catch (error: any) {
+      console.error('Error uploading background:', error);
+      toast({ title: "Erro no upload", description: "Verifique as permissões de storage.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
-      
+
       if (activeTab === 'profile') {
         const { error } = await supabase
           .from('profiles')
@@ -148,20 +217,24 @@ export default function Settings() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', profileData.id);
-        
+
         if (error) throw error;
         await refreshProfile(); // Atualiza o contexto global (Sidebar)
         toast({ title: "Perfil salvo", description: "Suas informações de perfil foram atualizadas." });
 
-      } else if (activeTab === 'company' || activeTab === 'notifications') {
+      } else if (activeTab === 'company' || activeTab === 'notifications' || activeTab === 'appearance') {
         const payload = {
           company_name: companySettings.company_name,
           cnpj: companySettings.cnpj,
           email: companySettings.email,
           notifications_enabled: companySettings.notifications_enabled,
+          avatar_url: companySettings.avatar_url,
+          login_background_url: companySettings.login_background_url,
+          login_title: companySettings.login_title,
+          login_subtitle: companySettings.login_subtitle,
           updated_at: new Date().toISOString()
         };
-        
+
         let error;
         if (companySettings.id) {
           const { error: updateError } = await supabase
@@ -236,20 +309,20 @@ export default function Settings() {
                 <div className="flex flex-col items-center sm:flex-row gap-6">
                   <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                     <Avatar className="h-24 w-24 border-2 border-border">
-                      <AvatarImage 
+                      <AvatarImage
                         key={profileData.avatar_url} // Força re-render quando a URL muda
-                        src={profileData.avatar_url || "/placeholder.svg"} 
-                        className="object-cover" 
+                        src={profileData.avatar_url || "/placeholder.svg"}
+                        className="object-cover"
                       />
                       <AvatarFallback className="text-2xl">AD</AvatarFallback>
                     </Avatar>
                     <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Camera className="h-8 w-8 text-white" />
                     </div>
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
                       accept="image/*"
                       onChange={handleAvatarUpload}
                     />
@@ -261,7 +334,7 @@ export default function Settings() {
                     </p>
                   </div>
                 </div>
-                
+
                 <Separator />
 
                 <div className="grid gap-4">
@@ -270,7 +343,7 @@ export default function Settings() {
                     <Input
                       id="devName"
                       value={profileData.full_name}
-                      onChange={(e) => setProfileData({...profileData, full_name: e.target.value})}
+                      onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
                       placeholder="Ex: [DEV] Marcos Guilherme"
                     />
                   </div>
@@ -279,7 +352,7 @@ export default function Settings() {
                     <Input
                       id="displayRole"
                       value={profileData.display_role}
-                      onChange={(e) => setProfileData({...profileData, display_role: e.target.value})}
+                      onChange={(e) => setProfileData({ ...profileData, display_role: e.target.value })}
                       placeholder="Ex: Administrador, Gerente de RH"
                     />
                   </div>
@@ -304,13 +377,42 @@ export default function Settings() {
                 <CardTitle>Dados da Empresa</CardTitle>
                 <CardDescription>Informações utilizadas em cabeçalhos de relatórios.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                <div className="flex flex-col items-center sm:flex-row gap-6">
+                  <div className="relative group cursor-pointer" onClick={() => companyLogoRef.current?.click()}>
+                    <Avatar className="h-24 w-24 border-2 border-border bg-white p-2">
+                      <AvatarImage
+                        key={companySettings.avatar_url}
+                        src={companySettings.avatar_url || "/icone.png"}
+                        className="object-contain"
+                      />
+                      <AvatarFallback className="text-2xl">LG</AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="h-8 w-8 text-white" />
+                    </div>
+                    <input
+                      type="file"
+                      ref={companyLogoRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleCompanyLogoUpload}
+                    />
+                  </div>
+                  <div className="space-y-1 text-center sm:text-left">
+                    <h3 className="font-medium">Logo da Empresa</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Clique na imagem para alterar. Recomendado: Fundo transparente.
+                    </p>
+                  </div>
+                </div>
+                <Separator />
                 <div className="grid gap-2">
                   <Label htmlFor="companyName">Razão Social / Nome Fantasia</Label>
                   <Input
                     id="companyName"
                     value={companySettings.company_name}
-                    onChange={(e) => setCompanySettings({...companySettings, company_name: e.target.value})}
+                    onChange={(e) => setCompanySettings({ ...companySettings, company_name: e.target.value })}
                     placeholder="Minha Empresa S.A."
                   />
                 </div>
@@ -319,7 +421,7 @@ export default function Settings() {
                   <Input
                     id="cnpj"
                     value={companySettings.cnpj}
-                    onChange={(e) => setCompanySettings({...companySettings, cnpj: e.target.value})}
+                    onChange={(e) => setCompanySettings({ ...companySettings, cnpj: e.target.value })}
                     placeholder="00.000.000/0001-00"
                   />
                 </div>
@@ -328,7 +430,7 @@ export default function Settings() {
                   <Input
                     id="companyEmail"
                     value={companySettings.email}
-                    onChange={(e) => setCompanySettings({...companySettings, email: e.target.value})}
+                    onChange={(e) => setCompanySettings({ ...companySettings, email: e.target.value })}
                     placeholder="contato@empresa.com.br"
                   />
                 </div>
@@ -352,7 +454,7 @@ export default function Settings() {
                   </div>
                   <Switch
                     checked={companySettings.notifications_enabled}
-                    onCheckedChange={(c) => setCompanySettings({...companySettings, notifications_enabled: c})}
+                    onCheckedChange={(c) => setCompanySettings({ ...companySettings, notifications_enabled: c })}
                   />
                 </div>
               </CardContent>
@@ -366,10 +468,45 @@ export default function Settings() {
           {activeTab === 'appearance' && (
             <Card>
               <CardHeader>
-                <CardTitle>Aparência</CardTitle>
-                <CardDescription>Personalize a interface do sistema.</CardDescription>
+                <CardTitle>Aparência e Login</CardTitle>
+                <CardDescription>Personalize a interface do sistema e a tela de entrada.</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="space-y-6 mb-8">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Página de Login</h3>
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="bgUpload">Imagem de Fundo (Opcional)</Label>
+                      <div className="flex items-center gap-4">
+                        {companySettings.login_background_url && (
+                          <img src={companySettings.login_background_url} alt="Fundo de Login" className="w-32 h-20 object-cover rounded-md border" />
+                        )}
+                        <Input id="bgUpload" type="file" accept="image/*" onChange={handleCompanyBackgroundUpload} className="w-full" />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="loginTitle">Título de Boas-vindas</Label>
+                      <Input
+                        id="loginTitle"
+                        value={companySettings.login_title || ''}
+                        onChange={(e) => setCompanySettings({ ...companySettings, login_title: e.target.value })}
+                        placeholder="Ex: Excelência em Gestão de Pessoas"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="loginSubtitle">Subtítulo de Boas-vindas</Label>
+                      <Textarea
+                        id="loginSubtitle"
+                        value={companySettings.login_subtitle || ''}
+                        onChange={(e) => setCompanySettings({ ...companySettings, login_subtitle: e.target.value })}
+                        placeholder="Ex: Plataforma integrada para otimizar os processos..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <Separator className="my-6" />
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Tema do Sistema</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2 cursor-not-allowed opacity-50">
                     <div className="h-24 rounded-md bg-slate-100 border-2 border-slate-200" />
