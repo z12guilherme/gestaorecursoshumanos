@@ -27,8 +27,15 @@ export default function Suggestions() {
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [newSuggestionContent, setNewSuggestionContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [isQrOpen, setIsQrOpen] = useState(false);
   const { toast } = useToast();
   const { session, profile } = useAuth();
+
+  const publicLink = `${window.location.origin}/sugestoes-publico`;
+
+  const handlePrintQr = () => {
+    window.print();
+  };
 
   useEffect(() => {
     fetchSuggestions();
