@@ -14,16 +14,18 @@ export interface TimeEntry {
 export const timeEntryService = {
   /**
    * Busca registros de ponto com paginação para a listagem (Alta performance).
+   * Agora suporta um intervalo de datas (startDate até endDate).
    */
-  async getEntries(page: number = 1, pageSize: number = 50, date: string, employeeId?: string | null) {
+  async getEntries(page: number = 1, pageSize: number = 50, startDate: string, endDate?: string, employeeId?: string | null) {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
+    const finalDate = endDate || startDate;
     let query = supabase
       .from('time_entries')
       .select('id, timestamp, type, employee_id, latitude, longitude, notes, employees(name, department)', { count: 'exact' })
-      .gte('timestamp', `${date}T00:00:00.000Z`)
-      .lte('timestamp', `${date}T23:59:59.999Z`)
+      .gte('timestamp', `${startDate}T00:00:00.000Z`)
+      .lte('timestamp', `${finalDate}T23:59:59.999Z`)
       .order('timestamp', { ascending: false })
       .range(from, to);
 

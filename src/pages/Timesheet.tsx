@@ -53,6 +53,11 @@ export default function Timesheet() {
   const parentRef = useRef<HTMLDivElement>(null);
   const debouncedDate = useDebounce(selectedDate, 500);
 
+  const [listStartDate, setListStartDate] = useState(format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'));
+  const [listEndDate, setListEndDate] = useState(format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'));
+  const debouncedListStartDate = useDebounce(listStartDate, 500);
+  const debouncedListEndDate = useDebounce(listEndDate, 500);
+
   const rowVirtualizer = useVirtualizer({
     count: employeeStatus.length,
     getScrollElement: () => parentRef.current,
@@ -64,7 +69,7 @@ export default function Timesheet() {
     async function fetchEntries() {
       setLoadingEntries(true);
       try {
-        const { data, count } = await timeEntryService.getEntries(page, pageSize, debouncedDate, filterEmployeeId);
+        const { data, count } = await timeEntryService.getEntries(page, pageSize, debouncedListStartDate, debouncedListEndDate, filterEmployeeId);
         setEntries(data as any[]);
         setTotalCount(count);
       } catch (error) {
@@ -75,7 +80,7 @@ export default function Timesheet() {
     }
 
     fetchEntries();
-  }, [debouncedDate, page, filterEmployeeId]);
+  }, [debouncedListStartDate, debouncedListEndDate, page, filterEmployeeId]);
 
   // Efeito secundário (apenas quando a data muda) para alimentar a coluna de status
   useEffect(() => {
@@ -93,7 +98,7 @@ export default function Timesheet() {
   // Reseta a página para 1 sempre que trocar a data ou o filtro de funcionário
   useEffect(() => {
     setPage(1);
-  }, [debouncedDate, filterEmployeeId]);
+  }, [debouncedListStartDate, debouncedListEndDate, filterEmployeeId]);
 
   useEffect(() => {
     if (employees.length > 0) {
@@ -263,17 +268,24 @@ export default function Timesheet() {
         {/* Coluna de Registros */}
         <div className="lg:col-span-2">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <CardTitle>Registros do Dia {filterEmployeeId && "(Filtrado)"}</CardTitle>
+                <CardTitle>Registros de Ponto {filterEmployeeId && "(Filtrado)"}</CardTitle>
                 <CardDescription>
-                  {filterEmployeeId ? "Exibindo registros do funcionário selecionado." : "Lista de todas as marcações de ponto para a data selecionada."}
+                  {filterEmployeeId ? "Exibindo registros do funcionário selecionado." : "Lista de todas as marcações no período selecionado."}
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="mr-2 h-4 w-4" />
-                Exportar Excel
-              </Button>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 bg-secondary/50 p-1.5 rounded-lg border border-border">
+                  <Input type="date" value={listStartDate} onChange={(e) => setListStartDate(e.target.value)} className="w-[125px] h-8 text-xs" />
+                  <span className="text-muted-foreground text-xs font-medium">até</span>
+                  <Input type="date" value={listEndDate} onChange={(e) => setListEndDate(e.target.value)} className="w-[125px] h-8 text-xs" />
+                </div>
+                <Button variant="outline" size="sm" onClick={handleExport}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
