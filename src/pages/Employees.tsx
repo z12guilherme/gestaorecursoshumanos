@@ -108,6 +108,7 @@ export default function Employees() {
       variable_discounts: varDiscounts,
       variable_additions: varAdditions,
       avatar_url: dbEmp.avatar_url,
+      custom_fields: dbEmp.custom_fields || {},
     } as unknown as Employee
   });
 
@@ -234,6 +235,7 @@ export default function Employees() {
         vacation_limit_date: sanitizeDate((employeeData as any).vacationLimitDate),
         variable_discounts: (employeeData as any).variable_discounts,
         variable_additions: (employeeData as any).variable_additions,
+        custom_fields: (employeeData as any).custom_fields,
       };
 
       let result;

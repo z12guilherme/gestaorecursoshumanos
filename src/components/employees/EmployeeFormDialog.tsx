@@ -25,6 +25,7 @@ import { Plus, Trash2, KeyRound, Loader2 } from 'lucide-react';
 import { AvatarUpload } from './AvatarUpload';
 import { supabase } from '@/lib/supabase';
 import FinancialDataForm from './FinancialDataForm';
+import { useSettings } from '@/hooks/useSettings';
 
 interface EmployeeFormDialogProps {
   open: boolean;
@@ -36,6 +37,7 @@ interface EmployeeFormDialogProps {
 export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: EmployeeFormDialogProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const { settings } = useSettings();
   // Usando 'any' temporariamente para permitir as chaves snake_case do banco de dados
   const [formData, setFormData] = useState<any>({
     name: '',
@@ -62,6 +64,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
     variable_discounts: [],
     variable_additions: [],
     avatar_url: '',
+    custom_fields: {},
   });
 
   useEffect(() => {
@@ -93,8 +96,9 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
         variable_discounts: employee.variable_discounts || [],
         variable_additions: employee.variable_additions || [],
         avatar_url: employee.avatar_url,
-        inss_value: (employee as any).inssValue || 0,
-        password: '' // Senha sempre vazia ao editar
+        custom_fields: (employee as any).custom_fields || {},
+        inss_value: (employee as any).inss_value || 0,
+        password: ''
       });
     } else {
       setFormData({
@@ -122,6 +126,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
         variable_discounts: [],
         variable_additions: [],
         avatar_url: '',
+        custom_fields: {},
       });
     }
   }, [employee, open]);
@@ -131,6 +136,16 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
     setIsSaving(true);
 
     // NOTA: Edge Function removida temporariamente para evitar erro 401/500.
+    // Validar campos customizados obrigatórios
+    if (settings?.employee_custom_fields_config) {
+      for (const field of settings.employee_custom_fields_config) {
+        if (field.required && !formData.custom_fields?.[field.id]) {
+          toast({ title: "Campo Obrigatório", description: `O campo "${field.name}" é obrigatório.`, variant: "destructive" });
+          setIsSaving(false);
+          return;
+        }
+      }
+    }
     // Salvando diretamente no banco de dados.
     const payload = { ...formData };
 
@@ -345,6 +360,31 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
             </div>
 
             <FinancialDataForm formData={formData} setFormData={setFormData} />
+
+            {settings?.employee_custom_fields_config && settings.employee_custom_fields_config.length > 0 && (
+              <div className="col-span-2 border-t pt-4 mt-2">
+                <h4 className="text-sm font-medium mb-4 text-muted-foreground">Campos Personalizados</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {settings.employee_custom_fields_config.map((field: any) => (
+                    <div key={field.id} className="space-y-2">
+                      <Label htmlFor={`custom-${field.id}`}>{field.name}</Label>
+                      <Input
+                        id={`custom-${field.id}`}
+                        type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                        value={formData.custom_fields?.[field.id] || ''}
+                        onChange={(e) => {
+                          setFormData({
+                            ...formData,
+                            custom_fields: { ...formData.custom_fields, [field.id]: e.target.value },
+                          });
+                        }}
+                        required={field.required}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <EmployeeDocuments employeeId={employee?.id} />
           </div>

@@ -17,6 +17,7 @@ import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User, Undo2, Key
 import { format, differenceInDays, addDays, differenceInYears, addYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from '@/hooks/use-toast';
+import { useSettings } from '@/hooks/useSettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmployeeDocuments } from "./EmployeeDocuments";
 
@@ -33,6 +34,7 @@ interface EmployeeDetailSheetProps {
 export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenChange, onEdit, onEndVacation, onChangePassword }: EmployeeDetailSheetProps) {
   if (!employee) return null;
 
+  const { settings } = useSettings();
   const { toast } = useToast();
 
   const statusConfig: Record<string, { label: string; className: string }> = {
@@ -46,16 +48,16 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
   const hireDate = employee.hireDate ? new Date(employee.hireDate + 'T00:00:00') : new Date();
   const today = new Date();
   const yearsOfService = differenceInYears(today, hireDate);
-  
+
   // Período aquisitivo atual (aniversário de admissão deste ano até o próximo)
   const currentPeriodStart = addYears(hireDate, yearsOfService);
   const currentPeriodEnd = addYears(hireDate, yearsOfService + 1);
 
   // Calcula dias tirados no período atual
   const takenDays = timeOffRequests
-    .filter(r => 
-      r.employee_id === employee.id && 
-      r.status === 'approved' && 
+    .filter(r =>
+      r.employee_id === employee.id &&
+      r.status === 'approved' &&
       r.type === 'vacation' &&
       new Date(r.start_date + 'T00:00:00') >= currentPeriodStart
     )
@@ -78,8 +80,8 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
       const todayForDiff = new Date();
       todayForDiff.setHours(0, 0, 0, 0);
       if (end >= todayForDiff) {
-          returnDate = addDays(end, 1); // Return date is the day after vacation ends
-          daysLeft = differenceInDays(end, todayForDiff) + 1;
+        returnDate = addDays(end, 1); // Return date is the day after vacation ends
+        daysLeft = differenceInDays(end, todayForDiff) + 1;
       }
     }
   }
@@ -94,9 +96,9 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
           <div className="flex items-start justify-between">
             <div className="flex gap-4">
               <Avatar className="h-16 w-16 border-2 border-background shadow-sm">
-                <AvatarImage 
-                  src={employee.avatar_url || ""} 
-                  alt={employee.name} 
+                <AvatarImage
+                  src={employee.avatar_url || ""}
+                  alt={employee.name}
                   className="object-cover w-full h-full"
                 />
                 <AvatarFallback className="text-lg bg-primary/10 text-primary">
@@ -127,126 +129,146 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
           </TabsList>
 
           <TabsContent value="details" className="space-y-6">
-          {/* Vacation Status Card */}
-          {employee.status === 'vacation' && (
-            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold">
-                  <Calendar className="h-4 w-4" />
-                  <span>Status de Férias</span>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => onEndVacation(employee.id)}>
-                  <Undo2 className="h-4 w-4 mr-2" />
-                  Encerrar Férias
-                </Button>
-              </div>
-              {returnDate && (
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Retorno</p>
-                    <p className="font-medium text-lg">{format(returnDate, "dd 'de' MMM", { locale: ptBR })}</p>
+            {/* Vacation Status Card */}
+            {employee.status === 'vacation' && (
+              <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold">
+                    <Calendar className="h-4 w-4" />
+                    <span>Status de Férias</span>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Restante</p>
-                    <p className="font-medium text-lg">{daysLeft} dias</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Grant Vacation Action */}
-          {employee.status === 'active' && (
-            <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold">
-                  <Calendar className="h-4 w-4" />
-                  <span>Ações Rápidas</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={onChangePassword} className="bg-white dark:bg-slate-950">
-                    <KeyRound className="h-4 w-4 mr-2" />
-                    Senha
+                  <Button size="sm" variant="outline" onClick={() => onEndVacation(employee.id)}>
+                    <Undo2 className="h-4 w-4 mr-2" />
+                    Encerrar Férias
                   </Button>
                 </div>
+                {returnDate && (
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Retorno</p>
+                      <p className="font-medium text-lg">{format(returnDate, "dd 'de' MMM", { locale: ptBR })}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Restante</p>
+                      <p className="font-medium text-lg">{daysLeft} dias</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Vacation Balance Card */}
-          <div className="p-4 rounded-lg bg-secondary/30 border border-border space-y-3">
-             <div className="flex items-center justify-between">
+            {/* Grant Vacation Action */}
+            {employee.status === 'active' && (
+              <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold">
+                    <Calendar className="h-4 w-4" />
+                    <span>Ações Rápidas</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={onChangePassword} className="bg-white dark:bg-slate-950">
+                      <KeyRound className="h-4 w-4 mr-2" />
+                      Senha
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Vacation Balance Card */}
+            <div className="p-4 rounded-lg bg-secondary/30 border border-border space-y-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-semibold">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>Saldo de Férias</span>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>Saldo de Férias</span>
                 </div>
                 <Badge variant="outline" className="bg-background">{today.getFullYear()}</Badge>
-             </div>
-             <div className="flex items-end gap-2">
+              </div>
+              <div className="flex items-end gap-2">
                 <span className="text-3xl font-bold">{vacationBalance}</span>
                 <span className="text-sm text-muted-foreground mb-1">dias disponíveis</span>
-             </div>
-             <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+              </div>
+              <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
                 <div className="bg-primary h-full rounded-full" style={{ width: '70%' }} />
-             </div>
-             <p className="text-xs text-muted-foreground">
+              </div>
+              <p className="text-xs text-muted-foreground">
                 Período aquisitivo: {format(currentPeriodStart, 'dd/MM/yyyy')} - {format(currentPeriodEnd, 'dd/MM/yyyy')}
-             </p>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Informações de Contato</h4>
-            
-            <div className="grid gap-3">
-              <div className="flex items-center gap-3 text-sm">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{employee.email}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{employee.phone || 'Não informado'}</span>
-              </div>
-              {(employee as any).unit && (
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span>{(employee as any).unit}</span>
-                </div>
-              )}
+              </p>
             </div>
-          </div>
 
-          <Separator />
+            <Separator />
 
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dados Corporativos</h4>
-            
-            <div className="grid gap-3">
-              <div className="flex items-center gap-3 text-sm">
-                <Briefcase className="h-4 w-4 text-muted-foreground" />
-                <div className="flex flex-col">
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Informações de Contato</h4>
+
+              <div className="grid gap-3">
+                <div className="flex items-center gap-3 text-sm">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span>{employee.email}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span>{employee.phone || 'Não informado'}</span>
+                </div>
+                {(employee as any).unit && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{(employee as any).unit}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dados Corporativos</h4>
+
+              <div className="grid gap-3">
+                <div className="flex items-center gap-3 text-sm">
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex flex-col">
                     <span className="text-muted-foreground text-xs">Departamento</span>
                     <span>{employee.department}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <div className="flex flex-col">
+                <div className="flex items-center gap-3 text-sm">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex flex-col">
                     <span className="text-muted-foreground text-xs">Gestor</span>
                     <span>{employee.manager || 'Não definido'}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div className="flex flex-col">
+                <div className="flex items-center gap-3 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex flex-col">
                     <span className="text-muted-foreground text-xs">Data de Admissão</span>
                     <span>{employee.hireDate ? format(new Date(employee.hireDate + 'T00:00:00'), 'dd/MM/yyyy') : 'Não informado'}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
+            {settings?.employee_custom_fields_config?.length > 0 && (employee as any).custom_fields && Object.keys((employee as any).custom_fields).length > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Informações Adicionais</h4>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    {settings.employee_custom_fields_config.map((field: any) => {
+                      const value = (employee as any).custom_fields?.[field.id];
+                      if (!value) return null; // Não mostra campos vazios
+                      return (
+                        <div key={field.id} className="text-sm">
+                          <p className="text-muted-foreground text-xs">{field.name}</p>
+                          <p className="font-medium">{value}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="documents">

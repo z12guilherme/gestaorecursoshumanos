@@ -4,6 +4,8 @@ Como o nosso SaaS funciona no modelo "Multi-Instância" (um Supabase para cada c
 
 ## 1. Setup Inicial (Primeira Vez)
 
+> **🐳 Importante:** O Docker Desktop precisa estar instalado e rodando (a baleia tá nadando!) para que a CLI do Supabase consiga emular as ferramentas de banco localmente.
+
 Abra o terminal na raiz do projeto e rode:
 ```bash
 # Inicializa a pasta supabase/ no seu projeto

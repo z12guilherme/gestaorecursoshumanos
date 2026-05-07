@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Briefcase, Building2, ArrowLeft, UploadCloud, FileText, X, CheckCircle2 } from 'lucide-react';
+import { MapPin, Briefcase, Building2, ArrowLeft, UploadCloud, FileText, X, CheckCircle2, Globe, Linkedin, Instagram } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ export default function JobDetails() {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const [isApplyOpen, setIsApplyOpen] = useState(false);
@@ -38,17 +39,20 @@ export default function JobDetails() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    async function fetchJob() {
+    async function fetchData() {
       if (!jobId) return;
       try {
-        const { data, error } = await supabase
-          .from('jobs')
-          .select('*')
-          .eq('id', jobId)
-          .single();
+        const [jobRes, settingsRes] = await Promise.all([
+          supabase.from('jobs').select('*').eq('id', jobId).single(),
+          supabase.from('settings').select('career_page_banner, career_page_description, social_links, company_name').maybeSingle()
+        ]);
 
-        if (error) throw error;
-        setJob(data);
+        if (jobRes.error) throw jobRes.error;
+        setJob(jobRes.data);
+
+        if (settingsRes.data) {
+          setSettings(settingsRes.data);
+        }
       } catch (error) {
         console.error('Error fetching job:', error);
       } finally {
@@ -56,7 +60,7 @@ export default function JobDetails() {
       }
     }
 
-    fetchJob();
+    fetchData();
   }, [jobId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,6 +149,14 @@ export default function JobDetails() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-12">
+      {/* Hero Section Institucional (Banner) */}
+      {settings?.career_page_banner && (
+        <div
+          className="w-full h-48 md:h-64 bg-cover bg-center"
+          style={{ backgroundImage: `url(${settings.career_page_banner})` }}
+        />
+      )}
+
       {/* Hero Section da Vaga */}
       <div className="bg-white dark:bg-slate-900 border-b shadow-sm mb-8">
         <div className="mx-auto max-w-5xl px-4 py-8 md:py-12">
@@ -209,8 +221,48 @@ export default function JobDetails() {
                     </ul>
                   </div>
                 )}
+
+                {/* Seção Sobre a Empresa */}
+                {settings?.career_page_description && (
+                  <div className="mt-8 pt-8 border-t">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 pb-2">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      Sobre a Empresa {settings?.company_name ? `(${settings.company_name})` : ''}
+                    </h2>
+                    <div className="text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                      {settings.career_page_description}
+                    </div>
+                  </div>
+                )}
+
               </CardContent>
             </Card>
+
+            {/* Social Links */}
+            {settings?.social_links && (settings.social_links.linkedin || settings.social_links.instagram || settings.social_links.website) && (
+              <Card className="border-none shadow-md mt-6">
+                <CardContent className="p-6 mt-2">
+                  <h3 className="font-bold text-lg mb-4 border-b pb-2">Conheça mais</h3>
+                  <div className="flex flex-col gap-3">
+                    {settings.social_links.website && (
+                      <a href={settings.social_links.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
+                        <Globe className="h-4 w-4" /> Site Oficial
+                      </a>
+                    )}
+                    {settings.social_links.linkedin && (
+                      <a href={settings.social_links.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
+                        <Linkedin className="h-4 w-4" /> LinkedIn
+                      </a>
+                    )}
+                    {settings.social_links.instagram && (
+                      <a href={settings.social_links.instagram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
+                        <Instagram className="h-4 w-4" /> Instagram
+                      </a>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Card Lateral de Resumo */}

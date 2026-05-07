@@ -27,8 +27,11 @@ export default function Suggestions() {
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [newSuggestionContent, setNewSuggestionContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [isQrOpen, setIsQrOpen] = useState(false);
   const { toast } = useToast();
   const { session, profile } = useAuth();
+
+  const publicLink = `${window.location.origin}/sugestoes-publico`;
 
   useEffect(() => {
     fetchSuggestions();
@@ -62,6 +65,35 @@ export default function Suggestions() {
       return { label: 'Positivo', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200', icon: Smile, action: 'Ação sugerida: Compartilhar elogio com a equipe envolvida.' };
     }
     return { label: 'Neutro', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border-slate-200', icon: Meh, action: 'Ação sugerida: Acompanhamento padrão pelo atendimento.' };
+  };
+
+  const handlePrintQr = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>QR Code - Ouvidoria</title>
+            <style>
+              body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; text-align: center; }
+              img { width: 300px; height: 300px; margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; border-radius: 10px; }
+              h1 { color: #333; margin-bottom: 10px; font-size: 32px; }
+              p { color: #666; font-size: 18px; margin: 5px 0; }
+            </style>
+          </head>
+          <body>
+            <h1>Deixe sua sugestão!</h1>
+            <p>Escaneie o QR Code abaixo com a câmera do seu celular</p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(publicLink)}" alt="QR Code" />
+            <p>Ou acesse diretamente:</p>
+            <p><strong>${publicLink}</strong></p>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
+    }
   };
 
   const markAsRead = async (id: string) => {

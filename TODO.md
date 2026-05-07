@@ -115,3 +115,19 @@
 - [x] **Seed Inicial:** Criar uma função no script para inserir automaticamente o primeiro usuário Administrador (RH) e as configurações em branco na tabela `settings`.
 - [x] **White-label (Personalização):** Garantir que logotipos, cores e nomes da empresa sejam 100% puxados da tabela `settings` para facilitar o "re-branding" de cada cliente logo no primeiro acesso.
 - [x] **Guia de Integração Rápida:** Criar um checklist interno (ex: `DEPLOY.md`) com o passo a passo exato de variáveis de ambiente do Vercel, chaves do EmailJS e do Supabase para fazer o setup de um cliente novo em 15 minutos.
+
+## 💎 Fase 4: Personalização Avançada (SaaS Premium)
+> **Objetivo:** Adicionar funcionalidades que permitam aos clientes (RHs) adaptarem o sistema perfeitamente às suas necessidades específicas, agregando alto valor de venda ao produto.
+
+### 1. 📝 Campos Personalizados Flexíveis (Custom Fields)
+> **Problema:** Empresas diferentes precisam de dados diferentes no cadastro do colaborador (ex: Ramal, Restrição Alimentar, Placa do Carro, Tamanho do Uniforme).
+- [x] **Banco de Dados:** Adicionar uma coluna `custom_fields` (tipo `jsonb`) na tabela `employees`.
+- [x] **Banco de Dados:** Adicionar uma coluna `employee_custom_fields_config` (tipo `jsonb`) na tabela `settings` para guardar a definição dos campos (nome, tipo, se é obrigatório).
+- [x] **Configurações:** Criar aba "Campos Personalizados" para o Admin definir quais campos extras o sistema deve exibir.
+- [x] **Frontend:** Atualizar os formulários de Admissão e o Dossiê Digital para renderizar e salvar dinamicamente os campos configurados.
+
+### 2. 💼 Página de Carreiras Pública Personalizável (ATS)
+> **Problema:** A página de vagas é padronizada. O cliente precisa de uma "Landing Page" de vagas com o branding e a cultura da própria empresa para atrair mais talentos.
+- [x] **Banco de Dados:** Adicionar colunas `career_page_banner`, `career_page_description` e `social_links` (tipo `jsonb`) na tabela `settings`.
+- [x] **Configurações (Painel):** Criar aba "Portal de Vagas" nas Configurações para o RH fazer upload de imagem, texto sobre a cultura da empresa e links sociais.
+- [x] **Portal Público:** Atualizar a tela pública de vagas para consumir as customizações, transformando-a em uma verdadeira vitrine da empresa.

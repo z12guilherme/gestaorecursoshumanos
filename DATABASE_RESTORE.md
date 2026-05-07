@@ -13,291 +13,46 @@ VITE_SUPABASE_ANON_KEY="SUA_NOVA_CHAVE_ANONIMA"
 
 ## 2. Script SQL de Restauração
 
-Copie o código abaixo e cole no **SQL Editor** do painel do Supabase para recriar toda a estrutura de tabelas.
+Com a evolução do sistema no modelo Multi-Tenant, o schema cresceu consideravelmente (incluindo views seguras, profiles atrelados ao auth.users, triggers de log, etc). 
+Por isso, o script de restauração não é mais mantido manualmente neste arquivo.
 
-> **Nota:** A ordem das tabelas foi ajustada para respeitar as dependências (Chaves Estrangeiras).
+Para restaurar o banco de dados do zero ou criar rapidamente a infraestrutura de um novo cliente:
 
-```sql
--- 1. Tabela de Colaboradores (Base para outras tabelas)
-CREATE TABLE public.employees (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  email text,
-  role text,
-  department text,
-  unit text,
-  status text DEFAULT 'Ativo'::text,
-  admission_date date,
-  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  phone text,
-  contract_type text,
-  birth_date date,
-  salary numeric,
-  manager text,
-  work_schedule text DEFAULT '09:00 - 18:00'::text,
-  password text, -- Senha HASHEADA para o Ponto Eletrônico
-  pis_pasep text,
-  avatar_url text,
-  pix_key text,
-  vacation_due_date date,
-  vacation_limit_date date,
-  base_salary numeric,
-  fixed_discounts numeric,
-  inss_value numeric DEFAULT 0,
-  contracted_hours numeric,
-  has_insalubrity boolean DEFAULT false,
-  has_night_shift boolean DEFAULT false,
-  family_salary_amount numeric DEFAULT 0,
-  insalubrity_amount numeric DEFAULT 0,
-  night_shift_amount numeric DEFAULT 0,
-  overtime_amount numeric DEFAULT 0,
-  vacation_amount numeric DEFAULT 0,
-  vacation_third_amount numeric DEFAULT 0,
-  variable_discounts jsonb DEFAULT '[]'::jsonb,
-  variable_additions jsonb DEFAULT '[]'::jsonb,
-  CONSTRAINT employees_pkey PRIMARY KEY (id)
-);
+1. Localize o arquivo de dump SQL mais recente (ex: `Backup - Supabase.sql` que é extraído via CLI).
+2. Copie todo o conteúdo desse arquivo `.sql`.
+3. Cole no **SQL Editor** do painel do Supabase da nova instância e clique em **Run**.
 
--- 2. Tabela de Vagas
-CREATE TABLE public.jobs (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  title text NOT NULL,
-  department text,
-  location text,
-  type text,
-  status text DEFAULT 'Aberta'::text,
-  description text,
-  requirements text[], -- Ajustado para array de texto
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT jobs_pkey PRIMARY KEY (id)
-);
-
--- 11. Tabela de Sugestões (Ouvidoria)
-CREATE TABLE public.suggestions (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  customer_name text,
-  contact_info text,
-  content text NOT NULL,
-  status text DEFAULT 'Nova'::text, -- Nova, Lida, Arquivada
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT suggestions_pkey PRIMARY KEY (id)
-);
--- 3. Tabela de Candidatos (Depende de Jobs)
-CREATE TABLE public.candidates (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  job_id uuid,
-  name text NOT NULL,
-  email text,
-  phone text,
-  position text,
-  status text DEFAULT 'Inscrito'::text,
-  rating integer DEFAULT 0,
-  notes text,
-  applied_at timestamp with time zone DEFAULT now(),
-  resume_url text,
-  CONSTRAINT candidates_pkey PRIMARY KEY (id),
-  CONSTRAINT candidates_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
-);
-
--- 4. Registros de Ponto (Depende de Employees)
-CREATE TABLE public.time_entries (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  employee_id uuid,
-  timestamp timestamp with time zone DEFAULT now(),
-  type text CHECK (type = ANY (ARRAY['in'::text, 'out'::text, 'lunch_start'::text, 'lunch_end'::text])),
-  latitude numeric,
-  longitude numeric,
-  notes text,
-  CONSTRAINT time_entries_pkey PRIMARY KEY (id),
-  CONSTRAINT time_entries_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id)
-);
-
--- 5. Solicitações de Férias/Ausência (Depende de Employees)
-CREATE TABLE public.time_off_requests (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  employee_id uuid,
-  type text NOT NULL,
-  start_date date NOT NULL,
-  end_date date NOT NULL,
-  status text DEFAULT 'pending'::text,
-  reason text,
-  attachment_url text,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT time_off_requests_pkey PRIMARY KEY (id),
-  CONSTRAINT time_off_requests_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id)
-);
-
--- 6. Avaliações de Desempenho (Depende de Employees)
-CREATE TABLE public.performance_reviews (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  employee_id uuid,
-  reviewer_id uuid,
-  period text,
-  overall_score numeric,
-  goals jsonb,
-  competencies jsonb,
-  feedback text,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT performance_reviews_pkey PRIMARY KEY (id),
-  CONSTRAINT performance_reviews_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id),
-  CONSTRAINT performance_reviews_reviewer_id_fkey FOREIGN KEY (reviewer_id) REFERENCES public.employees(id)
-);
-
--- 7. Mensagens da IA
-CREATE TABLE public.ai_messages (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  role text NOT NULL CHECK (role = ANY (ARRAY['user'::text, 'assistant'::text])),
-  content text NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT ai_messages_pkey PRIMARY KEY (id)
-);
-
--- 8. Comunicados e Avisos
-CREATE TABLE public.announcements (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  title text NOT NULL,
-  content text NOT NULL,
-  priority text CHECK (priority = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])),
-  author text,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT announcements_pkey PRIMARY KEY (id)
-);
-
--- 9. Scripts de Automação
-CREATE TABLE public.automation_scripts (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  title text NOT NULL,
-  description text,
-  code text NOT NULL,
-  language text DEFAULT 'python'::text,
-  instructions text,
-  is_custom boolean DEFAULT false,
-  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT automation_scripts_pkey PRIMARY KEY (id)
-);
-
--- 10. Configurações do Sistema
-CREATE TABLE public.settings (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  company_name text,
-  cnpj text,
-  email text,
-  phone text,
-  website text,
-  address text,
-  city text,
-  state text,
-  zip_code text,
-  theme text DEFAULT 'light'::text,
-  notifications_enabled boolean DEFAULT true,
-  developer_name text DEFAULT 'Marcos Guilherme'::text,
-  avatar_url text,
-  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT settings_pkey PRIMARY KEY (id)
-);
-
--- 12. Configurações de Folha (Tabelas Dinâmicas INSS/IRRF)
-CREATE TABLE public.payroll_configurations (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  key text NOT NULL UNIQUE, -- Ex: 'inss_table'
-  value jsonb NOT NULL,     -- O array com as faixas
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT payroll_configurations_pkey PRIMARY KEY (id)
-);
-
--- 13. Documentos do Funcionário
-CREATE TABLE public.employee_documents (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  employee_id uuid REFERENCES public.employees(id),
-  name text NOT NULL,
-  url text NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT employee_documents_pkey PRIMARY KEY (id)
-);
-
--- 14. Confirmação de Holerites (Assinatura Digital)
-CREATE TABLE public.payslip_acknowledgments (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  employee_id uuid NOT NULL,
-  reference_date date NOT NULL,
-  signature_image text,
-  user_agent text,
-  ip_address text,
-  signed_at timestamp with time zone DEFAULT now(),
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT payslip_acknowledgments_pkey PRIMARY KEY (id),
-  CONSTRAINT payslip_acknowledgments_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id),
-  CONSTRAINT payslip_acknowledgments_unique_ref UNIQUE (employee_id, reference_date)
-);
-```
+> **Vantagem:** O dump automático da CLI já inclui **todas as tabelas, Storage Buckets, Triggers, Funções do PostgreSQL e Políticas de Segurança (RLS)** na ordem exata de dependência.
 
 ## 3. Configuração de Segurança (RLS)
 
-Por padrão, o Supabase bloqueia o acesso público às tabelas. Para que o frontend funcione corretamente, você precisará configurar as políticas de segurança (Row Level Security).
-
-**Recomendação de Segurança:**
-É crucial definir políticas que restrinjam o acesso aos dados. Por exemplo, para permitir que apenas usuários logados (`authenticated`) acessem a tabela de funcionários, use o seguinte comando. **Nunca use `USING (true)` em uma política `FOR ALL` em produção.**
-
-```sql
--- Habilita o RLS na tabela de funcionários
-ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
--- Permite acesso total APENAS para usuários logados
-CREATE POLICY "Acesso total para usuários autenticados" ON public.employees FOR ALL TO authenticated USING (true) WITH CHECK (true);
-```
-
-*Recomendação:* No futuro, configure políticas que verifiquem `auth.uid()` para garantir que apenas usuários autorizados possam editar dados sensíveis.
+Todas as políticas de **Row Level Security (RLS)** estão totalmente embutidas no arquivo `.sql` exportado pela CLI do Supabase. 
+Elas restringem o acesso aos dados com precisão, garantindo que colunas sensíveis só sejam acessadas por quem tem o nível correto de autenticação. Nenhuma configuração manual avulsa é necessária.
 
 ## 4. Storage (Arquivos)
 
 Se o seu projeto utiliza upload de arquivos (ex: currículos em `candidates.resume_url` ou avatares), lembre-se de recriar os **Buckets** no menu Storage:
 
-1.  Acesse **Storage** no painel.
-2.  Crie um bucket chamado `resumes` (ou o nome utilizado no código).
-3.  Crie um bucket chamado `avatars` (se aplicável).
-4.  Crie um bucket chamado `documents` (para laudos, contratos, etc).
-5.  Crie um bucket chamado `time-off-attachments` (para atestados).
-6.  Configure as políticas do Storage. Rode o script abaixo no SQL Editor:
+As políticas de acesso de *Storage* também são exportadas pelo comando de `dump`.
+Basta criar (ou garantir que existem) os buckets abaixo de forma manual na UI caso não os veja:
+* `resumes`
+* `avatars`
+* `documents`
+* `time-off-attachments`
 
-```sql
--- Políticas de Storage (Copie e cole no SQL Editor)
+## 5. Extraindo Novas Configurações via CLI (Para o Dev)
 
--- 1. Bucket 'resumes' (Currículos)
--- Permitir upload público (Candidatos enviam currículo sem login)
-DROP POLICY IF EXISTS "Public Upload Resumes" ON storage.objects;
-CREATE POLICY "Public Upload Resumes" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'resumes');
--- Permitir leitura pública (RH visualiza currículos)
-DROP POLICY IF EXISTS "Public Read Resumes" ON storage.objects;
-CREATE POLICY "Public Read Resumes" ON storage.objects FOR SELECT USING (bucket_id = 'resumes');
+Para atualizar o arquivo principal de instalação com todas as inovações que você construiu diretamente no seu Supabase Master:
 
--- 2. Bucket 'avatars' (Fotos de Perfil)
--- Permitir leitura pública
-DROP POLICY IF EXISTS "Public Read Avatars" ON storage.objects;
-CREATE POLICY "Public Read Avatars" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
--- Permitir upload apenas para usuários logados (RH)
-DROP POLICY IF EXISTS "Auth Upload Avatars" ON storage.objects;
-CREATE POLICY "Auth Upload Avatars" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars');
+> **⚠️ Pré-requisito:** O [Docker Desktop](https://www.docker.com/products/docker-desktop/) precisa estar aberto e rodando no seu computador (a famosa "baleia precisa estar nadando" 🐳) para que a CLI do Supabase consiga executar o dump do banco.
 
--- 3. Bucket 'documents' (Documentos do Funcionário)
--- Permitir leitura pública (para facilitar o acesso no terminal de ponto, ou restrinja se preferir)
-DROP POLICY IF EXISTS "Public Read Documents" ON storage.objects;
-CREATE POLICY "Public Read Documents" ON storage.objects FOR SELECT USING (bucket_id = 'documents');
--- Permitir upload apenas para RH (autenticado)
-DROP POLICY IF EXISTS "Auth Upload Documents" ON storage.objects;
-CREATE POLICY "Auth Upload Documents" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'documents');
+```bash
+# 1. Faça login
+npx supabase login
 
--- 4. Bucket 'time-off-attachments' (Atestados)
-DROP POLICY IF EXISTS "Public Read TimeOff" ON storage.objects;
-CREATE POLICY "Public Read TimeOff" ON storage.objects FOR SELECT USING (bucket_id = 'time-off-attachments');
-DROP POLICY IF EXISTS "Public Upload TimeOff" ON storage.objects;
-CREATE POLICY "Public Upload TimeOff" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'time-off-attachments');
+# 2. Conecte ao seu projeto Mestre
+npx supabase link --project-ref szqheiruhdfmzxmxjufb
+
+# 3. Puxe toda a estrutura para um arquivo local consolidado
+npx supabase db dump --linked > "Backup - Supabase.sql"
 ```
-
-## 5. Como Restaurar
-
-1.  Crie um novo projeto no Supabase.
-2.  Vá em **SQL Editor**.
-3.  Cole o script da seção **2. Script SQL de Restauração** e clique em **Run**.
-4.  (Opcional) Cole scripts de RLS ou configure manualmente.
-5.  Atualize o arquivo `.env` do seu projeto React com as novas credenciais.
-6.  Rode `npm run dev` e teste a aplicação.

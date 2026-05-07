@@ -9,8 +9,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { User, Building2, Bell, Palette, Upload, Loader2, Camera, Shield } from 'lucide-react';
+import { User, Building2, Bell, Palette, Upload, Loader2, Camera, Shield, ListPlus, Globe, Trash2, Plus, Linkedin, Instagram } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { MfaSetup } from '@/components/settings/MfaSetup';
@@ -44,6 +45,10 @@ export default function Settings() {
     login_background_url: '',
     login_title: '',
     login_subtitle: '',
+    employee_custom_fields_config: [] as any[],
+    career_page_banner: '',
+    career_page_description: '',
+    social_links: { linkedin: '', instagram: '', website: '' },
   });
 
   useEffect(() => {
@@ -89,6 +94,10 @@ export default function Settings() {
             login_background_url: settings.login_background_url || '',
             login_title: settings.login_title || '',
             login_subtitle: settings.login_subtitle || '',
+            employee_custom_fields_config: settings.employee_custom_fields_config || [],
+            career_page_banner: settings.career_page_banner || '',
+            career_page_description: settings.career_page_description || '',
+            social_links: { linkedin: '', instagram: '', website: '', ...(settings.social_links || {}) },
           });
         }
 
@@ -203,6 +212,61 @@ export default function Settings() {
     }
   };
 
+  const handleCareerBannerUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `career/${Date.now()}.${fileExt}`;
+
+    try {
+      setSaving(true);
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      const publicUrlWithTimestamp = `${publicUrl}?t=${Date.now()}`;
+      setCompanySettings(prev => ({ ...prev, career_page_banner: publicUrlWithTimestamp }));
+
+      toast({ title: "Banner carregado", description: "Clique em Salvar para confirmar." });
+    } catch (error: any) {
+      console.error('Error uploading banner:', error);
+      toast({ title: "Erro no upload", description: "Verifique as permissões de storage.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addCustomField = () => {
+    setCompanySettings(prev => ({
+      ...prev,
+      employee_custom_fields_config: [
+        ...prev.employee_custom_fields_config,
+        { id: crypto.randomUUID(), name: '', type: 'text', required: false }
+      ]
+    }));
+  };
+
+  const removeCustomField = (id: string) => {
+    setCompanySettings(prev => ({
+      ...prev,
+      employee_custom_fields_config: prev.employee_custom_fields_config.filter(f => f.id !== id)
+    }));
+  };
+
+  const updateCustomField = (id: string, key: string, value: any) => {
+    setCompanySettings(prev => ({
+      ...prev,
+      employee_custom_fields_config: prev.employee_custom_fields_config.map(f =>
+        f.id === id ? { ...f, [key]: value } : f
+      )
+    }));
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -222,7 +286,7 @@ export default function Settings() {
         await refreshProfile(); // Atualiza o contexto global (Sidebar)
         toast({ title: "Perfil salvo", description: "Suas informações de perfil foram atualizadas." });
 
-      } else if (activeTab === 'company' || activeTab === 'notifications' || activeTab === 'appearance') {
+      } else if (['company', 'notifications', 'appearance', 'custom_fields', 'career_page'].includes(activeTab)) {
         const payload = {
           company_name: companySettings.company_name,
           cnpj: companySettings.cnpj,
@@ -232,6 +296,10 @@ export default function Settings() {
           login_background_url: companySettings.login_background_url,
           login_title: companySettings.login_title,
           login_subtitle: companySettings.login_subtitle,
+          employee_custom_fields_config: companySettings.employee_custom_fields_config,
+          career_page_banner: companySettings.career_page_banner,
+          career_page_description: companySettings.career_page_description,
+          social_links: companySettings.social_links,
           updated_at: new Date().toISOString()
         };
 
@@ -269,6 +337,8 @@ export default function Settings() {
   const menuItems = [
     { id: 'profile', label: 'Perfil', icon: User },
     { id: 'company', label: 'Empresa', icon: Building2 },
+    { id: 'custom_fields', label: 'Campos Extras', icon: ListPlus },
+    { id: 'career_page', label: 'Portal de Vagas', icon: Globe },
     { id: 'notifications', label: 'Notificações', icon: Bell },
     { id: 'security', label: 'Segurança', icon: Shield },
     { id: 'appearance', label: 'Aparência', icon: Palette },
@@ -433,6 +503,113 @@ export default function Settings() {
                     onChange={(e) => setCompanySettings({ ...companySettings, email: e.target.value })}
                     placeholder="contato@empresa.com.br"
                   />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'custom_fields' && (
+            <Card>
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Campos Personalizados do Colaborador</CardTitle>
+                  <CardDescription>Crie campos adicionais para a ficha de cadastro (ex: Ramal, Placa do Carro, Tamanho da Bota).</CardDescription>
+                </div>
+                <Button onClick={addCustomField} size="sm" variant="outline" className="gap-2 shrink-0">
+                  <Plus className="h-4 w-4" /> Adicionar Campo
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {companySettings.employee_custom_fields_config.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Nenhum campo personalizado configurado.</p>
+                ) : (
+                  companySettings.employee_custom_fields_config.map((field) => (
+                    <div key={field.id} className="flex flex-col sm:flex-row items-end sm:items-center gap-4 p-4 border rounded-lg bg-secondary/20 transition-all hover:bg-secondary/40">
+                      <div className="grid gap-2 w-full sm:flex-1">
+                        <Label>Nome do Campo</Label>
+                        <Input value={field.name} onChange={(e) => updateCustomField(field.id, 'name', e.target.value)} placeholder="Ex: Tamanho do Uniforme" />
+                      </div>
+                      <div className="grid gap-2 w-full sm:w-[150px]">
+                        <Label>Tipo do Dado</Label>
+                        <Select value={field.type} onValueChange={(v) => updateCustomField(field.id, 'type', v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="text">Texto / Curto</SelectItem>
+                            <SelectItem value="number">Numérico</SelectItem>
+                            <SelectItem value="date">Data</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2 sm:mb-0 w-full sm:w-auto">
+                        <Switch checked={field.required} onCheckedChange={(c) => updateCustomField(field.id, 'required', c)} />
+                        <Label className="text-sm whitespace-nowrap mr-2">Obrigatório</Label>
+                      </div>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 mb-0.5" onClick={() => removeCustomField(field.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === 'career_page' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Portal de Vagas (Landing Page)</CardTitle>
+                <CardDescription>Personalize a página pública onde os candidatos visualizam suas vagas abertas.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-2">
+                  <Label>Banner Institucional da Página</Label>
+                  <div className="flex items-center gap-4">
+                    {companySettings.career_page_banner && (
+                      <img src={companySettings.career_page_banner} alt="Banner" className="w-32 h-20 object-cover rounded-md border" />
+                    )}
+                    <Input type="file" accept="image/*" onChange={handleCareerBannerUpload} className="w-full" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Tamanho recomendado: 1200x400px</p>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Sobre a Empresa e a Cultura</Label>
+                  <Textarea
+                    rows={4}
+                    value={companySettings.career_page_description}
+                    onChange={(e) => setCompanySettings(prev => ({ ...prev, career_page_description: e.target.value }))}
+                    placeholder="Conte um pouco sobre como é trabalhar na sua empresa..."
+                  />
+                </div>
+
+                <Separator />
+
+                <h3 className="text-sm font-semibold text-foreground">Redes Sociais da Empresa</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label className="flex items-center gap-2"><Linkedin className="h-4 w-4 text-muted-foreground" /> LinkedIn</Label>
+                    <Input
+                      value={companySettings.social_links.linkedin}
+                      onChange={(e) => setCompanySettings(prev => ({ ...prev, social_links: { ...prev.social_links, linkedin: e.target.value } }))}
+                      placeholder="https://linkedin.com/company/..."
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="flex items-center gap-2"><Instagram className="h-4 w-4 text-muted-foreground" /> Instagram</Label>
+                    <Input
+                      value={companySettings.social_links.instagram}
+                      onChange={(e) => setCompanySettings(prev => ({ ...prev, social_links: { ...prev.social_links, instagram: e.target.value } }))}
+                      placeholder="https://instagram.com/..."
+                    />
+                  </div>
+                  <div className="grid gap-2 sm:col-span-2">
+                    <Label className="flex items-center gap-2"><Globe className="h-4 w-4 text-muted-foreground" /> Site Oficial</Label>
+                    <Input
+                      value={companySettings.social_links.website}
+                      onChange={(e) => setCompanySettings(prev => ({ ...prev, social_links: { ...prev.social_links, website: e.target.value } }))}
+                      placeholder="https://www.suaempresa.com.br"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
