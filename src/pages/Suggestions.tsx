@@ -33,6 +33,13 @@ export default function Suggestions() {
 
   const publicLink = `${window.location.origin}/sugestoes-publico`;
 
+<<<<<<< HEAD
+=======
+  const handlePrintQr = () => {
+    window.print();
+  };
+
+>>>>>>> 64836e2f402029eead7aa3b384b43e2863b4efbb
   useEffect(() => {
     fetchSuggestions();
   }, []);
