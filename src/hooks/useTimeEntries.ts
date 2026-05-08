@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
 export interface TimeEntry {
   id: string;
@@ -15,6 +16,16 @@ export function useTimeEntries() {
   const fetchEntries = async () => {
     try {
       setLoading(true);
+
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        const data = mockDatabase.get('time_entries');
+        data.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setEntries(data);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('time_entries')
         .select('*')
@@ -31,6 +42,19 @@ export function useTimeEntries() {
 
   const addEntry = async (entry: Omit<TimeEntry, 'id'>) => {
     try {
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        const emp = mockDatabase.get('employees').find((e: any) => e.id === entry.employee_id);
+        const newEntry = {
+          ...entry,
+          id: Date.now().toString(),
+          employees: emp ? { name: emp.name, department: emp.department } : null,
+        };
+        mockDatabase.add('time_entries', newEntry);
+        setEntries(prev => [newEntry, ...prev]);
+        return { data: newEntry, error: null };
+      }
+
       const { data, error } = await supabase
         .from('time_entries')
         .insert([entry])

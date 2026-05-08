@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { endOfMonth, startOfMonth, subYears } from "date-fns";
+import { mockDatabase, USE_MOCK } from "@/lib/mockDatabase";
 
 export interface AnalyticsData {
   costByDept: { name: string; value: number }[];
@@ -30,6 +31,15 @@ export const analyticsService = {
    * as it's not derivable from the simple 'employees' table state.
    */
   async getDashboardMetrics(): Promise<AnalyticsData> {
+    // 🔀 Desvio Offline (Mock)
+    if (USE_MOCK) {
+      const employees = mockDatabase.get('employees');
+      const totalEmployees = employees.length;
+      const terminatedEmployees = employees.filter((e: any) => e.status === 'terminated' || e.status === 'Desligado').length;
+      const turnoverRate = totalEmployees > 0 ? (terminatedEmployees / totalEmployees) * 100 : 0;
+      return { costByDept: [], overtimeData: [], turnoverRate, costHistory: [], headcountHistory: [], headcountForecast: 0 };
+    }
+
     const { data: employees, error } = await supabase
       .from("employees")
       .select("department, base_salary, status, overtime_amount, admission_date");
@@ -61,6 +71,26 @@ export const analyticsService = {
   async getMonthlyMetrics(date: Date): Promise<MonthlyAnalyticsData> {
     const monthEnd = endOfMonth(date);
     const monthStart = startOfMonth(date);
+
+    // 🔀 Desvio Offline (Mock)
+    if (USE_MOCK) {
+      const employees = mockDatabase.get('employees');
+      const activeEmployees = employees.filter((e: any) => e.status === 'active' || e.status === 'Ativo' || e.status === 'vacation');
+      const costByDeptMap: Record<string, number> = {};
+      let totalCost = 0;
+      activeEmployees.forEach((emp: any) => {
+        const dept = emp.department || 'Sem Depto';
+        const salary = Number(emp.base_salary) || 0;
+        costByDeptMap[dept] = (costByDeptMap[dept] || 0) + salary;
+        totalCost += salary;
+      });
+      const costByDept = Object.keys(costByDeptMap).map(key => ({ name: key, value: costByDeptMap[key] }));
+      return {
+        metrics: { totalCost, totalOvertime: 0, turnoverRate: 0, headcount: activeEmployees.length },
+        costByDept,
+        overtimeData: [],
+      };
+    }
 
     // O cálculo agora é 100% preciso utilizando a coluna termination_date.
     // Consideramos ativos no mês quem foi admitido antes do fim do mês e não foi demitido antes do início do mês.

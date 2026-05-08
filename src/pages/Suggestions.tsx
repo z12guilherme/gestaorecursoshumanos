@@ -8,8 +8,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface Suggestion {
@@ -24,22 +22,11 @@ interface Suggestion {
 export default function Suggestions() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
-  const [newSuggestionContent, setNewSuggestionContent] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [isQrOpen, setIsQrOpen] = useState(false);
   const { toast } = useToast();
-  const { session, profile } = useAuth();
 
   const publicLink = `${window.location.origin}/sugestoes-publico`;
 
-<<<<<<< HEAD
-=======
-  const handlePrintQr = () => {
-    window.print();
-  };
-
->>>>>>> 64836e2f402029eead7aa3b384b43e2863b4efbb
   useEffect(() => {
     fetchSuggestions();
   }, []);
@@ -126,33 +113,6 @@ export default function Suggestions() {
     } catch (error) {
       console.error('Erro ao excluir:', error);
       toast({ title: 'Erro', description: 'Não foi possível excluir a mensagem.', variant: 'destructive' });
-    }
-  };
-
-  const handleSubmitSuggestion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSuggestionContent.trim()) return;
-
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.from('suggestions').insert([{
-        customer_name: profile?.full_name || session?.user?.email || 'Colaborador',
-        contact_info: session?.user?.email || '',
-        content: newSuggestionContent,
-        status: 'Nova'
-      }]);
-
-      if (error) throw error;
-
-      toast({ title: 'Sucesso', description: 'Sua mensagem foi enviada ao RH.' });
-      setIsNewDialogOpen(false);
-      setNewSuggestionContent('');
-      fetchSuggestions();
-    } catch (error) {
-      console.error('Erro ao enviar:', error);
-      toast({ title: 'Erro', description: 'Não foi possível enviar sua mensagem.', variant: 'destructive' });
-    } finally {
-      setSubmitting(false);
     }
   };
 

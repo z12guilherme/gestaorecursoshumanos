@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
 export interface Settings {
     company_name: string | null;
@@ -18,6 +19,21 @@ export function useSettings() {
     useEffect(() => {
         async function fetchSettings() {
             try {
+                // 🔀 Desvio Offline (Mock)
+                if (USE_MOCK) {
+                    const data = mockDatabase.get('settings');
+                    // settings é um objeto único, não array
+                    const settingsData = Array.isArray(data) ? data[0] : data;
+                    if (settingsData) {
+                        setSettings(settingsData);
+                        if (settingsData.company_name) {
+                            document.title = `${settingsData.company_name} | Portal RH`;
+                        }
+                    }
+                    setLoading(false);
+                    return;
+                }
+
                 const { data, error } = await supabase.from('settings').select('company_name, cnpj, avatar_url, theme, login_background_url, login_title, login_subtitle').single();
                 if (data) {
                     setSettings(data);

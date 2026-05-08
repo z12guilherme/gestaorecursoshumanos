@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
 export interface Goal {
   description: string;
@@ -34,6 +35,21 @@ export function usePerformance() {
   const fetchReviews = async () => {
     try {
       setLoading(true);
+
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        const data = mockDatabase.get('performance_reviews');
+        const formatted = data.map((item: any) => ({
+          ...item,
+          employee_name: item.employee?.name || 'Desconhecido',
+          reviewer_name: item.reviewer?.name || 'Desconhecido',
+        }));
+        formatted.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setReviews(formatted);
+        setLoading(false);
+        return;
+      }
+
       // Busca as avaliações e faz o "join" para pegar os nomes dos colaboradores
       const { data, error } = await supabase
         .from('performance_reviews')
@@ -63,6 +79,23 @@ export function usePerformance() {
 
   const addReview = async (review: Omit<PerformanceReview, 'id' | 'created_at' | 'employee_name' | 'reviewer_name'>) => {
     try {
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        const emps = mockDatabase.get('employees');
+        const empName = emps.find((e: any) => e.id === review.employee_id)?.name || 'Desconhecido';
+        const revName = emps.find((e: any) => e.id === review.reviewer_id)?.name || 'Desconhecido';
+        const newReview = {
+          ...review,
+          id: Date.now().toString(),
+          created_at: new Date().toISOString(),
+          employee: { name: empName },
+          reviewer: { name: revName },
+        };
+        mockDatabase.add('performance_reviews', newReview);
+        await fetchReviews();
+        return { data: newReview, error: null };
+      }
+
       const { data, error } = await supabase
         .from('performance_reviews')
         .insert([review])
@@ -82,6 +115,13 @@ export function usePerformance() {
 
   const deleteReview = async (id: string) => {
     try {
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        mockDatabase.remove('performance_reviews', id);
+        setReviews(prev => prev.filter(r => r.id !== id));
+        return { error: null };
+      }
+
       const { error } = await supabase
         .from('performance_reviews')
         .delete()

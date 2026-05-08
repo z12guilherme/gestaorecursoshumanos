@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { USE_MOCK } from '@/lib/mockDatabase';
 
 interface AuthContextType {
   session: Session | null;
@@ -22,6 +23,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 🔀 Bypass de autenticação no modo Mock (Demo Offline)
+    if (USE_MOCK) {
+      const mockUser = {
+        id: 'mock-admin-id',
+        email: 'admin@empresa.com',
+        app_metadata: {},
+        user_metadata: { full_name: 'Administrador RH' },
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+      } as unknown as User;
+
+      const mockSession = {
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh',
+        user: mockUser,
+        expires_in: 999999,
+        expires_at: Date.now() / 1000 + 999999,
+        token_type: 'bearer',
+      } as unknown as Session;
+
+      setSession(mockSession);
+      setUser(mockUser);
+      setLoading(false);
+      return;
+    }
+
     // Busca sessão atual
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -40,6 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    if (USE_MOCK) {
+      // No modo mock, apenas limpa os dados do localStorage mock e recarrega
+      localStorage.clear();
+      window.location.reload();
+      return;
+    }
     await supabase.auth.signOut();
   };
 

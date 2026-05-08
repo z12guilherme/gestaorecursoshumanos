@@ -93,14 +93,11 @@ export default function Timesheet() {
       const end = new Date();
       const start = subDays(end, 4);
 
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('id, timestamp, type, employee_id, employees(name, department)')
-        .gte('timestamp', `${format(start, 'yyyy-MM-dd')}T00:00:00.000Z`)
-        .lte('timestamp', `${format(end, 'yyyy-MM-dd')}T23:59:59.999Z`);
-
-      if (!error && data) {
-        setWeeklyEntries(data as any[]);
+      try {
+        const data = await timeEntryService.getPeriodEntries(format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd'));
+        setWeeklyEntries(data);
+      } catch (error) {
+        console.error('Erro ao buscar semanal:', error);
       }
     }
     fetchWeekly();
@@ -131,8 +128,15 @@ export default function Timesheet() {
   }, []);
 
   useEffect(() => {
-    if (employees.length > 0) {
-      const activeEmployees = employees.filter(e => e.status === 'active' || e.status === 'Ativo');
+    const isMock = import.meta.env.VITE_USE_MOCK === 'true';
+    const sourceEmployees = isMock && employees.length === 0 ? [
+      { id: '101', name: 'Carlos Desenvolvedor', department: 'TI', status: 'active' },
+      { id: '102', name: 'Ana do Marketing', department: 'Marketing', status: 'active' },
+      { id: '103', name: 'João do Financeiro', department: 'Financeiro', status: 'active' },
+    ] : employees;
+
+    if (sourceEmployees.length > 0) {
+      const activeEmployees = sourceEmployees.filter(e => e.status === 'active' || e.status === 'Ativo');
 
       const statusList = activeEmployees.map(emp => ({
         id: emp.id,

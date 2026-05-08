@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { mockDatabase, USE_MOCK } from "@/lib/mockDatabase";
 
 export const JOB_STATUS_OPEN = "Aberta";
 
@@ -21,6 +22,14 @@ export const publicJobService = {
      * Ideal para ser consumido pela página pública de carreiras.
      */
     async getOpenJobs(): Promise<JobPostingSummary[]> {
+        // 🔀 Desvio Offline (Mock)
+        if (USE_MOCK) {
+            const jobs = mockDatabase.get('jobs');
+            return jobs.filter((j: any) => j.status === JOB_STATUS_OPEN || j.status === 'Aberta')
+                .map((j: any) => ({ id: j.id, title: j.title, department: j.department, location: j.location, status: j.status, created_at: j.created_at }))
+                .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        }
+
         const { data, error } = await supabase
             .from("jobs")
             .select("id, title, department, location, status, created_at")
@@ -40,6 +49,12 @@ export const publicJobService = {
      * @param jobId O ID da vaga.
      */
     async getJobById(jobId: string): Promise<JobPosting | null> {
+        // 🔀 Desvio Offline (Mock)
+        if (USE_MOCK) {
+            const jobs = mockDatabase.get('jobs');
+            return jobs.find((j: any) => j.id === jobId) || null;
+        }
+
         const { data, error } = await supabase.from("jobs").select("*").eq("id", jobId).single();
 
         if (error) {

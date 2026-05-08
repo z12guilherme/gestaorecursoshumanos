@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { JobPosting } from '@/types/hr';
+import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
 export function useJobPostings() {
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
@@ -10,6 +11,28 @@ export function useJobPostings() {
   const fetchJobPostings = async () => {
     try {
       setLoading(true);
+
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        const data = mockDatabase.get('jobs');
+        const mapped: JobPosting[] = data.map((job: any) => ({
+          id: job.id,
+          title: job.title,
+          department: job.department,
+          location: job.location,
+          type: job.type,
+          status: job.status,
+          description: job.description,
+          requirements: job.requirements,
+          createdAt: job.created_at,
+          applicants: job.applicants_count || 0,
+        }));
+        mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setJobPostings(mapped);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('job_postings')
         .select('*')

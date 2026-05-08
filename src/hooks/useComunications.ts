@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
 export interface Announcement {
   id: string;
@@ -17,6 +18,16 @@ export function useCommunication() {
   const fetchAnnouncements = async () => {
     try {
       setLoading(true);
+
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        const data = mockDatabase.get('announcements');
+        data.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setAnnouncements(data);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('announcements')
         .select('*')
@@ -33,6 +44,14 @@ export function useCommunication() {
 
   const addAnnouncement = async (announcement: Omit<Announcement, 'id' | 'created_at'>) => {
     try {
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        const newAnn = { ...announcement, id: Date.now().toString(), created_at: new Date().toISOString() };
+        mockDatabase.add('announcements', newAnn);
+        setAnnouncements(prev => [newAnn as Announcement, ...prev]);
+        return { data: newAnn, error: null };
+      }
+
       const { data, error } = await supabase
         .from('announcements')
         .insert([announcement])

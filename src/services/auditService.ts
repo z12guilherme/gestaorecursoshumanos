@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { mockDatabase, USE_MOCK } from "@/lib/mockDatabase";
 
 export interface AuditLog {
   id: string;
@@ -13,6 +14,16 @@ export interface AuditLog {
 
 export const auditService = {
   async getLogs(page: number = 1, pageSize: number = 50, startDate?: string, endDate?: string) {
+    // 🔀 Desvio Offline (Mock)
+    if (USE_MOCK) {
+      let data = mockDatabase.get('audit_logs');
+      if (startDate) data = data.filter((l: any) => l.changed_at >= `${startDate}T00:00:00.000Z`);
+      if (endDate) data = data.filter((l: any) => l.changed_at <= `${endDate}T23:59:59.999Z`);
+      data.sort((a: any, b: any) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime());
+      const from = (page - 1) * pageSize;
+      return { data: data.slice(from, from + pageSize), count: data.length };
+    }
+
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
@@ -39,6 +50,8 @@ export const auditService = {
   },
 
   async deleteOldLogs(daysRetained: number = 15) {
+    if (USE_MOCK) { mockDatabase.set('audit_logs', []); return; }
+
     const dateLimit = new Date();
     dateLimit.setDate(dateLimit.getDate() - daysRetained);
 
@@ -51,6 +64,12 @@ export const auditService = {
   },
 
   async deleteLogsBeforeDate(date: string) {
+    if (USE_MOCK) {
+      const data = mockDatabase.get('audit_logs').filter((l: any) => l.changed_at > `${date}T23:59:59.999Z`);
+      mockDatabase.set('audit_logs', data);
+      return;
+    }
+
     const { error } = await supabase
       .from("audit_logs")
       .delete()

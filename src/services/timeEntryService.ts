@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { mockDatabase, USE_MOCK } from "@/lib/mockDatabase";
 
 export interface TimeEntry {
   id: string;
@@ -11,12 +12,27 @@ export interface TimeEntry {
   employees?: { name: string; department?: string } | null;
 }
 
+const getMockData = (): TimeEntry[] => {
+  return mockDatabase.get('time_entries');
+};
+
 export const timeEntryService = {
   /**
    * Busca registros de ponto com paginação para a listagem (Alta performance).
    * Agora suporta um intervalo de datas (startDate até endDate).
    */
   async getEntries(page: number = 1, pageSize: number = 50, startDate: string, endDate?: string, employeeId?: string | null) {
+    if (USE_MOCK) {
+      let data = getMockData();
+      const finalDate = endDate || startDate;
+      data = data.filter(d => d.timestamp >= `${startDate}T00:00:00.000Z` && d.timestamp <= `${finalDate}T23:59:59.999Z`);
+      if (employeeId) data = data.filter(d => d.employee_id === employeeId);
+      data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      const from = (page - 1) * pageSize;
+      return { data: data.slice(from, from + pageSize), count: data.length };
+    }
+
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
@@ -46,11 +62,33 @@ export const timeEntryService = {
    * Busca uma versão leve dos registros do dia apenas para calcular totais e presenças.
    */
   async getDailyEntriesForSummary(date: string) {
+    if (USE_MOCK) {
+      return getMockData().filter(d => d.timestamp.startsWith(date));
+    }
+
     const { data, error } = await supabase
       .from('time_entries')
       .select('id, timestamp, type, employee_id, employees(name, department)') // Apenas o essencial, sem joins pesados ou GPS
       .gte('timestamp', `${date}T00:00:00.000Z`)
       .lte('timestamp', `${date}T23:59:59.999Z`);
+
+    if (error) throw error;
+    return data as TimeEntry[];
+  },
+
+  /**
+   * Busca registros de um período completo (Útil para o Heatmap Semanal).
+   */
+  async getPeriodEntries(startDate: string, endDate: string) {
+    if (USE_MOCK) {
+      return getMockData().filter(d => d.timestamp >= `${startDate}T00:00:00.000Z` && d.timestamp <= `${endDate}T23:59:59.999Z`);
+    }
+
+    const { data, error } = await supabase
+      .from('time_entries')
+      .select('id, timestamp, type, employee_id, employees(name, department)')
+      .gte('timestamp', `${startDate}T00:00:00.000Z`)
+      .lte('timestamp', `${endDate}T23:59:59.999Z`);
 
     if (error) throw error;
     return data as TimeEntry[];
