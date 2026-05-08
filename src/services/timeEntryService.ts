@@ -48,7 +48,7 @@ export const timeEntryService = {
   async getDailyEntriesForSummary(date: string) {
     const { data, error } = await supabase
       .from('time_entries')
-      .select('id, timestamp, type, employee_id') // Apenas o essencial, sem joins pesados ou GPS
+      .select('id, timestamp, type, employee_id, employees(name, department)') // Apenas o essencial, sem joins pesados ou GPS
       .gte('timestamp', `${date}T00:00:00.000Z`)
       .lte('timestamp', `${date}T23:59:59.999Z`);
 
@@ -119,5 +119,32 @@ export const timeEntryService = {
       acc[dept].push(entry);
       return acc;
     }, {} as Record<string, TimeEntry[]>);
+  },
+
+  /**
+   * Analisa as entradas de um dia ou período e identifica divergências.
+   * Útil para o Painel de Exceções do Gestor.
+   */
+  findAnomalies(entries: TimeEntry[]): { employeeId: string; name: string; department: string; issue: string; date: string }[] {
+    // Agrupa por Funcionário E por Dia (ex: "ID_2026-05-08")
+    const grouped = entries.reduce((acc, entry) => {
+      const dateObj = new Date(entry.timestamp);
+      const dateKey = `${entry.employee_id}_${dateObj.toISOString().split('T')[0]}`;
+
+      if (!acc[dateKey]) {
+        acc[dateKey] = { employeeId: entry.employee_id || '', name: entry.employees?.name || 'Desconhecido', department: entry.employees?.department || 'Sem Departamento', entries: [], date: dateObj.toLocaleDateString() };
+      }
+      acc[dateKey].entries.push(entry);
+      return acc;
+    }, {} as Record<string, { employeeId: string, name: string, department: string, entries: TimeEntry[], date: string }>);
+
+    const anomalies = [];
+    for (const data of Object.values(grouped)) {
+      // Regra de negócio simples: Número ímpar de batidas no dia indica que uma entrada ou saída foi esquecida
+      if (data.entries.length % 2 !== 0) {
+        anomalies.push({ employeeId: data.employeeId, name: data.name, department: data.department, date: data.date, issue: 'Batida incompleta (número ímpar de registros)' });
+      }
+    }
+    return anomalies;
   }
 };

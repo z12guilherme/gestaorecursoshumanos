@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { useEmployees } from '@/hooks/useEmployees';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Coffee, LogIn, LogOut, MapPin, MessageSquare, Download, Clock, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -18,6 +18,10 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useDebounce } from '@/hooks/useDebounce';
 import { timeEntryService } from '@/services/timeEntryService';
+
+import { ExceptionsPanel } from '@/components/timesheet/ExceptionsPanel';
+import { LiveStatusBoard } from '@/components/timesheet/LiveStatusBoard';
+import { WeeklyHeatmap } from '@/components/timesheet/WeeklyHeatmap';
 
 interface TimeEntry {
   id: string;
@@ -42,6 +46,7 @@ export default function Timesheet() {
   const { employees, loading: loadingEmployees } = useEmployees();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [dailyAllEntries, setDailyAllEntries] = useState<TimeEntry[]>([]);
+  const [weeklyEntries, setWeeklyEntries] = useState<TimeEntry[]>([]);
   const [employeeStatus, setEmployeeStatus] = useState<EmployeeStatus[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(true);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -84,6 +89,24 @@ export default function Timesheet() {
 
   // Efeito secundário (apenas quando a data muda) para alimentar a coluna de status
   useEffect(() => {
+    async function fetchWeekly() {
+      const end = new Date();
+      const start = subDays(end, 4);
+
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('id, timestamp, type, employee_id, employees(name, department)')
+        .gte('timestamp', `${format(start, 'yyyy-MM-dd')}T00:00:00.000Z`)
+        .lte('timestamp', `${format(end, 'yyyy-MM-dd')}T23:59:59.999Z`);
+
+      if (!error && data) {
+        setWeeklyEntries(data as any[]);
+      }
+    }
+    fetchWeekly();
+  }, []);
+
+  useEffect(() => {
     async function fetchDailySummary() {
       try {
         const data = await timeEntryService.getDailyEntriesForSummary(debouncedDate);
@@ -99,6 +122,13 @@ export default function Timesheet() {
   useEffect(() => {
     setPage(1);
   }, [debouncedListStartDate, debouncedListEndDate, filterEmployeeId]);
+
+  const anomalies = useMemo(() => timeEntryService.findAnomalies(dailyAllEntries), [dailyAllEntries]);
+
+  const currentWeekDays = useMemo(() => {
+    const today = new Date();
+    return [subDays(today, 4), subDays(today, 3), subDays(today, 2), subDays(today, 1), today];
+  }, []);
 
   useEffect(() => {
     if (employees.length > 0) {
@@ -184,190 +214,203 @@ export default function Timesheet() {
   };
 
   return (
-    <AppLayout title="Controle de Ponto" subtitle="Registros de entrada e saída dos colaboradores">
-      <div className="mb-4">
-        <Button variant="outline" size="sm" onClick={handleDownloadCodeOfEthics} className="gap-2">
-          <FileText className="h-4 w-4" />
-          Baixar Código de Ética
-        </Button>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna de Status Diário */}
-        <div className="lg:col-span-1 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Status do Ponto - {format(new Date(selectedDate + 'T12:00:00'), 'dd/MM/yyyy')}</CardTitle>
-              <CardDescription>Verifique quem já registrou o ponto hoje.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="mb-4"
-              />
-              <div ref={parentRef} className="max-h-[60vh] overflow-y-auto pr-2">
-                {loading ? (
-                  <p>Carregando...</p>
-                ) : (
-                  <div
-                    style={{
-                      height: `${rowVirtualizer.getTotalSize()}px`,
-                      width: '100%',
-                      position: 'relative',
-                    }}
-                  >
-                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                      const emp = employeeStatus[virtualRow.index];
-                      return (
-                        <div
-                          key={emp.id}
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: `${virtualRow.size}px`,
-                            transform: `translateY(${virtualRow.start}px)`,
-                          }}
-                          className="pb-3"
-                        >
-                          <div
-                            className={cn(
-                              "flex items-center justify-between p-2 rounded-md border cursor-pointer transition-colors hover:bg-accent",
-                              filterEmployeeId === emp.id ? "bg-accent border-primary" : ""
-                            )}
-                            onClick={() => setFilterEmployeeId(prev => prev === emp.id ? null : emp.id)}
-                          >
-                            <div>
-                              <p className="font-medium text-sm">{emp.name}</p>
-                              <p className="text-xs text-muted-foreground">{emp.department}</p>
-                              {emp.hasRegistered && (
-                                <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
-                                  <Clock className="h-3 w-3" />
-                                  {emp.workedHours}
-                                </p>
-                              )}
-                            </div>
-                            <Badge variant={emp.hasRegistered ? 'default' : 'destructive'}>
-                              {emp.hasRegistered ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
-                              {emp.hasRegistered ? 'Registrou' : 'Não Registrou'}
-                            </Badge>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {employeeStatus.length === 0 && !loading && <p className="text-sm text-muted-foreground text-center py-4">Nenhum funcionário ativo encontrado.</p>}
-              </div>
-            </CardContent>
-          </Card>
+    <AppLayout title="Gestão de Ponto" subtitle="Painel analítico e registros de entrada/saída">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h2 className="text-xl font-bold">Painel de Monitoramento</h2>
+          <Button variant="outline" size="sm" onClick={handleDownloadCodeOfEthics} className="gap-2">
+            <FileText className="h-4 w-4" />
+            Baixar Código de Ética
+          </Button>
         </div>
 
-        {/* Coluna de Registros */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <CardTitle>Registros de Ponto {filterEmployeeId && "(Filtrado)"}</CardTitle>
-                <CardDescription>
-                  {filterEmployeeId ? "Exibindo registros do funcionário selecionado." : "Lista de todas as marcações no período selecionado."}
-                </CardDescription>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 bg-secondary/50 p-1.5 rounded-lg border border-border">
-                  <Input type="date" value={listStartDate} onChange={(e) => setListStartDate(e.target.value)} className="w-[125px] h-8 text-xs" />
-                  <span className="text-muted-foreground text-xs font-medium">até</span>
-                  <Input type="date" value={listEndDate} onChange={(e) => setListEndDate(e.target.value)} className="w-[125px] h-8 text-xs" />
-                </div>
-                <Button variant="outline" size="sm" onClick={handleExport}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Exportar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-10"><p className="text-muted-foreground">Carregando registros...</p></div>
-              ) : entries.length > 0 ? (
-                <>
-                  <div className="space-y-6">
-                    {Object.entries(
-                      entries.reduce((acc, entry) => {
-                        const dept = entry.employees?.department || 'Sem Departamento';
-                        if (!acc[dept]) acc[dept] = [];
-                        acc[dept].push(entry);
-                        return acc;
-                      }, {} as Record<string, TimeEntry[]>)
-                    ).sort(([deptA], [deptB]) => deptA.localeCompare(deptB)).map(([department, deptEntries]) => (
-                      <div key={department} className="space-y-3">
-                        <h3 className="font-semibold text-base border-b pb-2 text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">{department}</span>
-                          <Badge variant="secondary" className="text-xs bg-slate-100">{deptEntries.length} {deptEntries.length === 1 ? 'registro' : 'registros'}</Badge>
-                        </h3>
-                        <ul className="space-y-3">
-                          {deptEntries.map((entry) => (
-                            <li key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-                              <div>
-                                <p className="font-semibold">{entry.employees?.name || 'Funcionário não encontrado'}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {format(new Date(entry.timestamp), 'HH:mm:ss')}
-                                </p>
-                                <div className="flex gap-2 mt-1">
-                                  {entry.notes && (
-                                    <div className="flex items-center text-xs text-muted-foreground" title={entry.notes}>
-                                      <MessageSquare className="w-3 h-3 mr-1" /> {entry.notes}
-                                    </div>
-                                  )}
-                                  {entry.latitude !== undefined && entry.latitude !== null && entry.longitude !== undefined && entry.longitude !== null && (
-                                    <div className="flex items-center text-xs text-blue-600 cursor-pointer hover:underline" onClick={() => setMapLocation({ lat: entry.latitude!, lng: entry.longitude! })}>
-                                      <MapPin className="w-3 h-3 mr-1" /> Localização
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              {getBadgeForType(entry.type)}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
+        {/* 1. Painel de Alertas */}
+        <ExceptionsPanel anomalies={anomalies} />
 
-                  {/* Controles de Paginação */}
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
-                    <div className="text-sm text-muted-foreground">
-                      Mostrando {entries.length} de {totalCount} registros
+        {/* 2. Resumo em tempo real */}
+        <LiveStatusBoard entries={dailyAllEntries} />
+
+        {/* 3. Heatmap Semanal */}
+        <WeeklyHeatmap entries={weeklyEntries} days={currentWeekDays} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Coluna de Status Diário */}
+          <div className="lg:col-span-1 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Status do Ponto - {format(new Date(selectedDate + 'T12:00:00'), 'dd/MM/yyyy')}</CardTitle>
+                <CardDescription>Verifique quem já registrou o ponto hoje.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="mb-4"
+                />
+                <div ref={parentRef} className="max-h-[60vh] overflow-y-auto pr-2">
+                  {loading ? (
+                    <p>Carregando...</p>
+                  ) : (
+                    <div
+                      style={{
+                        height: `${rowVirtualizer.getTotalSize()}px`,
+                        width: '100%',
+                        position: 'relative',
+                      }}
+                    >
+                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const emp = employeeStatus[virtualRow.index];
+                        return (
+                          <div
+                            key={emp.id}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: `${virtualRow.size}px`,
+                              transform: `translateY(${virtualRow.start}px)`,
+                            }}
+                            className="pb-3"
+                          >
+                            <div
+                              className={cn(
+                                "flex items-center justify-between p-2 rounded-md border cursor-pointer transition-colors hover:bg-accent",
+                                filterEmployeeId === emp.id ? "bg-accent border-primary" : ""
+                              )}
+                              onClick={() => setFilterEmployeeId(prev => prev === emp.id ? null : emp.id)}
+                            >
+                              <div>
+                                <p className="font-medium text-sm">{emp.name}</p>
+                                <p className="text-xs text-muted-foreground">{emp.department}</p>
+                                {emp.hasRegistered && (
+                                  <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
+                                    <Clock className="h-3 w-3" />
+                                    {emp.workedHours}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge variant={emp.hasRegistered ? 'default' : 'destructive'}>
+                                {emp.hasRegistered ? <CheckCircle2 className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                                {emp.hasRegistered ? 'Registrou' : 'Não Registrou'}
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <span className="text-sm font-medium">Página {page} de {Math.ceil(totalCount / pageSize) || 1}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => p < Math.ceil(totalCount / pageSize) ? p + 1 : p)}
-                        disabled={page >= Math.ceil(totalCount / pageSize) || totalCount === 0}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-10 text-muted-foreground">
-                  Nenhum registro de ponto para esta data.
+                  )}
+                  {employeeStatus.length === 0 && !loading && <p className="text-sm text-muted-foreground text-center py-4">Nenhum funcionário ativo encontrado.</p>}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Coluna de Registros */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Registros de Ponto {filterEmployeeId && "(Filtrado)"}</CardTitle>
+                  <CardDescription>
+                    {filterEmployeeId ? "Exibindo registros do funcionário selecionado." : "Lista de todas as marcações no período selecionado."}
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2 bg-secondary/50 p-1.5 rounded-lg border border-border">
+                    <Input type="date" value={listStartDate} onChange={(e) => setListStartDate(e.target.value)} className="w-[125px] h-8 text-xs" />
+                    <span className="text-muted-foreground text-xs font-medium">até</span>
+                    <Input type="date" value={listEndDate} onChange={(e) => setListEndDate(e.target.value)} className="w-[125px] h-8 text-xs" />
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleExport}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center py-10"><p className="text-muted-foreground">Carregando registros...</p></div>
+                ) : entries.length > 0 ? (
+                  <>
+                    <div className="space-y-6">
+                      {Object.entries(
+                        entries.reduce((acc, entry) => {
+                          const dept = entry.employees?.department || 'Sem Departamento';
+                          if (!acc[dept]) acc[dept] = [];
+                          acc[dept].push(entry);
+                          return acc;
+                        }, {} as Record<string, TimeEntry[]>)
+                      ).sort(([deptA], [deptB]) => deptA.localeCompare(deptB)).map(([department, deptEntries]) => (
+                        <div key={department} className="space-y-3">
+                          <h3 className="font-semibold text-base border-b pb-2 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">{department}</span>
+                            <Badge variant="secondary" className="text-xs bg-slate-100">{deptEntries.length} {deptEntries.length === 1 ? 'registro' : 'registros'}</Badge>
+                          </h3>
+                          <ul className="space-y-3">
+                            {deptEntries.map((entry) => (
+                              <li key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                                <div>
+                                  <p className="font-semibold">{entry.employees?.name || 'Funcionário não encontrado'}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {format(new Date(entry.timestamp), 'HH:mm:ss')}
+                                  </p>
+                                  <div className="flex gap-2 mt-1">
+                                    {entry.notes && (
+                                      <div className="flex items-center text-xs text-muted-foreground" title={entry.notes}>
+                                        <MessageSquare className="w-3 h-3 mr-1" /> {entry.notes}
+                                      </div>
+                                    )}
+                                    {entry.latitude !== undefined && entry.latitude !== null && entry.longitude !== undefined && entry.longitude !== null && (
+                                      <div className="flex items-center text-xs text-blue-600 cursor-pointer hover:underline" onClick={() => setMapLocation({ lat: entry.latitude!, lng: entry.longitude! })}>
+                                        <MapPin className="w-3 h-3 mr-1" /> Localização
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                {getBadgeForType(entry.type)}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Controles de Paginação */}
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+                      <div className="text-sm text-muted-foreground">
+                        Mostrando {entries.length} de {totalCount} registros
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          disabled={page === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm font-medium">Página {page} de {Math.ceil(totalCount / pageSize) || 1}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPage((p) => p < Math.ceil(totalCount / pageSize) ? p + 1 : p)}
+                          disabled={page >= Math.ceil(totalCount / pageSize) || totalCount === 0}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground">
+                    Nenhum registro de ponto para esta data.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
