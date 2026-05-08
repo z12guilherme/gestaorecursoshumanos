@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
+import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
 interface Suggestion {
   id: string;
@@ -33,6 +34,16 @@ export default function Suggestions() {
 
   const fetchSuggestions = async () => {
     try {
+      setLoading(true);
+
+      if (USE_MOCK) {
+        const data = mockDatabase.get('suggestions');
+        data.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setSuggestions(data);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('suggestions')
         .select('*')
@@ -92,6 +103,12 @@ export default function Suggestions() {
 
   const markAsRead = async (id: string) => {
     try {
+      if (USE_MOCK) {
+        mockDatabase.update('suggestions', id, { status: 'Lida' });
+        fetchSuggestions();
+        return;
+      }
+
       const { error } = await supabase.from('suggestions').update({ status: 'Lida' }).eq('id', id);
       if (error) throw error;
       fetchSuggestions();
@@ -105,6 +122,13 @@ export default function Suggestions() {
     if (!window.confirm('Tem certeza que deseja excluir esta mensagem permanentemente?')) return;
 
     try {
+      if (USE_MOCK) {
+        mockDatabase.remove('suggestions', id);
+        setSuggestions(prev => prev.filter(s => s.id !== id));
+        toast({ title: 'Sucesso', description: 'Mensagem excluída com sucesso.' });
+        return;
+      }
+
       const { error } = await supabase.from('suggestions').delete().eq('id', id);
       if (error) throw error;
 

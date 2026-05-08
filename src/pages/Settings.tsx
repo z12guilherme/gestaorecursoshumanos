@@ -15,6 +15,7 @@ import { User, Building2, Bell, Palette, Upload, Loader2, Camera, Shield, ListPl
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { MfaSetup } from '@/components/settings/MfaSetup';
+import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);
@@ -55,6 +56,38 @@ export default function Settings() {
     async function fetchData() {
       setLoading(true);
       try {
+        // 🔀 Desvio Offline (Mock)
+        if (USE_MOCK) {
+          setProfileData({
+            id: 'mock-admin-1',
+            full_name: 'Administrador Demo',
+            avatar_url: '',
+            email: 'admin@demo.com',
+            display_role: 'Gerente de RH'
+          });
+
+          const settings = mockDatabase.get('settings');
+          if (settings) {
+            setCompanySettings({
+              id: settings.id || 'mock-settings-1',
+              company_name: settings.company_name || '',
+              cnpj: settings.cnpj || '',
+              email: settings.email || '',
+              notifications_enabled: settings.notifications_enabled ?? true,
+              avatar_url: settings.avatar_url || '',
+              login_background_url: settings.login_background_url || '',
+              login_title: settings.login_title || '',
+              login_subtitle: settings.login_subtitle || '',
+              employee_custom_fields_config: settings.employee_custom_fields_config || [],
+              career_page_banner: settings.career_page_banner || '',
+              career_page_description: settings.career_page_description || '',
+              social_links: { linkedin: '', instagram: '', website: '', ...(settings.social_links || {}) },
+            });
+          }
+          setLoading(false);
+          return;
+        }
+
         // 1. Get current user
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) throw userError || new Error('User not found.');
@@ -122,6 +155,13 @@ export default function Settings() {
     try {
       setSaving(true);
 
+      if (USE_MOCK) {
+        const fakeUrl = URL.createObjectURL(file);
+        setProfileData(prev => ({ ...prev, avatar_url: fakeUrl }));
+        toast({ title: "Imagem carregada", description: "Modo Demo: Imagem aplicada localmente." });
+        return;
+      }
+
       // 1. Upload para o bucket 'avatars'
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -163,6 +203,13 @@ export default function Settings() {
     try {
       setSaving(true);
 
+      if (USE_MOCK) {
+        const fakeUrl = URL.createObjectURL(file);
+        setCompanySettings(prev => ({ ...prev, avatar_url: fakeUrl }));
+        toast({ title: "Logo carregada", description: "Modo Demo: Logo aplicada localmente." });
+        return;
+      }
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, { upsert: true });
@@ -193,6 +240,13 @@ export default function Settings() {
     try {
       setSaving(true);
 
+      if (USE_MOCK) {
+        const fakeUrl = URL.createObjectURL(file);
+        setCompanySettings(prev => ({ ...prev, login_background_url: fakeUrl }));
+        toast({ title: "Fundo carregado", description: "Modo Demo: Imagem aplicada localmente." });
+        return;
+      }
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, { upsert: true });
@@ -221,6 +275,13 @@ export default function Settings() {
 
     try {
       setSaving(true);
+
+      if (USE_MOCK) {
+        const fakeUrl = URL.createObjectURL(file);
+        setCompanySettings(prev => ({ ...prev, career_page_banner: fakeUrl }));
+        toast({ title: "Banner carregado", description: "Modo Demo: Imagem aplicada localmente." });
+        return;
+      }
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -270,6 +331,30 @@ export default function Settings() {
   const handleSave = async () => {
     try {
       setSaving(true);
+
+      if (USE_MOCK) {
+        if (activeTab === 'profile') {
+          toast({ title: "Perfil salvo", description: "Suas informações foram atualizadas (Modo Demo)." });
+        } else if (['company', 'notifications', 'appearance', 'custom_fields', 'career_page'].includes(activeTab)) {
+          const payload = {
+            company_name: companySettings.company_name,
+            cnpj: companySettings.cnpj,
+            email: companySettings.email,
+            notifications_enabled: companySettings.notifications_enabled,
+            avatar_url: companySettings.avatar_url,
+            login_background_url: companySettings.login_background_url,
+            login_title: companySettings.login_title,
+            login_subtitle: companySettings.login_subtitle,
+            employee_custom_fields_config: companySettings.employee_custom_fields_config,
+            career_page_banner: companySettings.career_page_banner,
+            career_page_description: companySettings.career_page_description,
+            social_links: companySettings.social_links,
+          };
+          mockDatabase.set('settings', payload);
+          toast({ title: "Configurações salvas", description: "As alterações da empresa foram aplicadas (Modo Demo)." });
+        }
+        return;
+      }
 
       if (activeTab === 'profile') {
         const { error } = await supabase

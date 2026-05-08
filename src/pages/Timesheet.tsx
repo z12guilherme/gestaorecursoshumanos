@@ -128,7 +128,7 @@ export default function Timesheet() {
   }, []);
 
   useEffect(() => {
-    const isMock = import.meta.env.VITE_USE_MOCK === 'true';
+    const isMock = String(import.meta.env.VITE_USE_MOCK).trim().toLowerCase() === 'true';
     const sourceEmployees = isMock && employees.length === 0 ? [
       { id: '101', name: 'Carlos Desenvolvedor', department: 'TI', status: 'active' },
       { id: '102', name: 'Ana do Marketing', department: 'Marketing', status: 'active' },
