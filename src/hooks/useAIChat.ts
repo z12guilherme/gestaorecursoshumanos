@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
 export interface Message {
   id: string;
@@ -48,6 +49,25 @@ export function useAIChat() {
   const fetchMessages = useCallback(async () => {
     try {
       setLoading(true);
+
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        const data = mockDatabase.get('ai_messages');
+        const formattedMessages = (data || []).map((msg: any) => ({
+          id: msg.id,
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.created_at),
+        }));
+        if (formattedMessages.length === 0) {
+          setMessages([{ id: 'initial-menu', role: 'assistant', content: menuText, timestamp: new Date() }]);
+        } else {
+          setMessages(formattedMessages);
+        }
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('ai_messages')
         .select('*')
@@ -92,12 +112,86 @@ export function useAIChat() {
       const newMessage: Message = { id: tempId, role, content, timestamp: new Date() };
       setMessages((prev) => [...prev, newMessage]);
 
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        mockDatabase.add('ai_messages', { id: tempId, role, content, created_at: new Date().toISOString() });
+        return;
+      }
+
       // Salva no banco de dados em segundo plano
       await supabase.from('ai_messages').insert([{ role, content }]);
     } catch (error) {
       console.error('Erro ao adicionar mensagem (addMessage):', error);
-      // Não precisa tratar erro na UI aqui, pois a mensagem já foi adicionada otimisticamente
     }
+  };
+
+  // 🔀 Função auxiliar: processa mensagem usando dados locais do mockDatabase
+  const processMockMessage = (content: string): string => {
+    const msg = content.toLowerCase().trim();
+    const employees = mockDatabase.get('employees');
+    const jobs = mockDatabase.get('jobs');
+    const timeOff = mockDatabase.get('time_off');
+
+    // 1. Listar colaboradores
+    if (/(listar|ver|mostrar|quais|quem)\s+(?:s[aã]o\s+os\s+)?(?:todos\s+os\s+)?(?:colaboradores|funcion[aá]rios)|^1$/i.test(msg)) {
+      if (employees.length > 0) {
+        return 'Aqui estão os colaboradores:\n' + employees.map((e: any) => `- ${e.name} (${e.role} - ${e.department})`).join('\n');
+      }
+      return 'Não encontrei colaboradores cadastrados.';
+    }
+
+    // 2. Contagem
+    if (/quantos\s+(?:colaboradores|funcion[aá]rios|pessoas)|total|^2$/i.test(msg)) {
+      return `Atualmente, a empresa conta com ${employees.length} colaboradores.`;
+    }
+
+    // 3. Vagas
+    if (/vagas|oportunidades|recrutamento|^3$/i.test(msg)) {
+      const open = jobs.filter((j: any) => j.status === 'Aberta');
+      if (open.length > 0) {
+        return 'Vagas abertas:\n' + open.map((j: any) => `- ${j.title} (${j.department})`).join('\n');
+      }
+      return 'Não há vagas abertas no momento.';
+    }
+
+    // 4. Férias
+    if (/f[eé]rias|aus[eê]ncias|folgas|^4$/i.test(msg)) {
+      if (timeOff.length > 0) {
+        return 'Últimas movimentações de férias:\n' + timeOff.map((r: any) => `- ${r.employee?.name || 'Funcionário'}: ${r.status === 'approved' ? 'Aprovado' : 'Pendente'}`).join('\n');
+      }
+      return 'Não há registros recentes de férias.';
+    }
+
+    // 5. Criar aviso
+    if (/(?:criar|crie|novo|publicar)\s+(?:um\s+)?aviso|^aviso:/i.test(msg)) {
+      const match = content.match(/(?:aviso:|criar\s+aviso)\s*(.+)/i);
+      if (match) {
+        mockDatabase.add('announcements', { id: Date.now().toString(), title: 'Aviso do Assistente', content: match[1].trim(), priority: 'medium', author: 'IA', created_at: new Date().toISOString() });
+        return `✅ Aviso publicado: "${match[1].trim()}"`;
+      }
+      return 'Para publicar, diga: "aviso: [sua mensagem]".';
+    }
+
+    // 6. Buscar
+    if (/buscar|procurar|encontrar|^6$/i.test(msg)) {
+      const match = content.match(/(?:buscar|procurar|encontrar)\s+(.+)/i);
+      if (match) {
+        const term = match[1].trim().toLowerCase();
+        const found = employees.filter((e: any) => e.name.toLowerCase().includes(term));
+        if (found.length > 0) {
+          return 'Encontrei:\n' + found.map((e: any) => `- ${e.name}\n  Cargo: ${e.role}\n  Dept: ${e.department}`).join('\n\n');
+        }
+        return `Não encontrei ninguém chamado "${match[1].trim()}".`;
+      }
+      return 'Diga o nome que deseja buscar. Ex: "buscar Carlos"';
+    }
+
+    // Help / Fallback
+    if (/ajuda|menu|op[cç][oõ]es|^help$/i.test(msg)) {
+      return menuText;
+    }
+
+    return '🤖 Modo Demo: Tente comandos como "listar colaboradores", "vagas abertas", "buscar Carlos" ou "ajuda".';
   };
 
   const sendMessage = async (content: string) => {
@@ -106,6 +200,14 @@ export function useAIChat() {
     try {
       setSending(true);
       await addMessage('user', content);
+
+      // 🔀 Desvio Offline (Mock) — Usa NLP local com dados do mockDatabase
+      if (USE_MOCK) {
+        const reply = processMockMessage(content);
+        await addMessage('assistant', reply);
+        setSending(false);
+        return;
+      }
 
       const msg = content.toLowerCase().trim();
       let reply = '';
@@ -538,6 +640,13 @@ export function useAIChat() {
 
   const clearHistory = async () => {
     try {
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        mockDatabase.set('ai_messages', []);
+        setMessages([{ id: 'initial-menu', role: 'assistant', content: menuText, timestamp: new Date() }]);
+        return;
+      }
+
       // Limpa o banco de dados em segundo plano
       await supabase.from('ai_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       // Reinicia para a mensagem de menu na UI

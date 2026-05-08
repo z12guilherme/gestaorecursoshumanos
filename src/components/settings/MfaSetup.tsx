@@ -1,8 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { USE_MOCK } from '@/lib/mockDatabase';
 import { ShieldCheck, ShieldAlert, Loader2, Smartphone } from 'lucide-react';
 
 export function MfaSetup() {
+  // 🔀 No modo demo, MFA não está disponível
+  if (USE_MOCK) {
+    return (
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Smartphone className="w-5 h-5" />
+              Autenticação Multifator (MFA)
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Adicione uma camada extra de segurança à sua conta.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+            Modo Demo
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">A configuração de MFA não está disponível no modo de demonstração offline.</p>
+      </div>
+    );
+  }
   const [loading, setLoading] = useState(true);
   const [isEnabled, setIsEnabled] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);

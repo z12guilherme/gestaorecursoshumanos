@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ManualModal } from "@/components/ManualModal";
 import { SecurityBadge } from "@/components/auth/SecurityBadge";
 import { useSettings } from "@/hooks/useSettings";
+import { USE_MOCK } from "@/lib/mockDatabase";
 import hsfBg from "@/assets/hsf.jpeg";
 import { Mail, Lock, ArrowRight, Clock, CheckCircle2, Shield } from "lucide-react";
 
@@ -18,12 +19,17 @@ export default function LoginPage() {
   const [factorId, setFactorId] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { session } = useAuth();
+  const { session, signInMock } = useAuth();
   const { settings } = useSettings();
 
   useEffect(() => {
     const checkMfaAndNavigate = async () => {
       if (session) {
+        // 🔀 Mock: pula verificação MFA
+        if (USE_MOCK) {
+          navigate("/");
+          return;
+        }
         const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (!error && data.nextLevel === 'aal2' && data.currentLevel === 'aal1') {
           const { data: factors } = await supabase.auth.mfa.listFactors();
@@ -31,8 +37,8 @@ export default function LoginPage() {
           if (totpFactor) {
             setFactorId(totpFactor.id);
             setShowMfa(true);
-            setIsLoading(false); // Destrava o botão do MFA
-            return; // Interrompe para forçar a digitação do código
+            setIsLoading(false);
+            return;
           }
         }
         navigate("/");
@@ -47,6 +53,13 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // 🔀 Desvio Offline (Mock)
+      if (USE_MOCK) {
+        if (signInMock) signInMock();
+        navigate("/");
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,

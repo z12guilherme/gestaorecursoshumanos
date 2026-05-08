@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { USE_MOCK } from '@/lib/mockDatabase';
 
 export interface Profile {
   id: string;
@@ -17,6 +18,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  signInMock?: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -36,6 +38,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
+      // 🔀 Desvio Offline (Mock) — Perfil fake do admin
+      if (USE_MOCK) {
+        setProfile({
+          id: userId,
+          full_name: 'Administrador Demo',
+          avatar_url: '',
+          email: 'admin@empresa.com',
+          display_role: 'Gerente de RH',
+        });
+        return;
+      }
+
       const { data } = await supabase
         .from('profiles')
         .select('*')
@@ -56,8 +70,66 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const signInMock = () => {
+    if (!USE_MOCK) return;
+    const mockUser = {
+      id: 'mock-admin-id',
+      email: 'admin@empresa.com',
+      app_metadata: {},
+      user_metadata: { full_name: 'Administrador Demo' },
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+    } as unknown as User;
+
+    const mockSession = {
+      access_token: 'mock-token',
+      refresh_token: 'mock-refresh',
+      user: mockUser,
+      expires_in: 999999,
+      expires_at: Date.now() / 1000 + 999999,
+      token_type: 'bearer',
+    } as unknown as Session;
+
+    localStorage.setItem('mock_logged_in', 'true');
+    setSession(mockSession);
+    setUser(mockUser);
+    fetchProfile(mockUser.id);
+  };
+
   useEffect(() => {
     let mounted = true;
+
+    // 🔀 Bypass completo de autenticação no modo Mock (Demo Offline)
+    if (USE_MOCK) {
+      if (localStorage.getItem('mock_logged_in') === 'true') {
+        const mockUser = {
+          id: 'mock-admin-id',
+          email: 'admin@empresa.com',
+          app_metadata: {},
+          user_metadata: { full_name: 'Administrador Demo' },
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+        } as unknown as User;
+
+        const mockSession = {
+          access_token: 'mock-token',
+          refresh_token: 'mock-refresh',
+          user: mockUser,
+          expires_in: 999999,
+          expires_at: Date.now() / 1000 + 999999,
+          token_type: 'bearer',
+        } as unknown as Session;
+
+        setSession(mockSession);
+        setUser(mockUser);
+        fetchProfile(mockUser.id).then(() => {
+          if (mounted) setLoading(false);
+        });
+      } else {
+        if (mounted) setLoading(false);
+      }
+      return () => { mounted = false; };
+    }
 
     // Busca sessão inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -102,6 +174,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = async () => {
+    // 🔀 Desvio Offline (Mock) — Remove apenas a flag de login para manter o BD mockado
+    if (USE_MOCK) {
+      localStorage.removeItem('mock_logged_in');
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      window.location.replace('/login');
+      return;
+    }
+
     try {
       // 1. Tenta avisar o Supabase (mas não bloqueia se falhar)
       // Adicionado timeout para evitar travamento em caso de erro de rede
@@ -148,7 +230,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, signOut, refreshProfile, signInMock }}>
       {children}
     </AuthContext.Provider>
   );
