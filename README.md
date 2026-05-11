@@ -1,8 +1,12 @@
-# 🚀 Sistema de Gestão de Recursos Humanos ( RH - Rede DMI)
+# 🚀 Sistema de Gestão de Recursos Humanos (GestãoRH)
+
+> **©️ Propriedade Intelectual:** Este software **não** é de propriedade ou uso exclusivo da empresa DMI. O sistema (código-fonte, arquitetura e produto comercial) pertence exclusivamente a mim e à **Inove Dev**. Qualquer menção a clientes específicos em imagens ou exemplos na documentação é meramente ilustrativa, demonstrando a capacidade *White-label* deste SaaS.
 
 Um sistema moderno, intuitivo e completo para a gestão de recursos humanos, projetado para otimizar processos administrativos e estratégicos. Construído com as mais recentes tecnologias web e integrado a um backend robusto para oferecer uma experiência de usuário fluida e responsiva.
 
-![ RH - Rede DMI Screenshot](./img/print.JPG)
+**🌟 Plataforma SaaS Configurável:** O sistema foi arquitetado como uma solução SaaS (Software as a Service) *White-label* e multi-instância. Projetado para ser facilmente replicado e customizado, permitindo personalização completa da identidade visual (cores, logotipos, portais públicos) e adaptação dos processos de RH para diferentes empresas ou clientes.
+
+![GestãoRH Screenshot](./img/print.JPG)
 
 > **🔗 Demonstração Online:** [Acesse o sistema aqui](https://gestaorecursoshumanos.vercel.app/login)
 
@@ -110,10 +114,12 @@ Suporte inteligente para o gestor de RH.
 - **Criação com IA**: Descreva uma tarefa e a IA gera um script Python para automatizá-la.
 - **Exportação**: Baixe os scripts gerados para uso local.
 
-### ⚙️ Configurações
-Gerenciamento centralizado das preferências do sistema.
-- **Dados da Empresa**: Edição de informações institucionais.
-- **Preferências**: Configuração de tema (Claro/Escuro) e notificações.
+### 🏢 SaaS & White-label (Configurações)
+Arquitetura multi-instância pronta para escalonamento comercial com personalização completa por cliente.
+- **Personalização (White-label)**: Customização de logotipo, nome da empresa e cores da interface (Tema) para refletir a marca de cada cliente.
+- **Campos Personalizados (Custom Fields)**: Adição dinâmica de campos de cadastro de acordo com as necessidades específicas de cada empresa.
+- **Portal de Vagas (ATS) Customizado**: Página de carreiras pública com banners, descrição da cultura e links sociais da empresa cliente.
+- **Preferências Globais**: Gerenciamento centralizado do sistema, identidade e notificações.
 
 ## 📂 Estrutura do Projeto
 
@@ -200,6 +206,6 @@ O sistema utiliza a autenticação do Supabase.
 - [x] **Integração Bancária**: Exportação CNAB 240.
 - [x] **Testes**: Cobertura de testes unitários e de integração.
 
-## 📄 Licença
+## 📄 Propriedade e Licenciamento
 
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+Este software e todo o seu código-fonte são de propriedade exclusiva da **Inove Dev** e do seu criador. Todos os direitos reservados. Não é permitido o uso, comercialização, cópia ou distribuição por terceiros sem o consentimento explícito e formal dos proprietários.
