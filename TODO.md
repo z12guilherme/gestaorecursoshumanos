@@ -65,7 +65,7 @@
 - [x] Implementar **Autenticação Multifator (MFA/2FA) via TOTP** (Google/Microsoft Authenticator).
 - [x] Criar fluxo de Setup de MFA (Geração de QR Code) na tela de configurações.
 - [x] Validar código TOTP no fluxo de Login (Step-up AAL2).
-- [ ] Criar gerenciamento de sessões ativas (permitir que o usuário encerre sessões abertas em outros dispositivos).
+- [x] Criar gerenciamento de sessões ativas (permitir que o usuário encerre sessões abertas em outros dispositivos).
 
 ### 9. 📱 Experiência Offline e PWA (Em Andamento 🚀)
 - [x] Configurar Service Workers robustos para caching offline (Vite PWA).

@@ -15,6 +15,7 @@ import { User, Building2, Bell, Palette, Upload, Loader2, Camera, Shield, ListPl
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { MfaSetup } from '@/components/settings/MfaSetup';
+import { ActiveSessionsManager } from '@/components/ActiveSessionsManager';
 import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
 export default function Settings() {
@@ -724,7 +725,10 @@ export default function Settings() {
           )}
 
           {activeTab === 'security' && (
-            <MfaSetup />
+            <div className="space-y-6">
+              <MfaSetup />
+              <ActiveSessionsManager />
+            </div>
           )}
 
           {activeTab === 'appearance' && (
