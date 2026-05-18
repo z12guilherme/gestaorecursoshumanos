@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { auditService, AuditLog } from "@/services/auditService";
+import { archiveService } from "@/services/archiveService";
 import { supabase } from "@/lib/supabase";
 import {
   Table,
@@ -14,13 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShieldAlert, ChevronLeft, ChevronRight, Archive, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [userMap, setUserMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [archiving, setArchiving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -55,6 +57,28 @@ export default function AuditLogs() {
     }
   };
 
+  const handleArchiveLogs = async () => {
+    if (!window.confirm("Deseja realmente arquivar e excluir os logs com mais de 6 meses? Um arquivo CSV será baixado com o backup.")) return;
+
+    setArchiving(true);
+    try {
+      const oldLogs = await archiveService.archiveAndDeleteColdData('audit_logs', 6);
+
+      if (oldLogs.length > 0) {
+        archiveService.downloadAsCSV(oldLogs, 'backup_audit_logs');
+        alert(`${oldLogs.length} logs antigos foram arquivados e removidos do banco de dados.`);
+        fetchLogs();
+      } else {
+        alert("Nenhum log antigo foi encontrado para arquivamento.");
+      }
+    } catch (error) {
+      console.error("Falha ao arquivar:", error);
+      alert("Falha ao arquivar logs antigos.");
+    } finally {
+      setArchiving(false);
+    }
+  };
+
   const getActionColor = (action: string) => {
     switch (action) {
       case "INSERT": return "bg-green-500 hover:bg-green-600";
@@ -73,11 +97,22 @@ export default function AuditLogs() {
 
   return (
     <div className="space-y-6 p-6 animate-in fade-in duration-500">
-      <div className="flex items-center gap-2">
-        <ShieldAlert className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold tracking-tight">Logs de Auditoria</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight">Logs de Auditoria</h1>
+        </div>
+        <Button
+          variant="outline"
+          onClick={handleArchiveLogs}
+          disabled={archiving}
+          className="gap-2"
+        >
+          {archiving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
+          {archiving ? "Arquivando..." : "Arquivar Logs Antigos"}
+        </Button>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Histórico de Alterações do Sistema</CardTitle>

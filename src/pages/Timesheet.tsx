@@ -7,7 +7,7 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { format, subDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Coffee, LogIn, LogOut, MapPin, MessageSquare, Download, Clock, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle2, XCircle, Coffee, LogIn, LogOut, MapPin, MessageSquare, Download, Clock, FileText, ChevronLeft, ChevronRight, Archive, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -18,6 +18,7 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useDebounce } from '@/hooks/useDebounce';
 import { timeEntryService } from '@/services/timeEntryService';
+import { archiveService } from '@/services/archiveService';
 
 import { ExceptionsPanel } from '@/components/timesheet/ExceptionsPanel';
 import { LiveStatusBoard } from '@/components/timesheet/LiveStatusBoard';
@@ -49,6 +50,7 @@ export default function Timesheet() {
   const [weeklyEntries, setWeeklyEntries] = useState<TimeEntry[]>([]);
   const [employeeStatus, setEmployeeStatus] = useState<EmployeeStatus[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(true);
+  const [archiving, setArchiving] = useState(false);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
   const [mapLocation, setMapLocation] = useState<{ lat: number, lng: number } | null>(null);
@@ -217,6 +219,29 @@ export default function Timesheet() {
     doc.save("Codigo_de_Etica.pdf");
   };
 
+  const handleArchiveEntries = async () => {
+    if (!window.confirm("Deseja realmente arquivar e excluir os registros de ponto com mais de 6 meses? Um arquivo CSV será baixado com o backup.")) return;
+
+    setArchiving(true);
+    try {
+      const oldEntries = await archiveService.archiveAndDeleteColdData('time_entries', 6);
+
+      if (oldEntries.length > 0) {
+        archiveService.downloadAsCSV(oldEntries, 'backup_time_entries');
+        alert(`${oldEntries.length} registros antigos foram arquivados e removidos do banco de dados.`);
+        // Força a recarga da primeira página
+        setPage(1);
+      } else {
+        alert("Nenhum registro antigo foi encontrado para arquivamento.");
+      }
+    } catch (error) {
+      console.error("Falha ao arquivar:", error);
+      alert("Falha ao arquivar registros antigos.");
+    } finally {
+      setArchiving(false);
+    }
+  };
+
   return (
     <AppLayout title="Gestão de Ponto" subtitle="Painel analítico e registros de entrada/saída">
       <div className="space-y-6">
@@ -330,6 +355,15 @@ export default function Timesheet() {
                   <Button variant="outline" size="sm" onClick={handleExport}>
                     <Download className="mr-2 h-4 w-4" />
                     Exportar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleArchiveEntries}
+                    disabled={archiving}
+                  >
+                    {archiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}
+                    Arquivar Antigos
                   </Button>
                 </div>
               </CardHeader>
