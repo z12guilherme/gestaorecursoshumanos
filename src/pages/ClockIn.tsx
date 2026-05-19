@@ -43,17 +43,17 @@ export default function ClockInPage() {
     company_name: 'Hospital DMI',
     cnpj: '04.232.442/0001-14'
   });
-  
+
   // Documents State
   const [showDocumentsDialog, setShowDocumentsDialog] = useState(false);
   const [identifiedEmployee, setIdentifiedEmployee] = useState<Employee | null>(null);
   const [isPayslipViewerOpen, setIsPayslipViewerOpen] = useState(false);
   const { documents } = useDocuments(identifiedEmployee?.id);
-  
+
   // Badge State
   const [showBadgeDialog, setShowBadgeDialog] = useState(false);
   const [badgeEmployee, setBadgeEmployee] = useState<Employee | null>(null);
-  
+
   // Support States
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [supportTab, setSupportTab] = useState('new');
@@ -77,7 +77,7 @@ export default function ClockInPage() {
   useEffect(() => {
     const syncOfflineEntries = async () => {
       if (!navigator.onLine) return;
-      
+
       const pending = await offlineDb.getPendingEntries();
       if (pending.length > 0) {
         toast({ title: 'Sincronizando...', description: `Enviando ${pending.length} registros offline para o servidor.` });
@@ -113,12 +113,12 @@ export default function ClockInPage() {
         .select('*')
         .eq('password', inputPin)
         .maybeSingle();
-      
+
       if (data) return data;
     } catch (err) {
       console.error("Erro ao buscar funcionário:", err);
     }
-    
+
     toast({
       title: "Acesso Negado",
       description: "Senha não encontrada. Verifique suas credenciais.",
@@ -133,9 +133,9 @@ export default function ClockInPage() {
 
     const employee = await getEmployeeByPin(pin);
     if (!employee) {
-        setLoading(false);
-        setPin("");
-        return;
+      setLoading(false);
+      setPin("");
+      return;
     }
 
     // Validação de sequência de ponto
@@ -143,7 +143,7 @@ export default function ClockInPage() {
       try {
         const { data: lastEntry } = await supabase
           .from('time_entries')
-          .select('type')
+          .select('type, timestamp')
           .eq('employee_id', employee.id)
           .order('timestamp', { ascending: false })
           .limit(1)
@@ -162,13 +162,42 @@ export default function ClockInPage() {
         }
 
         if (lastEntry) {
-          const isLastIn = lastEntry.type === 'in' || lastEntry.type === 'lunch_end';
-          const isLastOut = lastEntry.type === 'out' || lastEntry.type === 'lunch_start';
+          const lastEntryDate = new Date(lastEntry.timestamp);
+          const today = new Date();
+          const isSameDay = lastEntryDate.getDate() === today.getDate() &&
+            lastEntryDate.getMonth() === today.getMonth() &&
+            lastEntryDate.getFullYear() === today.getFullYear();
 
-          if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
+          if (isSameDay) {
+            const diffMinutes = (today.getTime() - lastEntryDate.getTime()) / (1000 * 60);
+            if (diffMinutes < 1) {
+              toast({
+                title: "Aguarde um momento",
+                description: "Ponto já registrado. Aguarde pelo menos 1 minuto para novo registro.",
+                variant: "destructive"
+              });
+              setLoading(false);
+              setPin('');
+              return;
+            }
+
+            const isLastIn = lastEntry.type === 'in' || lastEntry.type === 'lunch_end';
+            const isLastOut = lastEntry.type === 'out' || lastEntry.type === 'lunch_start';
+
+            if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
+              toast({
+                title: "Ação Inválida",
+                description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'}. A próxima ação deve ser de ${isLastIn ? 'saída' : 'entrada'}.`,
+                variant: "destructive"
+              });
+              setLoading(false);
+              setPin('');
+              return;
+            }
+          } else if (type !== 'in') {
             toast({
               title: "Ação Inválida",
-              description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'}. A próxima ação deve ser de ${isLastIn ? 'saída' : 'entrada'}.`,
+              description: "Seu primeiro registro do dia deve ser uma entrada.",
               variant: "destructive"
             });
             setLoading(false);
@@ -183,11 +212,11 @@ export default function ClockInPage() {
 
     // Captura Geolocalização
     let locationData: { latitude?: number; longitude?: number } = {};
-    
+
     toast({
-       title: "Obtendo localização...",
-       description: "Aguarde enquanto capturamos sua posição GPS.",
-       duration: 2000,
+      title: "Obtendo localização...",
+      description: "Aguarde enquanto capturamos sua posição GPS.",
+      duration: 2000,
     });
 
     try {
@@ -212,7 +241,7 @@ export default function ClockInPage() {
       if (error.code === 1) errorMessage = "Permissão de localização negada.";
       else if (error.code === 2) errorMessage = "Sinal de GPS indisponível.";
       else if (error.code === 3) errorMessage = "Tempo esgotado ao buscar localização.";
-      
+
       console.error("Erro ao obter localização:", error);
       toast({ title: "Erro de Localização", description: errorMessage, variant: "destructive" });
       setLoading(false);
@@ -229,21 +258,21 @@ export default function ClockInPage() {
     if (navigator.onLine) {
       const { error } = await supabase.from('time_entries').insert(entryData);
       if (error) {
-          toast({ title: "Erro", description: "Falha ao registrar ponto no servidor.", variant: "destructive" });
+        toast({ title: "Erro", description: "Falha ao registrar ponto no servidor.", variant: "destructive" });
       } else {
-          toast({
-              title: `Ponto Registrado!`,
-              description: `${employee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} às ${format(new Date(), 'HH:mm')}.`,
-              className: "bg-green-600 text-white border-none"
-          });
+        toast({
+          title: `Ponto Registrado!`,
+          description: `${employee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} às ${format(new Date(), 'HH:mm')}.`,
+          className: "bg-green-600 text-white border-none"
+        });
       }
     } else {
       // Salva localmente via IndexedDB se estiver sem internet
       await offlineDb.saveEntry(entryData);
       toast({
-          title: `Ponto Salvo Offline 📡`,
-          description: `${employee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} guardado. Será enviado quando a conexão voltar.`,
-          className: "bg-amber-500 text-white border-none"
+        title: `Ponto Salvo Offline 📡`,
+        description: `${employee.name} - ${type === 'in' ? 'Entrada' : 'Saída'} guardado. Será enviado quando a conexão voltar.`,
+        className: "bg-amber-500 text-white border-none"
       });
     }
 
@@ -252,35 +281,35 @@ export default function ClockInPage() {
   };
 
   const handleAccessDocuments = async () => {
-      if (!pin) {
-        toast({ title: "PIN Obrigatório", description: "Digite seu PIN de 4 dígitos para acessar.", variant: "destructive" });
-        return;
-      }
-      setLoading(true);
-      const employee = await getEmployeeByPin(pin);
-      
-      if (employee) {
-        setIdentifiedEmployee(employee);
-        setShowDocumentsDialog(true);
-        setPin('');
-      }
-      setLoading(false);
+    if (!pin) {
+      toast({ title: "PIN Obrigatório", description: "Digite seu PIN de 4 dígitos para acessar.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    const employee = await getEmployeeByPin(pin);
+
+    if (employee) {
+      setIdentifiedEmployee(employee);
+      setShowDocumentsDialog(true);
+      setPin('');
+    }
+    setLoading(false);
   };
 
   const handleAccessBadge = async () => {
-      if (!pin) {
-        toast({ title: "PIN Obrigatório", description: "Digite seu PIN de 4 dígitos para ver o crachá.", variant: "destructive" });
-        return;
-      }
-      setLoading(true);
-      const employee = await getEmployeeByPin(pin);
-      
-      if (employee) {
-        setBadgeEmployee(employee);
-        setShowBadgeDialog(true);
-        setPin('');
-      }
-      setLoading(false);
+    if (!pin) {
+      toast({ title: "PIN Obrigatório", description: "Digite seu PIN de 4 dígitos para ver o crachá.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    const employee = await getEmployeeByPin(pin);
+
+    if (employee) {
+      setBadgeEmployee(employee);
+      setShowBadgeDialog(true);
+      setPin('');
+    }
+    setLoading(false);
   };
 
   const handleCreateTicket = async () => {
@@ -315,7 +344,7 @@ export default function ClockInPage() {
   const handleTrackTicket = async () => {
     if (!trackTicketNum) return;
     setLoadingSupport(true);
-    
+
     const { data, error } = await supabase
       .from('tickets')
       .select('*')
@@ -336,198 +365,201 @@ export default function ClockInPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-       {/* Top Bar */}
-       <header className="bg-white border-b h-16 flex items-center justify-between px-6 shadow-sm z-10">
-          {/* Logo & Company Name */}
-          <div className="flex items-center gap-3">
-             <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
-                DMI
-             </div>
-             <div>
-                <h1 className="font-bold text-slate-800 leading-tight">{companySettings?.company_name}</h1>
-                <p className="text-xs text-slate-500">Portal do Colaborador</p>
-             </div>
+      {/* Top Bar */}
+      <header className="bg-white border-b h-16 flex items-center justify-between px-6 shadow-sm z-10">
+        {/* Logo & Company Name */}
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
+            DMI
           </div>
-          {/* Time & Date (Desktop) */}
-          <div className="hidden md:flex flex-col items-end">
-             <span className="text-xl font-bold text-slate-800 font-mono">
-               {format(currentTime, 'HH:mm')}
-             </span>
-             <span className="text-xs text-slate-500 capitalize">
-               {format(currentTime, "EEEE, d 'de' MMMM", { locale: ptBR })}
-             </span>
+          <div>
+            <h1 className="font-bold text-slate-800 leading-tight">{companySettings?.company_name}</h1>
+            <p className="text-xs text-slate-500">Portal do Colaborador</p>
           </div>
-       </header>
+        </div>
+        {/* Time & Date (Desktop) */}
+        <div className="hidden md:flex flex-col items-end">
+          <span className="text-xl font-bold text-slate-800 font-mono">
+            {format(currentTime, 'HH:mm')}
+          </span>
+          <span className="text-xs text-slate-500 capitalize">
+            {format(currentTime, "EEEE, d 'de' MMMM", { locale: ptBR })}
+          </span>
+        </div>
+      </header>
 
-       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* Left Column: Actions (Terminal) - Spans 7 cols */}
-          <div className="lg:col-span-7 flex flex-col gap-6">
-             {/* Welcome / Clock Card */}
-             <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-none shadow-lg overflow-hidden relative">
-                <div className="absolute top-0 right-0 p-8 opacity-10">
-                   <Clock className="w-64 h-64" />
+      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* Left Column: Actions (Terminal) - Spans 7 cols */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          {/* Welcome / Clock Card */}
+          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-none shadow-lg overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-8 opacity-10">
+              <Clock className="w-64 h-64" />
+            </div>
+            <CardContent className="p-8 relative z-10">
+              <p className="text-blue-100 font-medium mb-1">Bem-vindo ao seu portal</p>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">O que você deseja fazer hoje?</h2>
+
+              <div className="flex flex-wrap gap-4">
+                <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 flex items-center gap-3 border border-white/10">
+                  <Calendar className="w-8 h-8 text-blue-100" />
+                  <div>
+                    <p className="text-xs text-blue-200">Data de Hoje</p>
+                    <p className="font-bold">{format(currentTime, 'dd/MM/yyyy')}</p>
+                  </div>
                 </div>
-                <CardContent className="p-8 relative z-10">
-                   <p className="text-blue-100 font-medium mb-1">Bem-vindo ao seu portal</p>
-                   <h2 className="text-3xl md:text-4xl font-bold mb-6">O que você deseja fazer hoje?</h2>
-                   
-                   <div className="flex flex-wrap gap-4">
-                      <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 flex items-center gap-3 border border-white/10">
-                         <Calendar className="w-8 h-8 text-blue-100" />
-                         <div>
-                            <p className="text-xs text-blue-200">Data de Hoje</p>
-                            <p className="font-bold">{format(currentTime, 'dd/MM/yyyy')}</p>
-                         </div>
-                      </div>
-                      <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 flex items-center gap-3 border border-white/10">
-                         <Clock className="w-8 h-8 text-blue-100" />
-                         <div>
-                            <p className="text-xs text-blue-200">Hora Atual</p>
-                            <p className="font-bold font-mono">{format(currentTime, 'HH:mm:ss')}</p>
-                         </div>
-                      </div>
-                   </div>
-                </CardContent>
-             </Card>
+                <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 flex items-center gap-3 border border-white/10">
+                  <Clock className="w-8 h-8 text-blue-100" />
+                  <div>
+                    <p className="text-xs text-blue-200">Hora Atual</p>
+                    <p className="font-bold font-mono">{format(currentTime, 'HH:mm:ss')}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-             {/* PIN & Actions */}
-             <Card className="border-none shadow-md flex-1">
-                <CardHeader>
-                   <CardTitle>Acesso Rápido</CardTitle>
-                   <CardDescription>Digite seu PIN para liberar as ações</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                   <div className="max-w-sm mx-auto">
-                      <div className="relative">
-                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <KeyRound className="h-5 w-5 text-slate-400" />
-                         </div>
-                         <Input
-                            type="password"
-                            placeholder="Digite seu PIN (4 dígitos)"
-                            className="pl-10 text-center text-2xl tracking-widest h-14 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-                            maxLength={4}
-                            value={pin}
-                            onChange={(e) => setPin(e.target.value)}
-                         />
-                      </div>
-                   </div>
+          {/* PIN & Actions */}
+          <Card className="border-none shadow-md flex-1">
+            <CardHeader>
+              <CardTitle>Acesso Rápido</CardTitle>
+              <CardDescription>Digite seu PIN para liberar as ações</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="max-w-sm mx-auto">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <KeyRound className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <Input
+                    type="password"
+                    placeholder="Digite seu PIN (4 dígitos)"
+                    className="pl-10 text-center text-2xl tracking-widest h-14 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                    maxLength={4}
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
 
-                   <div className="grid grid-cols-2 gap-4">
-                      <Button 
-                        className="h-24 flex flex-col gap-2 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-100 text-emerald-700 hover:text-emerald-800 shadow-sm"
-                        variant="outline"
-                        onClick={() => handleClockAction('in')}
-                      >
-                         <LogIn className="w-8 h-8" />
-                         <span className="font-bold text-lg">Registrar Entrada</span>
-                      </Button>
-                      <Button 
-                        className="h-24 flex flex-col gap-2 bg-amber-50 hover:bg-amber-100 border-2 border-amber-100 text-amber-700 hover:text-amber-800 shadow-sm"
-                        variant="outline"
-                        onClick={() => handleClockAction('out')}
-                      >
-                         <LogOut className="w-8 h-8" />
-                         <span className="font-bold text-lg">Registrar Saída</span>
-                      </Button>
-                   </div>
-
-                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <Button 
-                        className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
-                        variant="ghost"
-                        onClick={handleAccessDocuments}
-                      >
-                         <FileText className="w-5 h-5 shrink-0" />
-                         Documentos
-                      </Button>
-                      <Button 
-                        className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
-                        variant="ghost"
-                        onClick={handleAccessBadge}
-                      >
-                         <IdCard className="w-5 h-5 shrink-0" />
-                         Crachá
-                      </Button>
-                      <Button 
-                        className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
-                        variant="ghost"
-                        onClick={() => setIsSupportOpen(true)}
-                      >
-                         <LifeBuoy className="w-5 h-5 shrink-0" />
-                         Suporte
-                      </Button>
-                   </div>
-                </CardContent>
-             </Card>
-          </div>
-
-          {/* Right Column: Info & Announcements - Spans 5 cols */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
-             {/* Announcements */}
-             <Card className="flex-1 border-none shadow-md flex flex-col">
-                <CardHeader className="bg-slate-50/50 border-b pb-4">
-                   <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                         <Megaphone className="w-5 h-5 text-blue-600" />
-                         Mural de Avisos
-                      </CardTitle>
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">
-                         {announcements.length} Novos
-                      </Badge>
-                   </div>
-                </CardHeader>
-                <CardContent className="p-0 flex-1 overflow-hidden">
-                   <ScrollArea className="h-[500px] p-6">
-                      <div className="space-y-4">
-                         {/* Fixed Notice */}
-                         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-2">
-                               <Pin className="w-4 h-4 text-blue-400 fill-blue-400" />
-                            </div>
-                            <h4 className="font-bold text-blue-900 mb-2 pr-6">Como acessar seu Holerite?</h4>
-                            <p className="text-sm text-blue-800 leading-relaxed">
-                               Digite sua senha no painel ao lado e clique em "Meus Documentos". 
-                               Você poderá visualizar, assinar e baixar seu contra cheque do mês atual instantaneamente (Verifique com o RH se foram feitas as atualizações mensais).
-                            </p>
-                         </div>
-
-                         {announcements.map((announcement) => (
-                            <div key={announcement.id} className="group bg-white border border-slate-100 hover:border-blue-200 rounded-xl p-4 transition-all shadow-sm hover:shadow-md">
-                               <div className="flex justify-between items-start mb-2">
-                                  <h4 className="font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">
-                                     {announcement.title}
-                                  </h4>
-                                  {announcement.priority === 'high' && (
-                                     <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-2" title="Alta Prioridade" />
-                                  )}
-                               </div>
-                               <p className="text-sm text-slate-600 leading-relaxed mb-3">
-                                  {announcement.content}
-                               </p>
-                               <div className="flex items-center justify-between text-xs text-slate-400">
-                                  <span>{format(new Date(announcement.created_at), "d 'de' MMM", { locale: ptBR })}</span>
-                                  <span>{announcement.author || 'RH'}</span>
-                               </div>
-                            </div>
-                         ))}
-                      </div>
-                   </ScrollArea>
-                </CardContent>
-             </Card>
-             
-             {/* Admin Link */}
-             <div className="text-center">
-                <Button variant="link" className="text-slate-400 hover:text-slate-600 text-xs" onClick={() => navigate('/login')}>
-                   <ArrowLeft className="mr-1 h-3 w-3" /> Acesso Administrativo
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  className="h-24 flex flex-col gap-2 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-100 text-emerald-700 hover:text-emerald-800 shadow-sm"
+                  variant="outline"
+                  onClick={() => handleClockAction('in')}
+                  disabled={loading}
+                >
+                  <LogIn className="w-8 h-8" />
+                  <span className="font-bold text-lg">Registrar Entrada</span>
                 </Button>
-             </div>
+                <Button
+                  className="h-24 flex flex-col gap-2 bg-amber-50 hover:bg-amber-100 border-2 border-amber-100 text-amber-700 hover:text-amber-800 shadow-sm"
+                  variant="outline"
+                  onClick={() => handleClockAction('out')}
+                  disabled={loading}
+                >
+                  <LogOut className="w-8 h-8" />
+                  <span className="font-bold text-lg">Registrar Saída</span>
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Button
+                  className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                  variant="ghost"
+                  onClick={handleAccessDocuments}
+                >
+                  <FileText className="w-5 h-5 shrink-0" />
+                  Documentos
+                </Button>
+                <Button
+                  className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                  variant="ghost"
+                  onClick={handleAccessBadge}
+                >
+                  <IdCard className="w-5 h-5 shrink-0" />
+                  Crachá
+                </Button>
+                <Button
+                  className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                  variant="ghost"
+                  onClick={() => setIsSupportOpen(true)}
+                >
+                  <LifeBuoy className="w-5 h-5 shrink-0" />
+                  Suporte
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Info & Announcements - Spans 5 cols */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          {/* Announcements */}
+          <Card className="flex-1 border-none shadow-md flex flex-col">
+            <CardHeader className="bg-slate-50/50 border-b pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Megaphone className="w-5 h-5 text-blue-600" />
+                  Mural de Avisos
+                </CardTitle>
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                  {announcements.length} Novos
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0 flex-1 overflow-hidden">
+              <ScrollArea className="h-[500px] p-6">
+                <div className="space-y-4">
+                  {/* Fixed Notice */}
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-2">
+                      <Pin className="w-4 h-4 text-blue-400 fill-blue-400" />
+                    </div>
+                    <h4 className="font-bold text-blue-900 mb-2 pr-6">Como acessar seu Holerite?</h4>
+                    <p className="text-sm text-blue-800 leading-relaxed">
+                      Digite sua senha no painel ao lado e clique em "Meus Documentos".
+                      Você poderá visualizar, assinar e baixar seu contra cheque do mês atual instantaneamente (Verifique com o RH se foram feitas as atualizações mensais).
+                    </p>
+                  </div>
+
+                  {announcements.map((announcement) => (
+                    <div key={announcement.id} className="group bg-white border border-slate-100 hover:border-blue-200 rounded-xl p-4 transition-all shadow-sm hover:shadow-md">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">
+                          {announcement.title}
+                        </h4>
+                        {announcement.priority === 'high' && (
+                          <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-2" title="Alta Prioridade" />
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-600 leading-relaxed mb-3">
+                        {announcement.content}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-slate-400">
+                        <span>{format(new Date(announcement.created_at), "d 'de' MMM", { locale: ptBR })}</span>
+                        <span>{announcement.author || 'RH'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {/* Admin Link */}
+          <div className="text-center">
+            <Button variant="link" className="text-slate-400 hover:text-slate-600 text-xs" onClick={() => navigate('/login')}>
+              <ArrowLeft className="mr-1 h-3 w-3" /> Acesso Administrativo
+            </Button>
           </div>
+        </div>
 
-       </main>
+      </main>
 
-      <PayslipViewerModal 
+      <PayslipViewerModal
         open={isPayslipViewerOpen}
         onOpenChange={setIsPayslipViewerOpen}
         employee={identifiedEmployee}
@@ -537,57 +569,57 @@ export default function ClockInPage() {
       {/* Dialog de Documentos */}
       <Dialog open={showDocumentsDialog} onOpenChange={setShowDocumentsDialog}>
         <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-                <DialogTitle>Documentos de {identifiedEmployee?.name}</DialogTitle>
-                <DialogDescription>Visualize ou baixe seus documentos.</DialogDescription>
-            </DialogHeader>
-            
-            {identifiedEmployee && (
-              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg flex items-center justify-between border border-blue-100 dark:border-blue-900 mt-4">
-                <div className="flex flex-col">
-                  <span className="font-medium text-blue-900 dark:text-blue-300">Contra Cheque</span>
-                  <span className="text-xs text-blue-700 dark:text-blue-400">Mês Atual</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setIsPayslipViewerOpen(true)}>Visualizar</Button>
-                  <PayslipButton employee={identifiedEmployee as any} referenceDate={new Date()} />
-                </div>
-              </div>
-            )}
+          <DialogHeader>
+            <DialogTitle>Documentos de {identifiedEmployee?.name}</DialogTitle>
+            <DialogDescription>Visualize ou baixe seus documentos.</DialogDescription>
+          </DialogHeader>
 
-            <div className="py-4">
-                <h4 className="text-sm font-medium mb-2 text-muted-foreground">Outros Arquivos</h4>
-                <ScrollArea className="h-[300px] pr-4">
-                    {documents.length === 0 ? (
-                        <div className="text-center py-10 text-muted-foreground">
-                            <FileText className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                            <p>Nenhum documento disponível.</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            {documents.map(doc => (
-                                <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="bg-primary/10 p-2 rounded-md">
-                                            <FileText className="h-4 w-4 text-primary" />
-                                        </div>
-                                        <span className="text-sm font-medium truncate">{doc.name}</span>
-                                    </div>
-                                    <Button size="sm" variant="ghost" onClick={() => window.open(doc.url, '_blank')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </ScrollArea>
+          {identifiedEmployee && (
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg flex items-center justify-between border border-blue-100 dark:border-blue-900 mt-4">
+              <div className="flex flex-col">
+                <span className="font-medium text-blue-900 dark:text-blue-300">Contra Cheque</span>
+                <span className="text-xs text-blue-700 dark:text-blue-400">Mês Atual</span>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsPayslipViewerOpen(true)}>Visualizar</Button>
+                <PayslipButton employee={identifiedEmployee as any} referenceDate={new Date()} />
+              </div>
             </div>
-            <DialogFooter>
-                <Button onClick={() => setShowDocumentsDialog(false)}>Fechar</Button>
-            </DialogFooter>
+          )}
+
+          <div className="py-4">
+            <h4 className="text-sm font-medium mb-2 text-muted-foreground">Outros Arquivos</h4>
+            <ScrollArea className="h-[300px] pr-4">
+              {documents.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  <FileText className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                  <p>Nenhum documento disponível.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {documents.map(doc => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="bg-primary/10 p-2 rounded-md">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-sm font-medium truncate">{doc.name}</span>
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => window.open(doc.url, '_blank')}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowDocumentsDialog(false)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Dialog do Crachá */}
       <Dialog open={showBadgeDialog} onOpenChange={setShowBadgeDialog}>
         <DialogContent className="sm:max-w-sm flex flex-col items-center justify-center p-8 bg-slate-50/95 dark:bg-slate-900/95 border-none shadow-2xl rounded-2xl">
@@ -602,27 +634,27 @@ export default function ClockInPage() {
             <DialogTitle>Central de Atendimento ao Colaborador</DialogTitle>
             <DialogDescription>Abra um chamado para o RH ou consulte o status de uma solicitação.</DialogDescription>
           </DialogHeader>
-          
+
           <Tabs value={supportTab} onValueChange={setSupportTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="new">Abrir Chamado</TabsTrigger>
               <TabsTrigger value="track">Consultar Status</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="new" className="space-y-4 py-4">
               {!createdTicketNum ? (
                 <>
                   <div className="space-y-2">
                     <Label>Seu Nome</Label>
-                    <Input placeholder="Digite seu nome completo" value={newTicket.name} onChange={e => setNewTicket({...newTicket, name: e.target.value})} />
+                    <Input placeholder="Digite seu nome completo" value={newTicket.name} onChange={e => setNewTicket({ ...newTicket, name: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label>Assunto</Label>
-                    <Input placeholder="Ex: Dúvida sobre holerite" value={newTicket.title} onChange={e => setNewTicket({...newTicket, title: e.target.value})} />
+                    <Input placeholder="Ex: Dúvida sobre holerite" value={newTicket.title} onChange={e => setNewTicket({ ...newTicket, title: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label>Descrição</Label>
-                    <Textarea placeholder="Descreva sua solicitação..." value={newTicket.description} onChange={e => setNewTicket({...newTicket, description: e.target.value})} />
+                    <Textarea placeholder="Descreva sua solicitação..." value={newTicket.description} onChange={e => setNewTicket({ ...newTicket, description: e.target.value })} />
                   </div>
                   <Button className="w-full" onClick={handleCreateTicket} disabled={loadingSupport}>
                     {loadingSupport ? 'Enviando...' : 'Abrir Chamado'}
@@ -649,13 +681,13 @@ export default function ClockInPage() {
                 </div>
               )}
             </TabsContent>
-            
+
             <TabsContent value="track" className="space-y-4 py-4">
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Digite o número do protocolo (Ex: X7Y2Z9)" 
-                  value={trackTicketNum} 
-                  onChange={e => setTrackTicketNum(e.target.value)} 
+                <Input
+                  placeholder="Digite o número do protocolo (Ex: X7Y2Z9)"
+                  value={trackTicketNum}
+                  onChange={e => setTrackTicketNum(e.target.value)}
                   className="uppercase"
                 />
                 <Button onClick={handleTrackTicket} disabled={loadingSupport}>
@@ -671,9 +703,9 @@ export default function ClockInPage() {
                       <p className="text-xs text-muted-foreground">Aberto em {format(new Date(trackedTicket.created_at), 'dd/MM/yyyy HH:mm')}</p>
                     </div>
                     <Badge variant={trackedTicket.status === 'resolved' ? 'default' : 'secondary'}>
-                      {trackedTicket.status === 'open' ? 'Aberto' : 
-                       trackedTicket.status === 'in_progress' ? 'Em Andamento' : 
-                       trackedTicket.status === 'resolved' ? 'Resolvido' : 'Fechado'}
+                      {trackedTicket.status === 'open' ? 'Aberto' :
+                        trackedTicket.status === 'in_progress' ? 'Em Andamento' :
+                          trackedTicket.status === 'resolved' ? 'Resolvido' : 'Fechado'}
                     </Badge>
                   </div>
                   <div className="text-sm">

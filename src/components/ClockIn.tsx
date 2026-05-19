@@ -21,7 +21,7 @@ export default function ClockIn() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
-  
+
   // Estado do funcionário autenticado (com dados completos para o holerite)
   const [authenticatedEmployee, setAuthenticatedEmployee] = useState<any | null>(null);
 
@@ -41,7 +41,7 @@ export default function ClockIn() {
       .select("id, name")
       .eq("status", "Ativo")
       .order("name");
-    
+
     if (data) setEmployees(data);
     if (error) console.error("Erro ao buscar funcionários:", error);
   };
@@ -88,6 +88,51 @@ export default function ClockIn() {
     setLoading(true);
 
     try {
+      // Validação de sequência de ponto
+      const { data: lastEntry } = await supabase
+        .from('time_entries')
+        .select('type, timestamp')
+        .eq('employee_id', authenticatedEmployee.id)
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!lastEntry && type !== 'in') {
+        toast({ title: "Ação Inválida", description: "Seu primeiro registro do dia deve ser uma entrada.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      if (lastEntry) {
+        const lastEntryDate = new Date(lastEntry.timestamp);
+        const today = new Date();
+        const isSameDay = lastEntryDate.getDate() === today.getDate() &&
+          lastEntryDate.getMonth() === today.getMonth() &&
+          lastEntryDate.getFullYear() === today.getFullYear();
+
+        if (isSameDay) {
+          const diffMinutes = (today.getTime() - lastEntryDate.getTime()) / (1000 * 60);
+          if (diffMinutes < 1) {
+            toast({ title: "Aguarde um momento", description: "Ponto já registrado. Aguarde pelo menos 1 minuto.", variant: "destructive" });
+            setLoading(false);
+            return;
+          }
+
+          const isLastIn = lastEntry.type === 'in' || lastEntry.type === 'lunch_end';
+          const isLastOut = lastEntry.type === 'out' || lastEntry.type === 'lunch_start';
+
+          if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
+            toast({ title: "Ação Inválida", description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'}.`, variant: "destructive" });
+            setLoading(false);
+            return;
+          }
+        } else if (type !== 'in') {
+          toast({ title: "Ação Inválida", description: "Seu primeiro registro do dia deve ser uma entrada.", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+      }
+
       // Tenta pegar localização
       let location = null;
       if ("geolocation" in navigator) {
@@ -197,9 +242,9 @@ export default function ClockIn() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Senha (PIN)</label>
-              <Input 
-                type="password" 
-                placeholder="Digite sua senha" 
+              <Input
+                type="password"
+                placeholder="Digite sua senha"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 maxLength={6}
@@ -231,11 +276,11 @@ export default function ClockIn() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
-          
+
           {/* Área de Registro de Ponto */}
           <div className="grid grid-cols-2 gap-4">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="h-24 text-lg flex flex-col gap-2 bg-green-600 hover:bg-green-700"
               onClick={() => handleClockIn('in')}
               disabled={loading}
@@ -243,8 +288,8 @@ export default function ClockIn() {
               <Clock className="h-6 w-6" />
               Entrada
             </Button>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="h-24 text-lg flex flex-col gap-2 bg-orange-600 hover:bg-orange-700"
               onClick={() => handleClockIn('out')}
               disabled={loading}
@@ -271,9 +316,9 @@ export default function ClockIn() {
                 <span className="font-medium text-blue-900 dark:text-blue-300">Contra Cheque</span>
                 <span className="text-xs text-blue-700 dark:text-blue-400">Baixar documento assinado</span>
               </div>
-              
-              <PayslipButton 
-                employee={authenticatedEmployee} 
+
+              <PayslipButton
+                employee={authenticatedEmployee}
                 referenceDate={new Date()}
               />
             </div>
@@ -284,7 +329,7 @@ export default function ClockIn() {
                 <span className="font-medium text-slate-900 dark:text-slate-300">Crachá Funcional</span>
                 <span className="text-xs text-slate-500 dark:text-slate-400">Visualizar versão digital</span>
               </div>
-              
+
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">
@@ -304,7 +349,7 @@ export default function ClockIn() {
                 <span className="font-medium text-slate-900 dark:text-slate-300">Atualizar Cadastro</span>
                 <span className="text-xs text-slate-500 dark:text-slate-400">Mantenha seus dados em dia</span>
               </div>
-              
+
               <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">
@@ -322,17 +367,17 @@ export default function ClockIn() {
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Email Pessoal</label>
-                      <Input 
-                        value={updateData.email} 
-                        onChange={e => setUpdateData({...updateData, email: e.target.value})}
+                      <Input
+                        value={updateData.email}
+                        onChange={e => setUpdateData({ ...updateData, email: e.target.value })}
                         placeholder="seu.email@exemplo.com"
                       />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Telefone / WhatsApp</label>
-                      <Input 
-                        value={updateData.phone} 
-                        onChange={e => setUpdateData({...updateData, phone: e.target.value})}
+                      <Input
+                        value={updateData.phone}
+                        onChange={e => setUpdateData({ ...updateData, phone: e.target.value })}
                         placeholder="(00) 00000-0000"
                       />
                     </div>
@@ -340,10 +385,10 @@ export default function ClockIn() {
                       <label className="text-sm font-medium text-amber-600 dark:text-amber-500">
                         Confirme com seu PIN
                       </label>
-                      <Input 
-                        type="password" 
+                      <Input
+                        type="password"
                         maxLength={6}
-                        value={updatePin} 
+                        value={updatePin}
                         onChange={e => setUpdatePin(e.target.value)}
                         placeholder="Digite seu PIN"
                         className="text-center tracking-widest text-lg"
