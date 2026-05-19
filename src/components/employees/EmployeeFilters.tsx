@@ -8,7 +8,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { departments } from '@/data/mockData';
+
+const departments = [
+  'Administrativo',
+  'Central de Marcação',
+  'Coordenação',
+  'Enfermagem',
+  'Farmácia',
+  'Faturamento',
+  'Financeiro',
+  'Higienização',
+  'Laboratório',
+  'Lavanderia',
+  'Manutenção',
+  'Marketing',
+  'Nutrição',
+  'Radiologia',
+  'Recepção Ambulatorial',
+  'Recepção Urgência',
+  'Recursos Humanos / Departamento Pessoal',
+  'Remoção',
+  'TI'
+];
 
 interface EmployeeFiltersProps {
   searchTerm: string;
@@ -45,7 +66,7 @@ export function EmployeeFilters({
             className="pl-9"
           />
         </div>
-        
+
         <Select value={departmentFilter} onValueChange={onDepartmentChange}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Departamento" />

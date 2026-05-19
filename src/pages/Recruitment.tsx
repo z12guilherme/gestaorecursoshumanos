@@ -40,13 +40,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Recruitment() {
-  const { 
-    jobs, 
-    candidates, 
-    loading, 
-    addJob, 
-    updateJob, 
-    deleteJob, 
+  const {
+    jobs,
+    candidates,
+    loading,
+    addJob,
+    updateJob,
+    deleteJob,
     updateCandidate,
     deleteCandidate
   } = useRecruitment();
@@ -63,7 +63,7 @@ export default function Recruitment() {
 
   const handleMoveCandidate = async (candidateId: string, newStatus: Candidate['status']) => {
     await updateCandidate(candidateId, { status: newStatus });
-    
+
     const candidate = candidates.find(c => c.id === candidateId);
     const statusLabels = {
       applied: 'Inscritos',
@@ -95,7 +95,7 @@ export default function Recruitment() {
     }
     setIsAiScreeningOpen(true);
     setAiScreeningLoading(true);
-    
+
     // Simulação de processamento de currículos com IA
     setTimeout(() => {
       const job = jobs.find(j => j.id === selectedJobId);
@@ -104,13 +104,13 @@ export default function Recruitment() {
         matchScore: Math.floor(Math.random() * 40) + 60, // Gera score entre 60% e 99%
         keywords: ['React', 'Comunicação', 'Proatividade', 'Gestão', 'Liderança', 'Design', 'Agile', 'Vendas'].sort(() => 0.5 - Math.random()).slice(0, 3)
       })).sort((a, b) => b.matchScore - a.matchScore);
-      
+
       setAiResults(results);
       setAiScreeningLoading(false);
     }, 2500);
   };
 
-  const filteredCandidates = selectedJobId 
+  const filteredCandidates = selectedJobId
     ? candidates.filter(c => jobs.find(j => j.id === selectedJobId)?.title.toLowerCase() === c.position.toLowerCase())
     : candidates;
 
@@ -150,7 +150,7 @@ export default function Recruitment() {
   const handleDeleteJob = async (id: string) => {
     const { error } = await deleteJob(id);
     if (error) return;
-    
+
     setJobToDelete(null);
     toast({ title: 'Vaga excluída', description: 'A vaga foi removida com sucesso.', variant: 'destructive' });
   };
@@ -223,90 +223,90 @@ export default function Recruitment() {
               <TabsTrigger value="pipeline">Pipeline de Candidatos</TabsTrigger>
               <TabsTrigger value="jobs">Vagas</TabsTrigger>
             </TabsList>
-            
+
             <div className="flex gap-2">
               <Button variant="outline" className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900 dark:text-purple-400 dark:hover:bg-purple-900/20" onClick={runAiScreening}>
                 <Brain className="h-4 w-4" />
                 Triagem com IA
               </Button>
-            <Dialog open={isJobDialogOpen} onOpenChange={setIsJobDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2" onClick={handleOpenCreateJobDialog}>
-                  <Plus className="h-4 w-4" />
-                  Nova Vaga
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>{jobToEdit ? 'Editar Vaga' : 'Criar Nova Vaga'}</DialogTitle>
-                  <DialogDescription>
-                    {jobToEdit ? 'Altere os detalhes da vaga abaixo.' : 'Preencha os detalhes da nova posição em aberto.'}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="title">Título do Cargo</Label>
-                    <Input id="title" value={jobForm.title} onChange={e => setJobForm({...jobForm, title: e.target.value})} placeholder="Ex: Desenvolvedor Frontend" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+              <Dialog open={isJobDialogOpen} onOpenChange={setIsJobDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2" onClick={handleOpenCreateJobDialog}>
+                    <Plus className="h-4 w-4" />
+                    Nova Vaga
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>{jobToEdit ? 'Editar Vaga' : 'Criar Nova Vaga'}</DialogTitle>
+                    <DialogDescription>
+                      {jobToEdit ? 'Altere os detalhes da vaga abaixo.' : 'Preencha os detalhes da nova posição em aberto.'}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="department">Departamento</Label>
-                      <Input id="department" value={jobForm.department} onChange={e => setJobForm({...jobForm, department: e.target.value})} placeholder="Ex: Tecnologia" />
+                      <Label htmlFor="title">Título do Cargo</Label>
+                      <Input id="title" value={jobForm.title} onChange={e => setJobForm({ ...jobForm, title: e.target.value })} placeholder="Ex: Desenvolvedor Frontend" />
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="type">Tipo</Label>
-                      <Select value={jobForm.type} onValueChange={v => setJobForm({...jobForm, type: v})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Integral">Integral</SelectItem>
-                          <SelectItem value="Estágio">Estágio</SelectItem>
-                          <SelectItem value="Híbrido">Híbrido</SelectItem>
-                          <SelectItem value="Remoto">Remoto</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="location">Localização</Label>
-                    <Input id="location" value={jobForm.location} onChange={e => setJobForm({...jobForm, location: e.target.value})} placeholder="Ex: São Paulo, SP" />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="description">Descrição</Label>
-                    <Textarea id="description" value={jobForm.description} onChange={e => setJobForm({...jobForm, description: e.target.value})} placeholder="Breve descrição da vaga..." />
-                  </div>
-                  {jobToEdit && (
-                    <div className="grid gap-2">
-                      <Label>Link da Vaga</Label>
-                      <div className="flex gap-2">
-                        <Input 
-                          readOnly 
-                          value={`${window.location.origin}/jobs/${jobToEdit.id}`} 
-                          className="bg-muted text-muted-foreground"
-                        />
-                        <Button size="icon" variant="outline" onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/jobs/${jobToEdit.id}`);
-                          toast({ title: "Link copiado", description: "Link copiado para a área de transferência." });
-                        }}>
-                          <Copy className="h-4 w-4" />
-                        </Button>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="department">Departamento</Label>
+                        <Input id="department" value={jobForm.department} onChange={e => setJobForm({ ...jobForm, department: e.target.value })} placeholder="Ex: TI" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="type">Tipo</Label>
+                        <Select value={jobForm.type} onValueChange={v => setJobForm({ ...jobForm, type: v })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Integral">Integral</SelectItem>
+                            <SelectItem value="Estágio">Estágio</SelectItem>
+                            <SelectItem value="Híbrido">Híbrido</SelectItem>
+                            <SelectItem value="Remoto">Remoto</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsJobDialogOpen(false)}>Cancelar</Button>
-                  <Button onClick={handleSaveJob}>{jobToEdit ? 'Salvar Alterações' : 'Criar Vaga'}</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                    <div className="grid gap-2">
+                      <Label htmlFor="location">Localização</Label>
+                      <Input id="location" value={jobForm.location} onChange={e => setJobForm({ ...jobForm, location: e.target.value })} placeholder="Ex: São Paulo, SP" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="description">Descrição</Label>
+                      <Textarea id="description" value={jobForm.description} onChange={e => setJobForm({ ...jobForm, description: e.target.value })} placeholder="Breve descrição da vaga..." />
+                    </div>
+                    {jobToEdit && (
+                      <div className="grid gap-2">
+                        <Label>Link da Vaga</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            readOnly
+                            value={`${window.location.origin}/jobs/${jobToEdit.id}`}
+                            className="bg-muted text-muted-foreground"
+                          />
+                          <Button size="icon" variant="outline" onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/jobs/${jobToEdit.id}`);
+                            toast({ title: "Link copiado", description: "Link copiado para a área de transferência." });
+                          }}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsJobDialogOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleSaveJob}>{jobToEdit ? 'Salvar Alterações' : 'Criar Vaga'}</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
           <TabsContent value="pipeline" className="space-y-4">
-            <KanbanBoard 
-              candidates={filteredCandidates} 
+            <KanbanBoard
+              candidates={filteredCandidates}
               onMoveCandidate={handleMoveCandidate}
               onDeleteCandidate={handleDeleteCandidate}
             />
@@ -317,7 +317,7 @@ export default function Recruitment() {
               {jobs.map((job) => (
                 <JobPostingCard
                   key={job.id}
-                  job={{...job, applicants: candidates.filter(c => c.position === job.title).length, postedAt: job.created_at}}
+                  job={{ ...job, applicants: candidates.filter(c => c.position === job.title).length, postedAt: job.created_at }}
                   onSelect={() => {
                     setSelectedJobId(job.id);
                     setActiveTab('pipeline');
@@ -350,51 +350,51 @@ export default function Recruitment() {
         {/* Modal de Triagem por IA */}
         <Dialog open={isAiScreeningOpen} onOpenChange={setIsAiScreeningOpen}>
           <DialogContent className="sm:max-w-[700px]">
-             <DialogHeader>
-               <DialogTitle className="flex items-center gap-2"><Brain className="h-5 w-5 text-purple-500" /> Triagem Inteligente de Currículos</DialogTitle>
-               <DialogDescription>A IA analisou os currículos dos candidatos para a vaga selecionada e gerou um Score de Compatibilidade (Match).</DialogDescription>
-             </DialogHeader>
-             
-             {aiScreeningLoading ? (
-               <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                  <div className="relative">
-                     <Brain className="h-12 w-12 text-purple-500 animate-pulse" />
-                     <Sparkles className="h-5 w-5 text-amber-400 absolute -top-1 -right-1 animate-bounce" />
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground animate-pulse">Lendo PDFs e mapeando habilidades...</p>
-               </div>
-             ) : (
-               <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
-                  {aiResults.length === 0 ? (
-                    <p className="text-center text-muted-foreground">Nenhum candidato encontrado para esta vaga.</p>
-                  ) : (
-                    aiResults.map((candidate, idx) => (
-                      <div key={candidate.id} className="flex items-center justify-between p-4 border rounded-xl bg-card hover:bg-accent/50 transition-colors shadow-sm">
-                         <div className="flex items-center gap-4">
-                            <div className="font-bold text-xl text-slate-300 dark:text-slate-700 w-8">#{idx + 1}</div>
-                            <div>
-                              <p className="font-semibold text-base">{candidate.name}</p>
-                              <div className="flex gap-1.5 mt-1.5">
-                                 {candidate.keywords.map((k: string) => <Badge key={k} variant="secondary" className="text-[10px] px-2 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-100">{k}</Badge>)}
-                              </div>
-                            </div>
-                         </div>
-                         <div className="flex items-center gap-6">
-                            <div className="text-right">
-                               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Match Score</p>
-                               <p className={`text-2xl font-bold ${candidate.matchScore >= 85 ? 'text-emerald-500' : candidate.matchScore >= 75 ? 'text-amber-500' : 'text-red-500'}`}>
-                                 {candidate.matchScore}%
-                               </p>
-                            </div>
-                            <Button size="sm" variant={candidate.status === 'screening' || candidate.status === 'Triagem' ? "secondary" : "default"} onClick={() => handleMoveCandidate(candidate.id, 'screening')} disabled={candidate.status === 'screening' || candidate.status === 'Triagem'}>
-                              {candidate.status === 'screening' || candidate.status === 'Triagem' ? <><CheckCircle2 className="h-4 w-4 mr-1" /> Em Triagem</> : 'Mover p/ Triagem'}
-                            </Button>
-                         </div>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Brain className="h-5 w-5 text-purple-500" /> Triagem Inteligente de Currículos</DialogTitle>
+              <DialogDescription>A IA analisou os currículos dos candidatos para a vaga selecionada e gerou um Score de Compatibilidade (Match).</DialogDescription>
+            </DialogHeader>
+
+            {aiScreeningLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <div className="relative">
+                  <Brain className="h-12 w-12 text-purple-500 animate-pulse" />
+                  <Sparkles className="h-5 w-5 text-amber-400 absolute -top-1 -right-1 animate-bounce" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground animate-pulse">Lendo PDFs e mapeando habilidades...</p>
+              </div>
+            ) : (
+              <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+                {aiResults.length === 0 ? (
+                  <p className="text-center text-muted-foreground">Nenhum candidato encontrado para esta vaga.</p>
+                ) : (
+                  aiResults.map((candidate, idx) => (
+                    <div key={candidate.id} className="flex items-center justify-between p-4 border rounded-xl bg-card hover:bg-accent/50 transition-colors shadow-sm">
+                      <div className="flex items-center gap-4">
+                        <div className="font-bold text-xl text-slate-300 dark:text-slate-700 w-8">#{idx + 1}</div>
+                        <div>
+                          <p className="font-semibold text-base">{candidate.name}</p>
+                          <div className="flex gap-1.5 mt-1.5">
+                            {candidate.keywords.map((k: string) => <Badge key={k} variant="secondary" className="text-[10px] px-2 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-100">{k}</Badge>)}
+                          </div>
+                        </div>
                       </div>
-                    ))
-                  )}
-               </div>
-             )}
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Match Score</p>
+                          <p className={`text-2xl font-bold ${candidate.matchScore >= 85 ? 'text-emerald-500' : candidate.matchScore >= 75 ? 'text-amber-500' : 'text-red-500'}`}>
+                            {candidate.matchScore}%
+                          </p>
+                        </div>
+                        <Button size="sm" variant={candidate.status === 'screening' || candidate.status === 'Triagem' ? "secondary" : "default"} onClick={() => handleMoveCandidate(candidate.id, 'screening')} disabled={candidate.status === 'screening' || candidate.status === 'Triagem'}>
+                          {candidate.status === 'screening' || candidate.status === 'Triagem' ? <><CheckCircle2 className="h-4 w-4 mr-1" /> Em Triagem</> : 'Mover p/ Triagem'}
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

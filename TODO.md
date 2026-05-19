@@ -129,5 +129,11 @@
 ### 2. 💼 Página de Carreiras Pública Personalizável (ATS)
 > **Problema:** A página de vagas é padronizada. O cliente precisa de uma "Landing Page" de vagas com o branding e a cultura da própria empresa para atrair mais talentos.
 - [x] **Banco de Dados:** Adicionar colunas `career_page_banner`, `career_page_description` e `social_links` (tipo `jsonb`) na tabela `settings`.
-- [x] **Configurações (Painel):** Criar aba "Portal de Vagas" nas Configurações para o RH fazer upload de imagem, texto sobre a cultura da empresa e links sociais.
+- [x] **Configurações (Painel):** Criar aba "Portal de Vagas" nas Configurações para o RH fazer upload de imagem, texto sobre a cultura da empresa e links sociai
+
+s.
 - [x] **Portal Público:** Atualizar a tela pública de vagas para consumir as customizações, transformando-a em uma verdadeira vitrine da empresa.
+
+### Subir projeto para repositório e vercel
+- [ ] **Realizar Deploy**
+

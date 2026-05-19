@@ -49,17 +49,17 @@ export default function Dashboard() {
     let varAdditions = 0;
     try {
       const adds = Array.isArray(emp.variable_additions) ? emp.variable_additions : JSON.parse(emp.variable_additions || '[]');
-      varAdditions = adds.reduce((s:number, a:any) => s + (Number(a.value) || 0), 0);
-    } catch(e) {}
+      varAdditions = adds.reduce((s: number, a: any) => s + (Number(a.value) || 0), 0);
+    } catch (e) { }
 
     let varDiscounts = 0;
     try {
       const discs = Array.isArray(emp.variable_discounts) ? emp.variable_discounts : JSON.parse(emp.variable_discounts || '[]');
-      varDiscounts = discs.reduce((s:number, d:any) => s + (Number(d.amount || d.value) || 0), 0);
-    } catch(e) {}
+      varDiscounts = discs.reduce((s: number, d: any) => s + (Number(d.amount || d.value) || 0), 0);
+    } catch (e) { }
 
     const fixedDiscounts = Number(emp.fixed_discounts) || 0;
-    
+
     let inss = 0;
     if (emp.inss_value) {
       inss = Number(String(emp.inss_value).replace(',', '.')) || 0;
@@ -110,7 +110,7 @@ export default function Dashboard() {
     {
       icon: TrendingUp,
       color: "text-emerald-500",
-      text: `A taxa de ocupação de vagas está em ${stats.openJobs > 0 ? Math.round((stats.total / (stats.total + stats.openJobs)) * 100) : 100}%. O setor de Tecnologia tem a maior demanda.`
+      text: `A taxa de ocupação de vagas está em ${stats.openJobs > 0 ? Math.round((stats.total / (stats.total + stats.openJobs)) * 100) : 100}%. O setor de TI tem a maior demanda.`
     }
   ];
 

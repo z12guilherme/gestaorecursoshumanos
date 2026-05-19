@@ -19,13 +19,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { departments } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, KeyRound, Loader2 } from 'lucide-react';
 import { AvatarUpload } from './AvatarUpload';
 import { supabase } from '@/lib/supabase';
 import FinancialDataForm from './FinancialDataForm';
 import { useSettings } from '@/hooks/useSettings';
+
+const departments = [
+  'Administrativo',
+  'Central de Marcação',
+  'Coordenação',
+  'Enfermagem',
+  'Farmácia',
+  'Faturamento',
+  'Financeiro',
+  'Higienização',
+  'Laboratório',
+  'Lavanderia',
+  'Manutenção',
+  'Marketing',
+  'Nutrição',
+  'Radiologia',
+  'Recepção Ambulatorial',
+  'Recepção Urgência',
+  'Recursos Humanos / Departamento Pessoal',
+  'Remoção',
+  'TI'
+];
 
 interface EmployeeFormDialogProps {
   open: boolean;
