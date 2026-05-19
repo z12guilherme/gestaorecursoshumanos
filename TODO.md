@@ -135,5 +135,5 @@ s.
 - [x] **Portal Público:** Atualizar a tela pública de vagas para consumir as customizações, transformando-a em uma verdadeira vitrine da empresa.
 
 ### Subir projeto para repositório e vercel
-- [ ] **Realizar Deploy**
+- [x] **Realizar Deploy**
 
