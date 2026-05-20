@@ -17,7 +17,7 @@ test.describe('Fluxos de Colaboradores', () => {
     await page.getByRole('button', { name: /novo colaborador/i }).click();
 
     await page.getByLabel(/nome completo/i).fill('Maria Silva');
-    await page.getByLabel(/e-mail/i).fill('maria@teste.com');
+    await page.getByLabel(/email/i).fill('maria@teste.com');
     await page.getByLabel(/cargo/i).fill('Desenvolvedora');
 
     await page.getByRole('button', { name: /salvar colaborador/i }).click();
