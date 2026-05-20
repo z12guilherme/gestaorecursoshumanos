@@ -33,5 +33,8 @@ export default defineConfig({
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120 * 1000,
+        env: {
+            VITE_USE_MOCK: 'true'
+        }
     },
 });
