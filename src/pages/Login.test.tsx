@@ -11,6 +11,7 @@ const {
   mockNavigate,
   mockToast,
   signInWithPasswordMock,
+  settingsMaybeSingleMock,
   signOutMock,
   verifyMock,
 } = vi.hoisted(() => ({
@@ -24,6 +25,7 @@ const {
   mockNavigate: vi.fn(),
   mockToast: vi.fn(),
   signInWithPasswordMock: vi.fn(),
+  settingsMaybeSingleMock: vi.fn(),
   signOutMock: vi.fn(),
   verifyMock: vi.fn(),
 }));
@@ -58,6 +60,22 @@ vi.mock('@/lib/supabase', () => ({
         verify: verifyMock,
       },
     },
+    from: vi.fn((table: string) => {
+      if (table === 'settings') {
+        return {
+          select: vi.fn(() => ({
+            maybeSingle: settingsMaybeSingleMock,
+            single: settingsMaybeSingleMock,
+          })),
+        };
+      }
+      return {
+        select: vi.fn(() => ({
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        })),
+      };
+    }),
   },
 }));
 
@@ -72,18 +90,24 @@ describe('Página de Login', () => {
       data: { currentLevel: 'aal1', nextLevel: 'aal1' },
       error: null,
     });
+    settingsMaybeSingleMock.mockResolvedValue({
+      data: { company_name: 'Inove Dev', cnpj: '00.000.000/0001-00' },
+      error: null,
+    });
     listFactorsMock.mockResolvedValue({ data: { totp: [] } });
     challengeMock.mockResolvedValue({ data: { id: 'challenge-1' }, error: null });
     verifyMock.mockResolvedValue({ error: null });
   });
 
-  it('deve renderizar os campos principais do formulário', () => {
+  it('deve renderizar os campos principais do formulário', async () => {
     const { container } = renderWithRouter(<Login />, { route: '/login', path: '/login' });
     const passwordInput = container.querySelector('input[type="password"]');
 
     expect(screen.getByPlaceholderText(/exemplo@rededmi.com.br/i)).toBeInTheDocument();
     expect(passwordInput).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /entrar no sistema/i })).toBeInTheDocument();
+
+    await screen.findAllByText(/Inove Dev/i);
   });
 
   it('deve chamar o login do Supabase ao submeter o formulário', async () => {
@@ -105,12 +129,14 @@ describe('Página de Login', () => {
     });
   });
 
-  it('deve abrir a área do funcionário pelo atalho da tela de login', () => {
+  it('deve abrir a área do funcionário pelo atalho da tela de login', async () => {
     renderWithRouter(<Login />, { route: '/login', path: '/login' });
 
     fireEvent.click(screen.getByRole('button', { name: /área do funcionário/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/clock-in');
+
+    await screen.findAllByText(/Inove Dev/i);
   });
 
   it('deve exibir o formulário MFA quando a sessão exige segundo fator', async () => {

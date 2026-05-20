@@ -48,6 +48,7 @@ function buildTableMock(table: string) {
     return {
       select: vi.fn(() => ({
         maybeSingle: settingsMaybeSingleMock,
+        single: settingsMaybeSingleMock,
       })),
     };
   }
@@ -82,6 +83,7 @@ function buildTableMock(table: string) {
     insert: vi.fn(),
     select: vi.fn(() => ({
       maybeSingle: vi.fn(),
+      single: vi.fn(),
       order: vi.fn(),
       eq: vi.fn(),
     })),
