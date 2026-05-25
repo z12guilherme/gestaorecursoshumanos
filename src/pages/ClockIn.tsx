@@ -148,25 +148,15 @@ export default function ClockInPage() {
           .order('timestamp', { ascending: false })
           .limit(1)
           .maybeSingle();
-
-        // Se não há registro anterior, a primeira ação deve ser 'in'
-        if (!lastEntry && type !== 'in') {
-          toast({
-            title: "Ação Inválida",
-            description: "Seu primeiro registro do dia deve ser uma entrada.",
-            variant: "destructive"
-          });
-          setLoading(false);
-          setPin('');
-          return;
-        }
-
         if (lastEntry) {
           const lastEntryDate = new Date(lastEntry.timestamp);
           const today = new Date();
           const isSameDay = lastEntryDate.getDate() === today.getDate() &&
             lastEntryDate.getMonth() === today.getMonth() &&
             lastEntryDate.getFullYear() === today.getFullYear();
+
+          const isLastIn = lastEntry.type === 'in' || lastEntry.type === 'lunch_end';
+          const isLastOut = lastEntry.type === 'out' || lastEntry.type === 'lunch_start';
 
           if (isSameDay) {
             const diffMinutes = (today.getTime() - lastEntryDate.getTime()) / (1000 * 60);
@@ -180,30 +170,29 @@ export default function ClockInPage() {
               setPin('');
               return;
             }
+          }
 
-            const isLastIn = lastEntry.type === 'in' || lastEntry.type === 'lunch_end';
-            const isLastOut = lastEntry.type === 'out' || lastEntry.type === 'lunch_start';
-
-            if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
-              toast({
-                title: "Ação Inválida",
-                description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'}. A próxima ação deve ser de ${isLastIn ? 'saída' : 'entrada'}.`,
-                variant: "destructive"
-              });
-              setLoading(false);
-              setPin('');
-              return;
-            }
-          } else if (type !== 'in') {
+          // Validação de alternância (Entrada -> Saída), suportando plantões que viram o dia
+          if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
             toast({
               title: "Ação Inválida",
-              description: "Seu primeiro registro do dia deve ser uma entrada.",
+              description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'}. A próxima ação deve ser de ${isLastIn ? 'saída' : 'entrada'}.`,
               variant: "destructive"
             });
             setLoading(false);
             setPin('');
             return;
           }
+        } else if (type !== 'in') {
+          // Caso seja o primeiríssimo registro do funcionário no sistema
+          toast({
+            title: "Ação Inválida",
+            description: "Seu primeiro registro deve ser uma entrada.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          setPin('');
+          return;
         }
       } catch (err) {
         console.warn("Modo offline ou erro de rede: ignorando validação restrita de sequência.");
