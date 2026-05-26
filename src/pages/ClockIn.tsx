@@ -510,7 +510,7 @@ export default function ClockInPage() {
                     <h4 className="font-bold text-blue-900 mb-2 pr-6">Como acessar seu Holerite?</h4>
                     <p className="text-sm text-blue-800 leading-relaxed">
                       Digite sua senha no painel ao lado e clique em "Meus Documentos".
-                      Você poderá visualizar, assinar e baixar seu contra cheque do mês atual instantaneamente (Verifique com o RH se foram feitas as atualizações mensais).
+                      Você poderá visualizar, assinar e baixar seu contra cheque do mês anterior instantaneamente (Verifique com o RH se foram feitas as atualizações mensais).
                     </p>
                   </div>
 
@@ -567,7 +567,7 @@ export default function ClockInPage() {
             <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg flex items-center justify-between border border-blue-100 dark:border-blue-900 mt-4">
               <div className="flex flex-col">
                 <span className="font-medium text-blue-900 dark:text-blue-300">Contra Cheque</span>
-                <span className="text-xs text-blue-700 dark:text-blue-400">Mês Atual</span>
+                <span className="text-xs text-blue-700 dark:text-blue-400">Mês Anterior</span>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setIsPayslipViewerOpen(true)}>Visualizar</Button>

@@ -9,7 +9,7 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { Download, Calculator, ChevronDown, Eye } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PayslipButton } from '@/components/PayslipButton';
 import { supabase } from '@/lib/supabase';
@@ -201,8 +201,9 @@ export default function Payroll() {
     doc.setFontSize(10);
     doc.text(companySettings?.cnpj || 'CNPJ: 00.000.000/0001-00', 14, 20);
 
+    const referenceMonth = subMonths(new Date(), 1);
     doc.setFontSize(18);
-    doc.text('Relatório de Folha de Pagamento Mensal', 14, 30);
+    doc.text(`Folha de Pagamento - Ref: ${format(referenceMonth, 'MMMM/yyyy', { locale: ptBR }).toUpperCase()}`, 14, 30);
     doc.setFontSize(11);
     doc.text(`Gerado em: ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`, 14, 38);
 
@@ -327,7 +328,7 @@ export default function Payroll() {
       variable_additions: emp.variable_additions || [],
       variable_discounts: [
         ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
-        { description: "INSS (2026)", value: calc.estimatedTax }
+        { description: `INSS (${format(subMonths(new Date(), 1), 'yyyy')})`, value: calc.estimatedTax }
       ]
     };
     setSelectedEmployeeForView(employeeData);
@@ -486,7 +487,7 @@ export default function Payroll() {
                                 variable_additions: emp.variable_additions || [],
                                 variable_discounts: [
                                   ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
-                                  { description: "INSS (2026)", value: calc.estimatedTax }
+                                  { description: `INSS (${format(subMonths(new Date(), 1), 'yyyy')})`, value: calc.estimatedTax }
                                 ]
                               }}
                             />
