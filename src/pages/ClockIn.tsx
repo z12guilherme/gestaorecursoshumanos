@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { LogIn, LogOut, ArrowLeft, Megaphone, Pin, FileText, Download, LifeBuoy, Search, Copy, Check, MessageSquare, KeyRound, Clock, Calendar, IdCard } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
@@ -552,7 +552,7 @@ export default function ClockInPage() {
         open={isPayslipViewerOpen}
         onOpenChange={setIsPayslipViewerOpen}
         employee={identifiedEmployee}
-        referenceDate={new Date()}
+        referenceDate={subMonths(new Date(), 1)}
       />
 
       {/* Dialog de Documentos */}
@@ -571,7 +571,7 @@ export default function ClockInPage() {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setIsPayslipViewerOpen(true)}>Visualizar</Button>
-                <PayslipButton employee={identifiedEmployee as any} referenceDate={new Date()} />
+                <PayslipButton employee={identifiedEmployee as any} referenceDate={subMonths(new Date(), 1)} />
               </div>
             </div>
           )}

@@ -490,6 +490,7 @@ export default function Payroll() {
                                   { description: `INSS (${format(subMonths(new Date(), 1), 'yyyy')})`, value: calc.estimatedTax }
                                 ]
                               }}
+                              referenceDate={subMonths(new Date(), 1)}
                             />
                           </div>
                         </TableCell>
@@ -506,7 +507,7 @@ export default function Payroll() {
           open={isViewerOpen}
           onOpenChange={setIsViewerOpen}
           employee={selectedEmployeeForView}
-          referenceDate={new Date()}
+          referenceDate={subMonths(new Date(), 1)}
         />
 
         <Dialog open={isTerceirizadoOpen} onOpenChange={setIsTerceirizadoOpen}>
