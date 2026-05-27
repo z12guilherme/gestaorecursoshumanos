@@ -5,7 +5,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import { FileText, CheckCircle2, PenTool, Loader2, Eraser } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import { Button } from './ui/button';
-import { format } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
@@ -77,7 +77,7 @@ const trimCanvas = (canvas: HTMLCanvasElement) => {
 
 export const PayslipButton: React.FC<PayslipButtonProps> = ({
   employee,
-  referenceDate = new Date()
+  referenceDate = subMonths(new Date(), 1)
 }) => {
 
   const { settings } = useSettings();

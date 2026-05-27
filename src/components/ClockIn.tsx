@@ -319,7 +319,6 @@ export default function ClockIn() {
 
               <PayslipButton
                 employee={authenticatedEmployee}
-                referenceDate={new Date()}
               />
             </div>
 
