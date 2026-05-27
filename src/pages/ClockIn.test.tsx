@@ -230,22 +230,23 @@ describe('ClockInPage', () => {
     expect(screen.getByPlaceholderText(/digite seu pin/i)).toHaveValue('');
   });
 
-  it('bloqueia uma saída como primeiro registro do dia', async () => {
+  it('permite uma saída mesmo sem registros anteriores (flexibilidade para plantões)', async () => {
     renderWithRouter(<ClockInPage />, { route: '/clock-in', path: '/clock-in' });
 
     fireEvent.change(screen.getByPlaceholderText(/digite seu pin/i), { target: { value: '1234' } });
     fireEvent.click(screen.getByRole('button', { name: /registrar saída/i }));
 
     await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith(
+      expect(timeEntriesInsertMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Ação Inválida',
-          variant: 'destructive',
+          employee_id: 'emp-1',
+          type: 'out',
+          latitude: -23.5505,
+          longitude: -46.6333,
+          timestamp: expect.any(String),
         }),
       );
     });
-
-    expect(timeEntriesInsertMock).not.toHaveBeenCalled();
   });
 
   it('retorna ao login pelo acesso administrativo', async () => {

@@ -170,29 +170,19 @@ export default function ClockInPage() {
               setPin('');
               return;
             }
-          }
 
-          // Validação de alternância (Entrada -> Saída), suportando plantões que viram o dia
-          if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
-            toast({
-              title: "Ação Inválida",
-              description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'}. A próxima ação deve ser de ${isLastIn ? 'saída' : 'entrada'}.`,
-              variant: "destructive"
-            });
-            setLoading(false);
-            setPin('');
-            return;
+            // Validação de alternância (Entrada -> Saída) apenas no mesmo dia, flexibilizando plantões
+            if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
+              toast({
+                title: "Ação Inválida",
+                description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'} hoje. A próxima ação deve ser de ${isLastIn ? 'saída' : 'entrada'}.`,
+                variant: "destructive"
+              });
+              setLoading(false);
+              setPin('');
+              return;
+            }
           }
-        } else if (type !== 'in') {
-          // Caso seja o primeiríssimo registro do funcionário no sistema
-          toast({
-            title: "Ação Inválida",
-            description: "Seu primeiro registro deve ser uma entrada.",
-            variant: "destructive"
-          });
-          setLoading(false);
-          setPin('');
-          return;
         }
       } catch (err) {
         console.warn("Modo offline ou erro de rede: ignorando validação restrita de sequência.");
