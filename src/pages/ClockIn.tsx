@@ -541,7 +541,7 @@ export default function ClockInPage() {
       <PayslipViewerModal
         open={isPayslipViewerOpen}
         onOpenChange={setIsPayslipViewerOpen}
-        employee={identifiedEmployee}
+        employee={identifiedEmployee as any}
         referenceDate={subMonths(new Date(), 1)}
       />
 
