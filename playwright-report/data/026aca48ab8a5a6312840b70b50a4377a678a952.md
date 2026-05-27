@@ -7,7 +7,7 @@
 # Test info
 
 - Name: employees.spec.ts >> Fluxos de Colaboradores >> cadastrar novo colaborador com sucesso
-- Location: tests\e2e\employees.spec.ts:14:3
+- Location: tests\e2e\employees.spec.ts:30:3
 
 # Error details
 
@@ -16,9 +16,9 @@ Test timeout of 30000ms exceeded.
 ```
 
 ```
-Error: locator.fill: Test timeout of 30000ms exceeded.
+Error: locator.click: Test timeout of 30000ms exceeded.
 Call log:
-  - waiting for getByLabel(/e-mail/i)
+  - waiting for getByRole('dialog').getByRole('combobox', { name: /selecione/i })
 
 ```
 
@@ -214,16 +214,16 @@ Call log:
       - generic [ref=e7]:
         - generic [ref=e8]:
           - text: Nome completo
-          - textbox "Nome completo" [active] [ref=e9]: Maria Silva
+          - textbox "Nome completo" [ref=e9]: Maria Silva
         - generic [ref=e10]:
           - text: Email
-          - textbox "Email" [ref=e11]
+          - textbox "Email" [ref=e11]: maria@teste.com
         - generic [ref=e12]:
           - text: Telefone
-          - textbox "Telefone" [ref=e13]
+          - textbox "Telefone" [ref=e13]: "11999999999"
         - generic [ref=e14]:
           - text: Cargo
-          - textbox "Cargo" [ref=e15]
+          - textbox "Cargo" [ref=e15]: Desenvolvedora
         - generic [ref=e16]:
           - text: Departamento
           - combobox [ref=e17] [cursor=pointer]:
@@ -246,14 +246,15 @@ Call log:
           - text: Senha do Ponto (PIN)
           - generic [ref=e32]:
             - img [ref=e33]
-            - textbox "Senha do Ponto (PIN)" [ref=e36]:
+            - textbox "Senha do Ponto (PIN)" [active] [ref=e36]:
               - /placeholder: PIN de 4 a 6 dígitos
+              - text: "1234"
         - generic [ref=e37]:
           - text: Data de Admissão
-          - textbox "Data de Admissão" [ref=e38]
+          - textbox "Data de Admissão" [ref=e38]: 2024-01-01
         - generic [ref=e39]:
           - text: Data de Nascimento
-          - textbox "Data de Nascimento" [ref=e40]
+          - textbox "Data de Nascimento" [ref=e40]: 1990-01-01
         - heading "Dados Financeiros & Folha" [level=4] [ref=e42]
         - generic [ref=e43]:
           - text: Salário Base (R$)
@@ -327,29 +328,69 @@ Call log:
   2  | 
   3  | test.describe('Fluxos de Colaboradores', () => {
   4  |   test.beforeEach(async ({ page }) => {
-  5  |     await page.route('**/rest/v1/**', async (route) => {
-  6  |       await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-  7  |     });
-  8  | 
-  9  |     await page.addInitScript(() => {
-  10 |       window.localStorage.setItem('mock_logged_in', 'true');
-  11 |     });
-  12 |   });
-  13 | 
-  14 |   test('cadastrar novo colaborador com sucesso', async ({ page }) => {
-  15 |     await page.goto('/employees', { waitUntil: 'domcontentloaded' });
-  16 | 
-  17 |     await page.getByRole('button', { name: /novo colaborador/i }).click();
+  5  |     // Mock específico para funcionários para evitar interferência com outras tabelas
+  6  |     await page.route('**/rest/v1/employees*', async (route) => {
+  7  |       const method = route.request().method();
+  8  |       if (method === 'POST') {
+  9  |         await route.fulfill({
+  10 |           status: 201,
+  11 |           contentType: 'application/json',
+  12 |           body: JSON.stringify([{ id: '123', name: 'Maria Silva' }])
+  13 |         });
+  14 |       } else {
+  15 |         await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  16 |       }
+  17 |     });
   18 | 
-  19 |     await page.getByLabel(/nome completo/i).fill('Maria Silva');
-> 20 |     await page.getByLabel(/e-mail/i).fill('maria@teste.com');
-     |                                      ^ Error: locator.fill: Test timeout of 30000ms exceeded.
-  21 |     await page.getByLabel(/cargo/i).fill('Desenvolvedora');
-  22 | 
-  23 |     await page.getByRole('button', { name: /salvar colaborador/i }).click();
+  19 |     // Mock genérico para outras tabelas (settings, etc) para evitar que a UI trave em loading
+  20 |     await page.route('**/rest/v1/*', async (route) => {
+  21 |       if (route.request().url().includes('employees')) return;
+  22 |       await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  23 |     });
   24 | 
-  25 |     await expect(page.getByText(/Colaborador criado/i).first()).toBeVisible();
-  26 |   });
-  27 | });
-  28 | 
+  25 |     await page.addInitScript(() => {
+  26 |       window.localStorage.setItem('mock_logged_in', 'true');
+  27 |     });
+  28 |   });
+  29 | 
+  30 |   test('cadastrar novo colaborador com sucesso', async ({ page }) => {
+  31 |     // Removido networkidle para evitar timeouts causados por conexões persistentes do Supabase
+  32 |     await page.goto('/employees');
+  33 | 
+  34 |     // Aguarda o carregamento do botão principal antes de interagir
+  35 |     const addButton = page.getByRole('button', { name: /novo colaborador/i });
+  36 |     await addButton.waitFor({ state: 'visible' });
+  37 |     await addButton.click();
+  38 | 
+  39 |     // Garante que o modal de cadastro está visível
+  40 |     const modal = page.getByRole('dialog');
+  41 |     await expect(modal).toBeVisible();
+  42 | 
+  43 |     await modal.getByLabel(/nome completo/i).fill('Maria Silva');
+  44 |     await modal.getByLabel(/email/i).fill('maria@teste.com');
+  45 |     await modal.getByLabel(/telefone/i).fill('11999999999');
+  46 |     await modal.getByLabel(/cargo/i).fill('Desenvolvedora');
+  47 | 
+  48 |     // Preenche as datas obrigatórias
+  49 |     await modal.getByLabel(/data de admissão/i).fill('2024-01-01');
+  50 |     await modal.getByLabel(/data de nascimento/i).fill('1990-01-01');
+  51 | 
+  52 |     // Preenche o PIN (Obrigatório para o ponto)
+  53 |     await modal.getByLabel(/senha do ponto/i).fill('1234');
+  54 | 
+  55 |     // Seleciona o Departamento (usando o placeholder específico do formulário para evitar conflito com filtros)
+  56 |     const departmentSelect = modal.getByRole('combobox', { name: /selecione/i });
+> 57 |     await departmentSelect.click();
+     |                            ^ Error: locator.click: Test timeout of 30000ms exceeded.
+  58 | 
+  59 |     // Localiza a opção no portal do Select (renderizado fora do DOM do dialog)
+  60 |     await page.getByRole('option', { name: 'TI', exact: true }).click();
+  61 | 
+  62 |     await modal.getByRole('button', { name: /cadastrar colaborador/i }).click();
+  63 | 
+  64 |     // Validação final por texto de sucesso no toast
+  65 |     await expect(page.getByText(/cadastrado com sucesso/i).first()).toBeVisible();
+  66 |   });
+  67 | });
+  68 | 
 ```
