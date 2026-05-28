@@ -185,6 +185,20 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
   };
 
   const handleSignAndDownload = async () => {
+    // Verificação preventiva de configurações
+    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+    if (!serviceId || !templateId || !publicKey) {
+      toast({
+        title: "Erro de Configuração",
+        description: "As credenciais de e-mail não foram configuradas no servidor.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       // Verificar se o usuário desenhou algo
@@ -278,7 +292,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     // --- Cabeçalho ---
     if (hasLogo && logoBase64 && logoBase64 !== "ERROR") {
       // doc.addImage(base64, format, x, y, width, height)
-      const format = logoBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      const format = logoBase64.toLowerCase().includes('png') ? 'PNG' : 'JPEG';
       doc.addImage(logoBase64, format, 14, 10, 25, 15);
     }
 
