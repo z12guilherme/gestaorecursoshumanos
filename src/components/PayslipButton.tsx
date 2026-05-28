@@ -28,6 +28,8 @@ interface Employee {
   vacation_amount: number;
   vacation_third_amount: number;
   fixed_discounts: number;
+
+  inss_value?: number;
   variable_discounts: any; // jsonb no banco
   variable_additions?: any; // jsonb no banco
 }
@@ -83,12 +85,37 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
   const { settings } = useSettings();
   const [loading, setLoading] = useState(false);
   const [signatureData, setSignatureData] = useState<any>(null);
+  const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const sigCanvas = useRef<any>(null);
   const { toast } = useToast();
 
   const companyName = settings?.company_name || "EMPRESA NÃO CONFIGURADA";
   const companyCNPJ = settings?.cnpj || "00.000.000/0000-00";
+
+  // Carregar o logo e converter para Base64 para o PDF
+  useEffect(() => {
+    const loadLogo = async () => {
+      if (!settings?.logo_url) {
+        setLogoBase64(null);
+        return;
+      }
+      try {
+        const response = await fetch(settings.logo_url, { mode: 'cors' });
+        if (!response.ok) throw new Error("Logo fetch failed");
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoBase64(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error("Erro ao carregar logo para o PDF:", error);
+        setLogoBase64("ERROR");
+      }
+    };
+    loadLogo();
+  }, [settings?.logo_url]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -246,15 +273,25 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
   const generatePayslip = (currentSignatureData = signatureData) => {
     const doc = new jsPDF();
 
+    const hasLogo = logoBase64 && logoBase64 !== "ERROR";
+
     // --- Cabeçalho ---
+    if (hasLogo && logoBase64 && logoBase64 !== "ERROR") {
+      // doc.addImage(base64, format, x, y, width, height)
+      const format = logoBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(logoBase64, format, 14, 10, 25, 15);
+    }
+
+    const headerTextX = hasLogo ? 42 : 14;
+
     // Lado Esquerdo: Empresa
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text(companyName, 14, 15);
+    doc.text(companyName, headerTextX, 15);
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text(`CNPJ: ${companyCNPJ}`, 14, 20);
+    doc.text(`CNPJ: ${companyCNPJ}`, headerTextX, 20);
 
     // Lado Direito: Título e Referência
     doc.setFontSize(12);
@@ -320,8 +357,13 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     }
 
     const discounts = [
-      { desc: "DESCONTOS FIXOS", value: Number(employee.fixed_discounts) }
+      { desc: "DESCONTOS FIXOS", value: Number(employee.fixed_discounts) },
     ];
+
+    // Adicionar INSS se houver valor
+    if (employee.inss_value && employee.inss_value > 0) {
+      discounts.push({ desc: `INSS (${format(referenceDate, 'yyyy')})`, value: Number(employee.inss_value) });
+    }
 
     // Processar descontos variáveis (JSONB)
     const varDiscounts = parseJsonbField(employee.variable_discounts);
@@ -331,8 +373,12 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
         let val = Number(d.value);
         if (isNaN(val) && typeof d.value === 'string') { val = Number(d.value.replace(',', '.')); }
         if (!isNaN(val) && val > 0) {
+          // Evitar duplicar o INSS se ele já for fornecido no campo inss_value
+          const description = d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS";
+          if (description.includes("INSS") && employee.inss_value) return;
+
           discounts.push({
-            desc: d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS",
+            desc: description,
             value: val
           });
         }
@@ -341,8 +387,8 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
     // Montar linhas da tabela
     const rows: any[] = [];
-    earnings.forEach(e => rows.push(["001", e.desc, "", formatCurrency(e.value), "0,00"]));
-    discounts.forEach(d => rows.push(["002", d.desc, "", "0,00", formatCurrency(d.value)]));
+    earnings.forEach(e => rows.push(["001", e.desc, "0,00", formatCurrency(e.value), "0,00"]));
+    discounts.forEach(d => rows.push(["002", d.desc, "0,00", "0,00", formatCurrency(d.value)]));
 
     const totalEarnings = earnings.reduce((acc, curr) => acc + curr.value, 0);
     const totalDiscounts = discounts.reduce((acc, curr) => acc + curr.value, 0);
