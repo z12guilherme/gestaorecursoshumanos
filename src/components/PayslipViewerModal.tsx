@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Employee } from '@/hooks/useEmployees'; // Usando o tipo base, mas ciente que mais campos virão
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 
 interface PayslipViewerModalProps {
@@ -32,6 +32,7 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
   const [loading, setLoading] = useState(false);
   const { settings } = useSettings();
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
+  const [currentDoc, setCurrentDoc] = useState<any>(null);
 
   // Carregar o logo e converter para Base64 para o PDF
   useEffect(() => {
@@ -41,7 +42,7 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
         return;
       }
       try {
-        const response = await fetch(settings.logo_url, { mode: 'cors' });
+        const response = await fetch(settings.logo_url, { mode: 'cors', cache: 'no-cache' });
         if (!response.ok) throw new Error("Logo fetch failed");
         const blob = await response.blob();
         const reader = new FileReader();
@@ -89,7 +90,7 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
 
         // --- Geração do PDF ---
         if (hasLogo && logoBase64 && logoBase64 !== "ERROR") {
-          const format = logoBase64.includes('image/png') ? 'PNG' : 'JPEG';
+          const format = logoBase64.toLowerCase().includes('png') ? 'PNG' : 'JPEG';
           doc.addImage(logoBase64, format, 14, 10, 25, 15);
         }
 
@@ -190,6 +191,7 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
         });
 
         const dataUrl = doc.output('datauristring');
+        setCurrentDoc(doc);
         setPdfUrl(dataUrl);
         setLoading(false);
       };
@@ -197,6 +199,13 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
       generatePdf();
     }
   }, [open, employee, referenceDate, logoBase64, settings]);
+
+  const handleDownload = () => {
+    if (currentDoc && employee) {
+      const fileName = `Holerite_${employee.name.replace(/\s+/g, '_')}_${format(referenceDate, 'MM-yyyy')}.pdf`;
+      currentDoc.save(fileName);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -207,7 +216,15 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
           {pdfUrl && !loading && <iframe src={pdfUrl} className="w-full h-full" title="Visualizador de Holerite" />}
           {!pdfUrl && !loading && <p className="text-muted-foreground">Erro ao gerar o documento.</p>}
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button></DialogFooter>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+          {pdfUrl && (
+            <Button onClick={handleDownload} className="gap-2">
+              <Download className="h-4 w-4" />
+              Baixar PDF
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

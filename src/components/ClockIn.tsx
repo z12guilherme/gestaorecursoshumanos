@@ -9,6 +9,7 @@ import { Clock, LogOut, MapPin, IdCard, User } from "lucide-react";
 import { PayslipButton } from "@/components/PayslipButton";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { EmployeeBadge } from "@/components/EmployeeBadge";
+import { useSettings } from "@/hooks/useSettings";
 
 interface SimpleEmployee {
   id: string;
@@ -17,6 +18,7 @@ interface SimpleEmployee {
 
 export default function ClockIn() {
   const { toast } = useToast();
+  const { settings } = useSettings();
   const [employees, setEmployees] = useState<SimpleEmployee[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [pin, setPin] = useState("");
@@ -337,7 +339,7 @@ export default function ClockIn() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-sm flex flex-col items-center justify-center p-8 bg-slate-50/95 dark:bg-slate-900/95 border-none shadow-2xl rounded-2xl">
-                  <EmployeeBadge employee={authenticatedEmployee} />
+                  <EmployeeBadge employee={authenticatedEmployee} companyName={settings?.company_name} />
                 </DialogContent>
               </Dialog>
             </div>
