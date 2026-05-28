@@ -17,7 +17,7 @@ interface EmployeeBadgeProps {
 
 export const EmployeeBadge: React.FC<EmployeeBadgeProps> = ({
   employee,
-  companyName = "HOSPITAL DMI LTDA" // Valor padrão adaptado ao seu contexto
+  companyName
 }) => {
 
   return (
@@ -33,7 +33,7 @@ export const EmployeeBadge: React.FC<EmployeeBadgeProps> = ({
           {/* Furo do cordão (simulação visual) */}
           <div className="w-14 h-3 rounded-full bg-white/20 shadow-inner mb-2 backdrop-blur-sm border border-white/10"></div>
           <h3 className="text-white font-extrabold text-sm text-center px-4 w-full tracking-wide drop-shadow-md">
-            {companyName}
+            {companyName || "NOME DA EMPRESA NÃO CONFIGURADO"}
           </h3>
 
           {/* Curva decorativa na base do header */}
