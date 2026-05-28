@@ -87,8 +87,8 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
   const sigCanvas = useRef<any>(null);
   const { toast } = useToast();
 
-  const companyName = settings?.company_name || "Nova Empresa Cliente";
-  const companyCNPJ = settings?.cnpj || "00.000.000/0001-00";
+  const companyName = settings?.company_name || "EMPRESA NÃO CONFIGURADA";
+  const companyCNPJ = settings?.cnpj || "00.000.000/0000-00";
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -175,6 +175,14 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       const trimmedCanvas = trimCanvas(originalCanvas);
       const signatureImage = (trimmedCanvas || originalCanvas).toDataURL('image/png');
 
+      // Captura de IP dinâmica para validade jurídica da assinatura
+      let userIp = '0.0.0.0';
+      try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        userIp = ipData.ip;
+      } catch (e) { console.error("Erro ao obter IP para auditoria:", e); }
+
       // 1. Registrar assinatura no banco
       const refDate = format(referenceDate, 'yyyy-MM-dd');
       const { data, error } = await supabase
@@ -183,7 +191,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
           employee_id: employee.id,
           reference_date: refDate,
           user_agent: navigator.userAgent,
-          ip_address: 'IP_REGISTRADO_VIA_APP',
+          ip_address: userIp,
           signature_image: signatureImage,
           signed_at: new Date().toISOString()
         }, { onConflict: 'employee_id, reference_date' })
