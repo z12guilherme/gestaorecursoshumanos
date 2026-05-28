@@ -213,6 +213,20 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     sigCanvas.current.clear();
   };
 
+  // Sugestão: Extrair lógica de parsing de JSONB para uma função pura
+  const parseJsonbField = (field: any): any[] => {
+    try {
+      if (Array.isArray(field)) return field;
+      if (typeof field === 'string') {
+        const parsed = JSON.parse(field);
+        return typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  };
+
   const generatePayslip = (currentSignatureData = signatureData) => {
     const doc = new jsPDF();
 
@@ -274,15 +288,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     ].filter(item => item.value > 0);
 
     // Processar adicionais variáveis (JSONB)
-    let varAdditions: any[] = [];
-    try {
-      if (Array.isArray(employee.variable_additions)) {
-        varAdditions = employee.variable_additions;
-      } else if (typeof employee.variable_additions === 'string') {
-        varAdditions = JSON.parse(employee.variable_additions);
-        if (typeof varAdditions === 'string') { varAdditions = JSON.parse(varAdditions); }
-      }
-    } catch (e) { varAdditions = []; }
+    const varAdditions = parseJsonbField(employee.variable_additions);
 
     if (Array.isArray(varAdditions)) {
       varAdditions.forEach((d: any) => {
@@ -302,18 +308,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     ];
 
     // Processar descontos variáveis (JSONB)
-    let varDiscounts: any[] = [];
-    try {
-      if (Array.isArray(employee.variable_discounts)) {
-        varDiscounts = employee.variable_discounts;
-      } else if (typeof employee.variable_discounts === 'string') {
-        varDiscounts = JSON.parse(employee.variable_discounts);
-        // Proteção extra para strings aninhadas
-        if (typeof varDiscounts === 'string') { varDiscounts = JSON.parse(varDiscounts); }
-      }
-    } catch (e) {
-      varDiscounts = [];
-    }
+    const varDiscounts = parseJsonbField(employee.variable_discounts);
 
     if (Array.isArray(varDiscounts)) {
       varDiscounts.forEach((d: any) => {
