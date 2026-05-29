@@ -10,6 +10,7 @@ import { PayslipButton } from "@/components/PayslipButton";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { EmployeeBadge } from "@/components/EmployeeBadge";
 import { useSettings } from "@/hooks/useSettings";
+import { subMonths } from "date-fns";
 
 interface SimpleEmployee {
   id: string;
@@ -321,6 +322,7 @@ export default function ClockIn() {
 
               <PayslipButton
                 employee={authenticatedEmployee}
+                referenceDate={subMonths(new Date(), 1)}
               />
             </div>
 
