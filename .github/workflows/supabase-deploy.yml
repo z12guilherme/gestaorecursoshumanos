@@ -1,0 +1,47 @@
+name: Deploy Supabase Migrations
+
+on:
+  push:
+    branches: [main, develop] # Agora observa as duas branches principais
+    paths:
+      - 'supabase/migrations/**' # Só executa se houver mudanças nas migrations
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      # Se for push na main, roda para os dois clientes. 
+      # Se for na develop, roda apenas para o MASTER.
+      matrix:
+        client: ${{ github.ref_name == 'main' && fromJSON('["CLIENTE_A", "CLIENTE_B"]') || fromJSON('["MASTER"]') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-supabase@v1
+        with:
+          next: true
+
+      - name: Link Project
+        # O segredo é acessado dinamicamente usando o nome do cliente da matrix
+        shell: bash
+        run: |
+          PROJECT_ID_KEY="${{ matrix.client }}_PROJECT_ID"
+          DB_PASS_KEY="${{ matrix.client }}_DB_PASSWORD"
+          supabase link --project-ref "${!PROJECT_ID_KEY}" -p "${!DB_PASS_KEY}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          CLIENTE_A_PROJECT_ID: ${{ secrets.CLIENTE_A_PROJECT_ID }}
+          CLIENTE_A_DB_PASSWORD: ${{ secrets.CLIENTE_A_DB_PASSWORD }}
+          CLIENTE_B_PROJECT_ID: ${{ secrets.CLIENTE_B_PROJECT_ID }}
+          CLIENTE_B_DB_PASSWORD: ${{ secrets.CLIENTE_B_DB_PASSWORD }}
+          MASTER_PROJECT_ID: ${{ secrets.MASTER_PROJECT_ID }}
+          MASTER_DB_PASSWORD: ${{ secrets.MASTER_DB_PASSWORD }}
+
+      - name: Push Migrations
+        run: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
