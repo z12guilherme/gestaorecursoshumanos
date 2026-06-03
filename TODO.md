@@ -10,6 +10,9 @@
 - [x] Criar testes para transições de status de Ponto (`src/services/timeEntryService.test.ts`).
 - [x] **Meta:*  * Atingir 80% de cobertura nas regras de negócio.
 
+### 1.1. 🏗️ Infraestrutura de Tipagem e Validação
+- [ ] Gerar tipos automáticos do Supabase via CLI (`supabase gen types`).
+- [ ] Padronizar validações de formulários com **Zod** para garantir integridade (CPF, Datas, Valores).
 
 ### 2. 👁️ Sistema de Auditoria (Audit Logs)
 > **Problema:** Impossível rastrear quem alterou salários ou demitiu funcionários (Compliance/LGPD).
@@ -33,6 +36,7 @@
 - [x] Implementar **Lazy Loading** de rotas (`React.lazy` + `Suspense`).
 - [x] Configurar Code Splitting automático no Vite (Chunks manuais para libs pesadas).
 - [x] Analisar bundle com `vite-plugin-visualizer` (Configurado no build).
+- [ ] Migrar gestão de estado de API para **TanStack Query (React Query)** para cache e sincronização otimizada.
 - [x] Implementar virtualização (TanStack Virtual) nas tabelas de Ponto e Funcionários. (Feito em Ponto)
 
 ### 5. 🛡️ Rate Limiting & Proteção
@@ -134,6 +138,11 @@
 s.
 - [x] **Portal Público:** Atualizar a tela pública de vagas para consumir as customizações, transformando-a em uma verdadeira vitrine da empresa.
 
+## 🛠️ Fase 5: Qualidade e DX (Developer Experience)
+> **Objetivo:** Facilitar a entrada de novos desenvolvedores e garantir estabilidade.
+- [ ] Configurar **Husky + Lint-staged** para impedir commits com erros de lint ou tipos.
+- [ ] Implementar **Storybook** para os componentes da UI (Botões, Cards, Modais) para garantir consistência visual no White-label.
+- [ ] Criar ambiente de **Staging** automático via Vercel Preview para cada branch.
+
 ### Subir projeto para repositório e vercel
 - [x] **Realizar Deploy**
-

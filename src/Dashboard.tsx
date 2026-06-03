@@ -1,6 +1,6 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, UserCheck, Calendar, Briefcase, Clock, UserPlus } from 'lucide-react';
+import { Users, UserCheck, Calendar, Briefcase, Clock, UserPlus, Star } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useRecruitment } from '@/hooks/useRecruitment';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
@@ -23,6 +23,25 @@ export default function Dashboard() {
     vacation: employees.filter(e => ['vacation', 'Férias'].includes(e.status)).length,
     openJobs: jobs.filter(j => ['open', 'Aberta'].includes(j.status)).length,
   };
+
+  // Mock de avaliações recentes para demonstração da interface com scrollbar
+  const recentEvaluations = [
+    {
+      id: '1',
+      employeeName: 'FLAVIA GEANE GOMES DE LIMA',
+      evaluatorName: 'JESSICA MARQUES DE ARAUJO BARBOSA',
+      date: '05/2026',
+      score: 4.5,
+      goals: '0/0',
+      competencies: [
+        { name: 'Comunicação', value: 4 },
+        { name: 'Trabalho em Equipe', value: 5 },
+        { name: 'Proatividade', value: 4 },
+        { name: 'Liderança', value: 5 },
+      ],
+      comment: "Flávia é uma colaboradora muito simpática e competente no que faz. Embora faça parte da minha equipe, é alguém que percebo possuir algumas limitações de recursos"
+    }
+  ];
 
   // Pega os 5 últimos registros de ponto
   const recentActivity = timeEntries.slice(0, 5).map(entry => {
@@ -164,8 +183,74 @@ export default function Dashboard() {
 
           {/* Birthdays List */}
           <div className="col-span-1">
-             <BirthdaysList employees={employees} />
+            <BirthdaysList employees={employees} />
           </div>
+
+          {/* Card de Avaliações Recentes com Barra de Rolagem */}
+          <Card className="col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
+                Avaliações Recentes
+              </CardTitle>
+              <CardDescription>Últimos feedbacks de desempenho</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-[440px] overflow-y-auto pr-2 space-y-6 scrollbar-thin">
+                {recentEvaluations.map((evalItem) => (
+                  <div key={evalItem.id} className="space-y-4 p-4 border rounded-lg bg-slate-50/50 dark:bg-slate-900/50 transition-colors hover:bg-slate-50 dark:hover:bg-slate-900">
+                    <div className="flex items-start justify-between">
+                      <div className="flex gap-3">
+                        <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                          <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                            {evalItem.employeeName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-bold text-sm leading-none mb-1">{evalItem.employeeName}</p>
+                          <p className="text-[11px] text-muted-foreground">Avaliado por {evalItem.evaluatorName}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-bold">{evalItem.date}</Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="text-center p-2 bg-background rounded-md border shadow-sm">
+                        <p className="text-[9px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Nota Geral</p>
+                        <p className="text-xl font-black text-primary">{evalItem.score}</p>
+                      </div>
+                      <div className="text-center p-2 bg-background rounded-md border shadow-sm">
+                        <p className="text-[9px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Metas</p>
+                        <p className="text-xl font-black">{evalItem.goals}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Competências</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {evalItem.competencies.map((comp) => (
+                          <div key={comp.name} className="flex items-center justify-between text-xs bg-background/50 p-1.5 px-2 rounded border border-dashed">
+                            <span className="font-medium">{comp.name}</span>
+                            <Badge variant="secondary" className="h-5 px-1.5 font-bold text-primary">{comp.value}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <div className="absolute -left-1 top-0 bottom-0 w-0.5 bg-primary/20 rounded-full" />
+                      <p className="text-xs italic text-muted-foreground pl-3 leading-relaxed">
+                        "{evalItem.comment}"
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {recentEvaluations.length === 0 && (
+                  <p className="text-sm text-center py-8 text-muted-foreground">Nenhuma avaliação registrada recentemente.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </AppLayout>
