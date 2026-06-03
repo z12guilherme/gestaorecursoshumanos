@@ -38,7 +38,63 @@ export function usePerformance() {
 
       // 🔀 Desvio Offline (Mock)
       if (USE_MOCK) {
-        const data = mockDatabase.get('performance_reviews');
+        let data = mockDatabase.get('performance_reviews');
+
+        // Injetando os dados de exemplo para demonstração do scroll
+        if (!data || data.length === 0) {
+          data = [
+            {
+              id: '1',
+              employee_id: 'emp-fg',
+              reviewer_id: 'rev-jm',
+              period: '05/2026',
+              overall_score: 4.5,
+              goals: [],
+              competencies: [
+                { name: 'Comunicação', score: 4 },
+                { name: 'Trabalho em Equipe', score: 5 },
+                { name: 'Proatividade', score: 4 },
+                { name: 'Liderança', score: 5 },
+              ],
+              feedback: "Flávia é uma colaboradora muito simpática e competente no que faz. Embora faça parte da minha equipe, é alguém que percebo possuir algumas limitações de recursos",
+              created_at: '2026-05-01T10:00:00Z',
+              employee: { name: 'FLAVIA GEANE GOMES DE LIMA' },
+              reviewer: { name: 'JESSICA MARQUES DE ARAUJO BARBOSA' }
+            },
+            {
+              id: '2',
+              employee_id: 'emp-ja',
+              reviewer_id: 'rev-la',
+              period: '05/2026',
+              overall_score: 2.0,
+              goals: [],
+              competencies: [
+                { name: 'Comunicação', score: 5 },
+                { name: 'Trabalho em Equipe', score: 1 },
+                { name: 'Proatividade', score: 1 },
+                { name: 'Liderança', score: 1 },
+              ],
+              feedback: "PRECISA TER MAIS ATENÇÃO AO SEUS SETORES DE TRABALHO, DEIXANDO A DESEJAR NO QUE FAZ, E ESQUECER MAIS O CELULAR EM SEU SETOR DE TRABALHO.",
+              created_at: '2026-05-02T10:00:00Z',
+              employee: { name: 'JOSINEIDE ALVES DA CRUZ' },
+              reviewer: { name: 'LUCAS DE AMORIM BATISTA' }
+            },
+            {
+              id: '3',
+              employee_id: 'emp-mb',
+              reviewer_id: 'rev-jm',
+              period: '05/2026',
+              overall_score: 5.0,
+              goals: [],
+              competencies: [{ name: 'Comunicação', score: 5 }, { name: 'Trabalho em Equipe', score: 5 }, { name: 'Proatividade', score: 5 }, { name: 'Liderança', score: 5 }],
+              feedback: "Bethânia é uma colaboradora que entrou na equipe de forma tímida e insegura, embora já trouxesse consigo uma vasta bagagem de experiência profissional.",
+              created_at: '2026-05-03T10:00:00Z',
+              employee: { name: 'MARIA BETHANIA ALBUQUERQUE BORGES' },
+              reviewer: { name: 'JESSICA MARQUES DE ARAUJO BARBOSA' }
+            }
+          ];
+        }
+
         const formatted = data.map((item: any) => ({
           ...item,
           employee_name: item.employee?.name || 'Desconhecido',
@@ -103,7 +159,7 @@ export function usePerformance() {
         .single();
 
       if (error) throw error;
-      
+
       // Recarrega para pegar os nomes corretos via join
       await fetchReviews();
       return { data, error: null };

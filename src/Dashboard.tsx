@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, UserCheck, Calendar, Briefcase, Clock, UserPlus, Star } from 'lucide-react';
+import { Users, UserCheck, Calendar, Briefcase, Clock, UserPlus, Star, Eye } from 'lucide-react';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useRecruitment } from '@/hooks/useRecruitment';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
@@ -8,12 +9,22 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { BirthdaysList } from '@/components/dashboard/BirthdaysList';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export default function Dashboard() {
   const { employees, loading: loadingEmployees } = useEmployees();
   const { jobs, loading: loadingJobs } = useRecruitment();
   const { entries: timeEntries, loading: loadingTime } = useTimeEntries();
+
+  const [selectedEvaluation, setSelectedEvaluation] = useState<any>(null);
 
   const loading = loadingEmployees || loadingJobs || loadingTime;
 
@@ -40,6 +51,36 @@ export default function Dashboard() {
         { name: 'Liderança', value: 5 },
       ],
       comment: "Flávia é uma colaboradora muito simpática e competente no que faz. Embora faça parte da minha equipe, é alguém que percebo possuir algumas limitações de recursos"
+    },
+    {
+      id: '2',
+      employeeName: 'JOSINEIDE ALVES DA CRUZ',
+      evaluatorName: 'LUCAS DE AMORIM BATISTA',
+      date: '05/2026',
+      score: 2.0,
+      goals: '0/0',
+      competencies: [
+        { name: 'Comunicação', value: 5 },
+        { name: 'Trabalho em Equipe', value: 1 },
+        { name: 'Proatividade', value: 1 },
+        { name: 'Liderança', value: 1 },
+      ],
+      comment: "PRECISA TER MAIS ATENÇÃO AO SEUS SETORES DE TRABALHO, DEIXANDO A DESEJAR NO QUE FAZ, E ESQUECER MAIS O CELULAR EM SEU SETOR DE"
+    },
+    {
+      id: '3',
+      employeeName: 'MARIA BETHANIA ALBUQUERQUE BORGES',
+      evaluatorName: 'JESSICA MARQUES DE ARAUJO BARBOSA',
+      date: '05/2026',
+      score: 5.0,
+      goals: '0/0',
+      competencies: [
+        { name: 'Comunicação', value: 5 },
+        { name: 'Trabalho em Equipe', value: 5 },
+        { name: 'Proatividade', value: 5 },
+        { name: 'Liderança', value: 5 },
+      ],
+      comment: "Bethânia é uma colaboradora que entrou na equipe de forma tímida e insegura, embora já trouxesse consigo uma vasta bagagem de experiência profissional. Foi"
     }
   ];
 
@@ -188,15 +229,15 @@ export default function Dashboard() {
 
           {/* Card de Avaliações Recentes com Barra de Rolagem */}
           <Card className="col-span-1">
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
                 Avaliações Recentes
               </CardTitle>
               <CardDescription>Últimos feedbacks de desempenho</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="max-h-[440px] overflow-y-auto pr-2 space-y-6 scrollbar-thin">
+            <CardContent className="pt-0">
+              <div className="max-h-[380px] overflow-y-auto pr-2 space-y-4 scrollbar-thin">
                 {recentEvaluations.map((evalItem) => (
                   <div key={evalItem.id} className="space-y-4 p-4 border rounded-lg bg-slate-50/50 dark:bg-slate-900/50 transition-colors hover:bg-slate-50 dark:hover:bg-slate-900">
                     <div className="flex items-start justify-between">
@@ -211,7 +252,17 @@ export default function Dashboard() {
                           <p className="text-[11px] text-muted-foreground">Avaliado por {evalItem.evaluatorName}</p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-[10px] font-bold">{evalItem.date}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] font-bold">{evalItem.date}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={() => setSelectedEvaluation(evalItem)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -253,6 +304,67 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Modal de Detalhes da Avaliação */}
+      <Dialog open={!!selectedEvaluation} onOpenChange={(open) => !open && setSelectedEvaluation(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
+              Avaliação Detalhada
+            </DialogTitle>
+            <DialogDescription>
+              Feedback completo de desempenho técnico e comportamental
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedEvaluation && (
+            <div className="space-y-6 py-4">
+              <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                <Avatar className="h-16 w-16 border-2 border-primary/20">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+                    {selectedEvaluation.employeeName.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-xl font-bold">{selectedEvaluation.employeeName}</h3>
+                  <p className="text-sm text-muted-foreground">Avaliado por <span className="font-medium text-foreground">{selectedEvaluation.evaluatorName}</span> em <span className="font-medium text-foreground">{selectedEvaluation.date}</span></p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border text-center">
+                  <p className="text-xs font-bold uppercase text-muted-foreground mb-1 tracking-wider">Nota Geral</p>
+                  <p className="text-4xl font-black text-primary">{selectedEvaluation.score.toFixed(1)}</p>
+                </div>
+                <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border text-center">
+                  <p className="text-xs font-bold uppercase text-muted-foreground mb-1 tracking-wider">Metas Atingidas</p>
+                  <p className="text-4xl font-black">{selectedEvaluation.goals}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Competências Avaliadas</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {selectedEvaluation.competencies.map((comp: any) => (
+                    <div key={comp.name} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-md border">
+                      <span className="font-medium text-sm">{comp.name}</span>
+                      <Badge className="font-bold bg-primary/10 text-primary hover:bg-primary/20 border-none">{comp.value}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Feedback do Gestor</h4>
+                <div className="p-5 bg-amber-50/30 dark:bg-amber-900/10 rounded-lg border border-amber-200/50 dark:border-amber-900/50 italic text-foreground leading-relaxed whitespace-pre-wrap">
+                  "{selectedEvaluation.comment}"
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

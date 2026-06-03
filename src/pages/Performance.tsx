@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Star, TrendingUp, Users, Target, Trash2, X } from 'lucide-react';
-import { usePerformance, Goal, Competency } from '@/hooks/usePerformance';
+import { Plus, Star, TrendingUp, Users, Target, Trash2, X, Eye } from 'lucide-react';
+import { usePerformance, Goal, Competency, PerformanceReview } from '@/hooks/usePerformance';
 import { useEmployees } from '@/hooks/useEmployees';
 import {
   Dialog,
@@ -31,6 +31,7 @@ export default function Performance() {
   const { toast } = useToast();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<PerformanceReview | null>(null);
   const [formData, setFormData] = useState<{
     employee_id: string;
     reviewer_id: string;
@@ -55,28 +56,28 @@ export default function Performance() {
 
   useEffect(() => {
     if (reviews.length > 0) {
-        const scores: Record<string, { total: number, count: number }> = {};
-        reviews.forEach(review => {
-            if (!scores[review.employee_id]) {
-                scores[review.employee_id] = { total: 0, count: 0 };
-            }
-            scores[review.employee_id].total += Number(review.overall_score);
-            scores[review.employee_id].count += 1;
-        });
-
-        const averages: Record<string, number> = {};
-        for (const empId in scores) {
-            averages[empId] = scores[empId].total / scores[empId].count;
+      const scores: Record<string, { total: number, count: number }> = {};
+      reviews.forEach(review => {
+        if (!scores[review.employee_id]) {
+          scores[review.employee_id] = { total: 0, count: 0 };
         }
-        setEmployeeAverages(averages);
+        scores[review.employee_id].total += Number(review.overall_score);
+        scores[review.employee_id].count += 1;
+      });
+
+      const averages: Record<string, number> = {};
+      for (const empId in scores) {
+        averages[empId] = scores[empId].total / scores[empId].count;
+      }
+      setEmployeeAverages(averages);
     }
-}, [reviews]);
+  }, [reviews]);
 
   const calculateOverallScore = () => {
     const goalScores = formData.goals.map(g => Number(g.score) || 0);
     const compScores = formData.competencies.map(c => Number(c.score) || 0);
     const allScores = [...goalScores, ...compScores].filter(score => score > 0);
-    
+
     if (allScores.length === 0) return 0;
     const sum = allScores.reduce((a, b) => a + b, 0);
     return (sum / allScores.length);
@@ -152,10 +153,10 @@ export default function Performance() {
   const loading = loadingReviews || loadingEmployees;
 
   // Stats Calculation
-  const averageScore = reviews.length > 0 
+  const averageScore = reviews.length > 0
     ? (reviews.reduce((acc, curr) => acc + Number(curr.overall_score), 0) / reviews.length).toFixed(1)
     : '0.0';
-  
+
   const goalsMet = reviews.reduce((acc, curr) => acc + curr.goals.filter(g => g.achieved).length, 0);
   const totalGoals = reviews.reduce((acc, curr) => acc + curr.goals.length, 0);
   const goalsPercentage = totalGoals > 0 ? Math.round((goalsMet / totalGoals) * 100) : 0;
@@ -214,7 +215,7 @@ export default function Performance() {
         {/* Actions */}
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-foreground">Avaliações Recentes</h2>
-          
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -229,14 +230,14 @@ export default function Performance() {
                   Preencha os dados da avaliação. A nota geral será calculada automaticamente.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="flex-1 overflow-y-auto pr-4">
                 <div className="grid gap-6 py-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label>Colaborador</Label>
-                      <Select 
-                        value={formData.employee_id} 
+                      <Select
+                        value={formData.employee_id}
                         onValueChange={(v) => setFormData(prev => ({ ...prev, employee_id: v }))}
                       >
                         <SelectTrigger>
@@ -251,8 +252,8 @@ export default function Performance() {
                     </div>
                     <div className="grid gap-2">
                       <Label>Avaliador</Label>
-                      <Select 
-                        value={formData.reviewer_id} 
+                      <Select
+                        value={formData.reviewer_id}
                         onValueChange={(v) => setFormData(prev => ({ ...prev, reviewer_id: v }))}
                       >
                         <SelectTrigger>
@@ -269,9 +270,9 @@ export default function Performance() {
 
                   <div className="grid gap-2">
                     <Label>Período</Label>
-                    <Input 
-                      value={formData.period} 
-                      onChange={(e) => setFormData(prev => ({ ...prev, period: e.target.value }))} 
+                    <Input
+                      value={formData.period}
+                      onChange={(e) => setFormData(prev => ({ ...prev, period: e.target.value }))}
                     />
                   </div>
 
@@ -284,9 +285,9 @@ export default function Performance() {
                     </div>
                     {formData.goals.map((goal, index) => (
                       <div key={index} className="grid gap-3 p-3 border rounded-lg bg-muted/20 relative">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-destructive"
                           onClick={() => removeGoal(index)}
                         >
@@ -294,15 +295,15 @@ export default function Performance() {
                         </Button>
                         <div className="grid gap-2">
                           <Label>Descrição da Meta</Label>
-                          <Input 
-                            value={goal.description} 
+                          <Input
+                            value={goal.description}
                             onChange={(e) => updateGoal(index, 'description', e.target.value)}
                             placeholder="Ex: Entregar projeto X"
                           />
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
-                            <Switch 
+                            <Switch
                               checked={goal.achieved}
                               onCheckedChange={(c) => updateGoal(index, 'achieved', c)}
                             />
@@ -314,11 +315,10 @@ export default function Performance() {
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
-                                  className={`h-5 w-5 cursor-pointer transition-colors ${
-                                    star <= goal.score
-                                      ? 'fill-amber-400 text-amber-400'
-                                      : 'text-muted-foreground/30 hover:text-amber-400'
-                                  }`}
+                                  className={`h-5 w-5 cursor-pointer transition-colors ${star <= goal.score
+                                    ? 'fill-amber-400 text-amber-400'
+                                    : 'text-muted-foreground/30 hover:text-amber-400'
+                                    }`}
                                   onClick={() => updateGoal(index, 'score', star)}
                                 />
                               ))}
@@ -342,11 +342,10 @@ export default function Performance() {
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
-                                className={`h-8 w-8 cursor-pointer transition-colors ${
-                                  star <= comp.score
-                                    ? 'fill-amber-400 text-amber-400'
-                                    : 'text-muted-foreground/30 hover:text-amber-400'
-                                }`}
+                                className={`h-8 w-8 cursor-pointer transition-colors ${star <= comp.score
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'text-muted-foreground/30 hover:text-amber-400'
+                                  }`}
                                 onClick={() => updateCompetency(index, star)}
                               />
                             ))}
@@ -358,7 +357,7 @@ export default function Performance() {
 
                   <div className="grid gap-2">
                     <Label>Feedback Geral</Label>
-                    <Textarea 
+                    <Textarea
                       value={formData.feedback}
                       onChange={(e) => setFormData(prev => ({ ...prev, feedback: e.target.value }))}
                       placeholder="Comentários sobre o desempenho..."
@@ -385,139 +384,213 @@ export default function Performance() {
         {loading ? (
           <div className="text-center py-10">Carregando avaliações...</div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {reviews.map((review) => (
-              <Card key={review.id} className="hover:shadow-lg transition-shadow relative group">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
-                  onClick={() => handleDelete(review.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between pr-8">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {review.employee_name?.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <CardTitle className="text-base">{review.employee_name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          Avaliado por {review.reviewer_name}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="outline">{review.period}</Badge>
+          <div className="max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {reviews.map((review) => (
+                <Card key={review.id} className="hover:shadow-lg transition-shadow relative group">
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={() => setSelectedReview(review)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDelete(review.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Overall Score */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Nota geral</span>
-                    <div className="flex items-center gap-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-5 w-5 ${
-                            i < Math.round(review.overall_score)
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between pr-16">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {review.employee_name?.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-base">{review.employee_name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            Avaliado por {review.reviewer_name}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline">{review.period}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Overall Score */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Nota geral</span>
+                      <div className="flex items-center gap-2">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-5 w-5 ${i < Math.round(review.overall_score)
                               ? 'fill-amber-400 text-amber-400'
                               : 'text-muted-foreground/30'
-                          }`}
-                        />
-                      ))}
-                      <span className="font-semibold text-foreground ml-2">
-                        {Number(review.overall_score).toFixed(1)}
-                      </span>
+                              }`}
+                          />
+                        ))}
+                        <span className="font-semibold text-foreground ml-2">
+                          {Number(review.overall_score).toFixed(1)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Goals Progress */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Metas atingidas</span>
-                      <span className="font-medium text-foreground">
-                        {review.goals.filter(g => g.achieved).length}/{review.goals.length}
-                      </span>
+                    {/* Goals Progress */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Metas atingidas</span>
+                        <span className="font-medium text-foreground">
+                          {review.goals.filter(g => g.achieved).length}/{review.goals.length}
+                        </span>
+                      </div>
+                      <Progress
+                        value={review.goals.length > 0 ? (review.goals.filter(g => g.achieved).length / review.goals.length) * 100 : 0}
+                        className="h-2"
+                      />
                     </div>
-                    <Progress 
-                      value={review.goals.length > 0 ? (review.goals.filter(g => g.achieved).length / review.goals.length) * 100 : 0}
-                      className="h-2"
-                    />
-                  </div>
 
-                  {/* Competencies */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-muted-foreground">Competências</span>
-                    <div className="flex flex-wrap gap-2">
-                      {review.competencies.map((comp, idx) => (
-                        <Badge 
-                          key={idx} 
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          {comp.name}
-                          <span className="font-semibold">{comp.score}</span>
-                        </Badge>
-                      ))}
+                    {/* Competencies */}
+                    <div className="space-y-2">
+                      <span className="text-sm text-muted-foreground">Competências</span>
+                      <div className="flex flex-wrap gap-2">
+                        {review.competencies.map((comp, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            {comp.name}
+                            <span className="font-semibold">{comp.score}</span>
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Feedback Preview */}
-                  <p className="text-sm text-muted-foreground line-clamp-2 italic">
-                    "{review.feedback}"
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+                    {/* Feedback Preview */}
+                    <p className="text-sm text-muted-foreground line-clamp-2 italic">
+                      "{review.feedback}"
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
             {reviews.length === 0 && (
-              <div className="col-span-full text-center py-10 text-muted-foreground">
+              <div className="text-center py-10 text-muted-foreground">
                 Nenhuma avaliação encontrada. Clique em "Nova Avaliação" para começar.
               </div>
             )}
+
+            {/* Employees to Review */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Colaboradores (Sugestão para Avaliação)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {employees.slice(0, 8).map((employee) => (
+                    <div
+                      key={employee.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-secondary/50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, employee_id: employee.id }));
+                        setIsDialogOpen(true);
+                      }}
+                    >
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                          {employee.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{employee.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{employee.position}</p>
+                      </div>
+                      {employeeAverages[employee.id] && (
+                        <div className="flex items-center gap-1 text-amber-500">
+                          <Star className="h-3 w-3" />
+                          <span className="text-xs font-bold">{employeeAverages[employee.id].toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
-
-        {/* Employees to Review */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Colaboradores (Sugestão para Avaliação)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {employees.slice(0, 8).map((employee) => (
-                <div 
-                  key={employee.id} 
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-secondary/50 transition-colors cursor-pointer"
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, employee_id: employee.id }));
-                    setIsDialogOpen(true);
-                  }}
-                >
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                      {employee.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{employee.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{employee.position}</p>
-                  </div>
-                  {employeeAverages[employee.id] && (
-                    <div className="flex items-center gap-1 text-amber-500">
-                        <Star className="h-3 w-3" />
-                        <span className="text-xs font-bold">{employeeAverages[employee.id].toFixed(1)}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Modal de Detalhes da Avaliação */}
+      <Dialog open={!!selectedReview} onOpenChange={(open) => !open && setSelectedReview(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
+              Avaliação Detalhada - {selectedReview?.period}
+            </DialogTitle>
+            <DialogDescription>
+              Feedback completo de desempenho técnico e comportamental
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedReview && (
+            <div className="space-y-6 py-4">
+              <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                <Avatar className="h-16 w-16 border-2 border-primary/20">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+                    {selectedReview.employee_name?.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-xl font-bold">{selectedReview.employee_name}</h3>
+                  <p className="text-sm text-muted-foreground">Avaliado por <span className="font-medium text-foreground">{selectedReview.reviewer_name}</span></p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border text-center">
+                  <p className="text-xs font-bold uppercase text-muted-foreground mb-1 tracking-wider">Nota Geral</p>
+                  <p className="text-4xl font-black text-primary">{Number(selectedReview.overall_score).toFixed(1)}</p>
+                </div>
+                <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border text-center">
+                  <p className="text-xs font-bold uppercase text-muted-foreground mb-1 tracking-wider">Metas Atingidas</p>
+                  <p className="text-4xl font-black">
+                    {selectedReview.goals.filter(g => g.achieved).length}/{selectedReview.goals.length}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Competências Avaliadas</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {selectedReview.competencies.map((comp) => (
+                    <div key={comp.name} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-md border">
+                      <span className="font-medium text-sm">{comp.name}</span>
+                      <Badge className="font-bold bg-primary/10 text-primary hover:bg-primary/20 border-none">{comp.score}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Feedback do Gestor</h4>
+                <div className="p-5 bg-amber-50/30 dark:bg-amber-900/10 rounded-lg border border-amber-200/50 dark:border-amber-900/50 italic text-foreground leading-relaxed whitespace-pre-wrap">
+                  "{selectedReview.feedback}"
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
