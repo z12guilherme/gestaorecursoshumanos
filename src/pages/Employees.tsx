@@ -31,6 +31,7 @@ import { format } from 'date-fns';
 import { useDebounce } from '@/hooks/useDebounce';
 import { EvaluationLinkGenerator } from '@/components/performance/EvaluationLinkGenerator';
 import { EmployeeBadge } from '@/components/EmployeeBadge';
+import { useSettings } from '@/hooks/useSettings';
 
 // Função auxiliar para formatar datas e garantir que dados em branco vão como "null" para o banco
 const sanitizeDate = (dateString?: string | null) => {
@@ -66,6 +67,7 @@ export default function Employees() {
   } = useEmployees();
   const { signOut } = useAuth();
   const { requests: timeOffRequests, updateRequest, refetch: refetchTimeOff } = useTimeOff();
+  const { settings } = useSettings();
 
   // Mapeia os dados do Supabase (DB) para o formato da UI (Employee)
   const employees: Employee[] = (dbEmployees || []).map((dbEmp: any) => {
@@ -701,7 +703,7 @@ export default function Employees() {
 
             {badgeEmployee && (
               <div className="w-full flex justify-center py-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                <EmployeeBadge employee={badgeEmployee} />
+                <EmployeeBadge employee={badgeEmployee} companyName={settings?.company_name || undefined} />
               </div>
             )}
           </DialogContent>
