@@ -66,7 +66,7 @@ export default function ClockInPage() {
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     async function fetchSettings() {
-      const { data } = await supabase.from('settings').select('company_name, cnpj').maybeSingle();
+      const { data } = await supabase.from('settings').select('company_name, cnpj, avatar_url').maybeSingle();
       if (data) setCompanySettings((prev: any) => ({ ...prev, ...data }));
     }
     fetchSettings();
@@ -602,7 +602,13 @@ export default function ClockInPage() {
       {/* Dialog do Crachá */}
       <Dialog open={showBadgeDialog} onOpenChange={setShowBadgeDialog}>
         <DialogContent className="sm:max-w-sm flex flex-col items-center justify-center p-8 bg-slate-50/95 dark:bg-slate-900/95 border-none shadow-2xl rounded-2xl">
-          {badgeEmployee && <EmployeeBadge employee={badgeEmployee} companyName={companySettings?.company_name} />}
+          {badgeEmployee && (
+            <EmployeeBadge
+              employee={badgeEmployee}
+              companyName={companySettings?.company_name || undefined}
+              companyLogo={companySettings?.avatar_url || undefined}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

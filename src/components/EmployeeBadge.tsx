@@ -13,11 +13,13 @@ interface Employee {
 interface EmployeeBadgeProps {
   employee: Employee;
   companyName?: string;
+  companyLogo?: string;
 }
 
 export const EmployeeBadge: React.FC<EmployeeBadgeProps> = ({
   employee,
-  companyName
+  companyName,
+  companyLogo
 }) => {
 
   return (

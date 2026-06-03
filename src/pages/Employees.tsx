@@ -703,7 +703,11 @@ export default function Employees() {
 
             {badgeEmployee && (
               <div className="w-full flex justify-center py-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                <EmployeeBadge employee={badgeEmployee} companyName={settings?.company_name || undefined} />
+                <EmployeeBadge
+                  employee={badgeEmployee}
+                  companyName={settings?.company_name || undefined}
+                  companyLogo={settings?.avatar_url || undefined}
+                />
               </div>
             )}
           </DialogContent>

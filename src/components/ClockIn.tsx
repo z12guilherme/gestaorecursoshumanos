@@ -341,7 +341,11 @@ export default function ClockIn() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-sm flex flex-col items-center justify-center p-8 bg-slate-50/95 dark:bg-slate-900/95 border-none shadow-2xl rounded-2xl">
-                  <EmployeeBadge employee={authenticatedEmployee} companyName={settings?.company_name} />
+                  <EmployeeBadge
+                    employee={authenticatedEmployee}
+                    companyName={settings?.company_name || undefined}
+                    companyLogo={settings?.avatar_url || undefined}
+                  />
                 </DialogContent>
               </Dialog>
             </div>
