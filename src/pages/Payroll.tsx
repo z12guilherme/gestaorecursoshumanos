@@ -164,15 +164,16 @@ export default function Payroll() {
     // Base de Cálculo do INSS (Salário Base + Adicionais)
     const inssBase = baseSalary + totalAdditions;
 
+    const hasManualInss = employee.inss_value !== undefined && employee.inss_value !== null;
     let manualInss = 0;
-    if (employee.inss_value) {
+    if (hasManualInss) {
       const valStr = String(employee.inss_value).replace(',', '.');
       manualInss = Number(valStr) || 0;
     }
 
     // Se for terceirizado ou PJ, isenta INSS padrão a menos que preenchido
     const isOutsourced = employee.contractType === 'Terceirizado' || employee.contract_type === 'Terceirizado' || employee.contractType === 'PJ' || employee.contract_type === 'PJ';
-    const estimatedTax = manualInss > 0 ? manualInss : (isOutsourced ? 0 : calculateINSS(inssBase));
+    const estimatedTax = hasManualInss ? manualInss : (isOutsourced ? 0 : calculateINSS(inssBase));
 
     const totalDiscounts = discounts + estimatedTax;
     const netSalary = baseSalary + totalAdditions - totalDiscounts;

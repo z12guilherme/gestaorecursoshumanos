@@ -128,16 +128,17 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
           if (v > 0) earnings.push({ desc: (a.description || "ADICIONAL").toUpperCase(), value: v });
         });
 
-        const inss = Number(fullEmployee.inss_value || 0);
+        const hasManualInss = fullEmployee.inss_value !== undefined && fullEmployee.inss_value !== null;
+        const inss = hasManualInss ? Number(fullEmployee.inss_value) : 0;
         const discounts = [
           { desc: "DESCONTOS FIXOS", value: Number(fullEmployee.fixed_discounts || 0) }
         ];
-        if (inss > 0) discounts.push({ desc: `INSS (${format(referenceDate, 'yyyy')})`, value: inss });
+        if (hasManualInss) discounts.push({ desc: `INSS (${format(referenceDate, 'yyyy')})`, value: inss });
 
         parseJsonb(fullEmployee.variable_discounts).forEach((d: any) => {
           const v = Number(d.value || d.amount);
           const desc = (d.description || "DESCONTO").toUpperCase();
-          if (v > 0 && !(desc.includes("INSS") && inss > 0)) {
+          if (v > 0 && !(desc.includes("INSS") && hasManualInss)) {
             discounts.push({ desc, value: v });
           }
         });

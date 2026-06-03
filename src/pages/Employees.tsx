@@ -97,7 +97,7 @@ export default function Employees() {
       admissionDate: dbEmp.admission_date,
       baseSalary: dbEmp.base_salary || 0,
       fixedDiscounts: dbEmp.fixed_discounts || 0,
-      inss_value: dbEmp.inss_value || 0,
+      inss_value: dbEmp.inss_value !== undefined && dbEmp.inss_value !== null ? dbEmp.inss_value : null,
       hasInsalubrity: dbEmp.has_insalubrity || false,
       insalubrityAmount: dbEmp.insalubrity_amount || 0,
       hasNightShift: dbEmp.has_night_shift || false,

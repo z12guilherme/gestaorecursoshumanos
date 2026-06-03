@@ -52,8 +52,11 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
           type="number"
           step="0.01"
           placeholder="0.00"
-          value={(formData as any).inss_value || ''}
-          onChange={(e) => setFormData({ ...formData, inss_value: parseFloat(e.target.value) } as any)}
+          value={(formData as any).inss_value !== undefined && (formData as any).inss_value !== null ? (formData as any).inss_value : ''}
+          onChange={(e) => {
+            const val = e.target.value;
+            setFormData({ ...formData, inss_value: val === "" ? null : parseFloat(val) } as any);
+          }}
         />
         <p className="text-[10px] text-muted-foreground">Se preenchido, substitui o cálculo automático.</p>
       </div>

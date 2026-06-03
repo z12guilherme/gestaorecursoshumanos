@@ -375,7 +375,8 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     ];
 
     // Adicionar INSS se houver valor
-    if (employee.inss_value && employee.inss_value > 0) {
+    const hasManualInss = employee.inss_value !== undefined && employee.inss_value !== null;
+    if (hasManualInss) {
       discounts.push({ desc: `INSS (${format(referenceDate, 'yyyy')})`, value: Number(employee.inss_value) });
     }
 
@@ -389,7 +390,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
         if (!isNaN(val) && val > 0) {
           // Evitar duplicar o INSS se ele já for fornecido no campo inss_value
           const description = d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS";
-          if (description.includes("INSS") && employee.inss_value) return;
+          if (description.includes("INSS") && hasManualInss) return;
 
           discounts.push({
             desc: description,

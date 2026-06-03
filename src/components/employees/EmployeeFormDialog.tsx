@@ -118,7 +118,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
         variable_additions: employee.variable_additions || [],
         avatar_url: employee.avatar_url,
         custom_fields: (employee as any).custom_fields || {},
-        inss_value: (employee as any).inss_value || 0,
+        inss_value: (employee as any).inss_value !== undefined && (employee as any).inss_value !== null ? (employee as any).inss_value : null,
         password: ''
       });
     } else {

@@ -61,7 +61,7 @@ export default function Dashboard() {
     const fixedDiscounts = Number(emp.fixed_discounts) || 0;
 
     let inss = 0;
-    if (emp.inss_value) {
+    if (emp.inss_value !== undefined && emp.inss_value !== null) {
       inss = Number(String(emp.inss_value).replace(',', '.')) || 0;
     } else if (emp.contract_type !== 'Terceirizado' && emp.contract_type !== 'PJ' && emp.contractType !== 'Terceirizado' && emp.contractType !== 'PJ') {
       inss = (base + insalubrityValue + nightShiftValue + overtime + varAdditions) * 0.09; // Estimativa 9%
