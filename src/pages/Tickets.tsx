@@ -50,6 +50,7 @@ const typeConfig = {
 export default function Tickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { requests, updateRequestStatus } = useTimeOff();
@@ -135,36 +136,52 @@ export default function Tickets() {
     .filter(r => r.status === 'pending');
 
   const handleApproveTimeOff = async (id: string) => {
-    const request = requests.find(r => r.id === id);
-    await updateRequestStatus(id, 'approved');
+    setProcessingId(id);
+    try {
+      const request = requests.find(r => r.id === id);
+      await updateRequestStatus(id, 'approved');
 
-    if (request) {
-      const newStatus = request.type === 'vacation' ? 'vacation' : 'leave';
-      await updateEmployee(request.employee_id, { status: newStatus });
+      if (request) {
+        const newStatus = request.type === 'vacation' ? 'vacation' : 'leave';
+        await updateEmployee(request.employee_id, { status: newStatus });
 
-      const employee = employees.find(e => e.id === request.employee_id);
-      if (employee) {
-        const startDateFormated = format(new Date(request.start_date + 'T00:00:00'), 'dd/MM/yyyy');
-        const endDateFormated = format(new Date(request.end_date + 'T00:00:00'), 'dd/MM/yyyy');
+        const employee = employees.find(e => e.id === request.employee_id);
+        if (employee) {
+          const startDateFormated = format(new Date(request.start_date + 'T00:00:00'), 'dd/MM/yyyy');
+          const endDateFormated = format(new Date(request.end_date + 'T00:00:00'), 'dd/MM/yyyy');
 
-        const message = `Olá ${employee.name}, sua solicitação de ${typeConfig[request.type as keyof typeof typeConfig]?.label || 'ausência'} para o período de ${startDateFormated} a ${endDateFormated} foi *APROVADA*! 🎉`;
-        await whatsappService.sendMessage(employee.phone || '', message);
+          const message = `Olá ${employee.name}, sua solicitação de ${typeConfig[request.type as keyof typeof typeConfig]?.label || 'ausência'} para o período de ${startDateFormated} a ${endDateFormated} foi *APROVADA*! 🎉`;
+          await whatsappService.sendMessage(employee.phone || '', message);
+        }
       }
-    }
 
-    toast({
-      title: 'Solicitação aprovada',
-      description: 'A solicitação foi aprovada com sucesso.',
-    });
+      toast({
+        title: 'Solicitação aprovada',
+        description: 'A solicitação foi aprovada com sucesso.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao aprovar',
+        description: 'Não foi possível processar a aprovação.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleRejectTimeOff = async (id: string) => {
-    await updateRequestStatus(id, 'rejected');
-    toast({
-      title: 'Solicitação rejeitada',
-      description: 'A solicitação foi rejeitada.',
-      variant: 'destructive',
-    });
+    setProcessingId(id);
+    try {
+      await updateRequestStatus(id, 'rejected');
+      toast({
+        title: 'Solicitação rejeitada',
+        description: 'A solicitação foi rejeitada.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   return (
@@ -344,8 +361,8 @@ export default function Tickets() {
                           <p className="text-sm text-muted-foreground mt-1">
                             {format(new Date(request.startDate + 'T00:00:00'), "dd 'de' MMM", { locale: ptBR })} - {format(new Date(request.endDate + 'T00:00:00'), "dd 'de' MMM", { locale: ptBR })}
                           </p>
-                          {(request as any).attachment_url && (
-                            <a href={(request as any).attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
+                          {(request as { attachment_url?: string }).attachment_url && (
+                            <a href={(request as { attachment_url?: string }).attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
                               <Download className="h-3 w-3" /> Baixar anexo
                             </a>
                           )}
@@ -357,6 +374,7 @@ export default function Tickets() {
                           size="sm"
                           className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                           onClick={() => handleRejectTimeOff(request.id)}
+                          disabled={processingId === request.id}
                         >
                           <X className="h-4 w-4 mr-1" />
                           Rejeitar
@@ -364,6 +382,7 @@ export default function Tickets() {
                         <Button
                           size="sm"
                           onClick={() => handleApproveTimeOff(request.id)}
+                          disabled={processingId === request.id}
                         >
                           <Check className="h-4 w-4 mr-1" />
                           Aprovar
