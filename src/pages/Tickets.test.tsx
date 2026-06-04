@@ -53,7 +53,7 @@ vi.mock('@/lib/supabase', () => ({
 
 // Mock do componente Tabs para garantir que o conteúdo da aba "inbox" seja sempre renderizado
 // Isso contorna problemas de JSDOM com a ativação de abas complexas do Radix UI
-vi.mock('../components/ui/tabs', () => {
+vi.mock('@/components/ui/tabs', () => {
     return {
         Tabs: ({ children, ...props }: any) => <div {...props}>{children}</div>,
         TabsList: ({ children, ...props }: any) => <div {...props}>{children}</div>,
@@ -83,7 +83,7 @@ describe('Página Tickets - Integração WhatsApp', () => {
             // Verifica se a mensagem dinâmica com o nome do tipo (Férias) e datas foi montada
             expect(whatsappService.sendMessage).toHaveBeenCalledWith(
                 '5511888888888',
-                expect.stringContaining('Maria Silva, sua solicitação de Férias para o período de 2026-12-20 a 2027-01-05 foi *APROVADA*!')
+                expect.stringContaining('Maria Silva, sua solicitação de Férias para o período de 20/12/2026 a 05/01/2027 foi *APROVADA*!')
             );
         });
     });

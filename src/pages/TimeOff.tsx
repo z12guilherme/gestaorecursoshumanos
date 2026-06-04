@@ -103,7 +103,10 @@ export default function TimeOff() {
 
       const employee = employees.find(e => e.id === request.employee_id);
       if (employee) {
-        const message = `Olá ${employee.name}, suas férias para o período de ${request.start_date} a ${request.end_date} foram *APROVADAS*! 🎉`;
+        const startDateFormated = format(new Date(request.start_date + 'T00:00:00'), 'dd/MM/yyyy');
+        const endDateFormated = format(new Date(request.end_date + 'T00:00:00'), 'dd/MM/yyyy');
+
+        const message = `Olá ${employee.name}, suas férias para o período de ${startDateFormated} a ${endDateFormated} foram *APROVADAS*! 🎉`;
         await whatsappService.sendMessage(employee.phone || '', message);
       }
     }

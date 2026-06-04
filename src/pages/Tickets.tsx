@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
+import { supabase } from '@/lib/supabase';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -10,20 +10,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../components/ui/table';
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../components/ui/select';
+} from '@/components/ui/select';
 import { MessageSquare, AlertCircle, CheckCircle, Clock, X, Check, Palmtree, Thermometer, User, Download } from 'lucide-react';
-import { useToast } from '../hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { useTimeOff } from '../hooks/useTimeOff';
-import { useEmployees } from '../hooks/useEmployees';
-import { Avatar, AvatarFallback } from '../components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTimeOff } from '@/hooks/useTimeOff';
+import { useEmployees } from '@/hooks/useEmployees';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { whatsappService } from '@/services/whatsappService';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -144,7 +144,10 @@ export default function Tickets() {
 
       const employee = employees.find(e => e.id === request.employee_id);
       if (employee) {
-        const message = `Olá ${employee.name}, sua solicitação de ${typeConfig[request.type as keyof typeof typeConfig]?.label || 'ausência'} para o período de ${request.start_date} a ${request.end_date} foi *APROVADA*! 🎉`;
+        const startDateFormated = format(new Date(request.start_date + 'T00:00:00'), 'dd/MM/yyyy');
+        const endDateFormated = format(new Date(request.end_date + 'T00:00:00'), 'dd/MM/yyyy');
+
+        const message = `Olá ${employee.name}, sua solicitação de ${typeConfig[request.type as keyof typeof typeConfig]?.label || 'ausência'} para o período de ${startDateFormated} a ${endDateFormated} foi *APROVADA*! 🎉`;
         await whatsappService.sendMessage(employee.phone || '', message);
       }
     }

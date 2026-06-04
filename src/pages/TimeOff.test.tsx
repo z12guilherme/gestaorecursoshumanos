@@ -72,7 +72,7 @@ describe('Página TimeOff - Integração WhatsApp', () => {
             // Verifica se foi enviado para o número correto e contém o texto esperado
             expect(whatsappService.sendMessage).toHaveBeenCalledWith(
                 '5511999999999',
-                expect.stringContaining('João Silva, suas férias para o período de 2026-06-01 a 2026-06-15 foram *APROVADAS*!')
+                expect.stringContaining('Olá João Silva, suas férias para o período de 01/06/2026 a 15/06/2026 foram *APROVADAS*! 🎉')
             );
         });
     });
