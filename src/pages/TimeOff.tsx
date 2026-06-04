@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useTimeOff } from '@/hooks/useTimeOff';
 import { useEmployees } from '@/hooks/useEmployees';
+import { whatsappService } from '@/services/whatsappService';
 import {
   Dialog,
   DialogContent,
@@ -99,6 +100,12 @@ export default function TimeOff() {
       // Atualiza o status do funcionário para 'vacation' ou 'leave'
       const newStatus = request.type === 'vacation' ? 'vacation' : 'leave';
       await updateEmployee(request.employee_id, { status: newStatus });
+
+      const employee = employees.find(e => e.id === request.employee_id);
+      if (employee) {
+        const message = `Olá ${employee.name}, suas férias para o período de ${request.start_date} a ${request.end_date} foram *APROVADAS*! 🎉`;
+        await whatsappService.sendMessage(employee.phone || '', message);
+      }
     }
 
     toast({
@@ -225,7 +232,7 @@ export default function TimeOff() {
 
   const handleDeleteRequest = async (id: string) => {
     if (!window.confirm('Tem certeza que deseja apagar este registro permanentemente do histórico?')) return;
-    
+
     const { error } = await supabase.from('time_off_requests').delete().eq('id', id);
     if (error) {
       toast({ title: 'Erro', description: 'Não foi possível apagar o registro.', variant: 'destructive' });
@@ -265,7 +272,7 @@ export default function TimeOff() {
     const total = deptEmployees.length;
     const absent = deptEmployees.filter(e => ['vacation', 'leave', 'Férias', 'Afastado'].includes(e.status)).length;
     const available = total - absent;
-    
+
     return {
       name: dept,
       total,
@@ -352,7 +359,7 @@ export default function TimeOff() {
                     // Formata data manualmente para evitar problemas de fuso horário (YYYY-MM-DD -> DD/MM/YYYY)
                     const startDate = request.start_date.split('-').reverse().join('/');
                     const endDate = request.end_date.split('-').reverse().join('/');
-                    
+
                     return (
                       <div key={request.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors">
                         <Avatar className="h-10 w-10">
@@ -402,11 +409,10 @@ export default function TimeOff() {
                         <div className="flex-1">
                           <p className="font-medium text-sm text-foreground">{employee.name}</p>
                           <p className="text-xs text-muted-foreground">{employee.department}</p>
-                          <Badge variant="outline" className={`mt-1 text-[10px] ${
-                            employee.status === 'leave' || employee.status === 'Afastado' 
-                              ? 'border-red-200 text-red-600 bg-red-50 dark:bg-red-900/10' 
-                              : 'border-blue-200 text-blue-600 bg-blue-50 dark:bg-blue-900/10'
-                          }`}>
+                          <Badge variant="outline" className={`mt-1 text-[10px] ${employee.status === 'leave' || employee.status === 'Afastado'
+                            ? 'border-red-200 text-red-600 bg-red-50 dark:bg-red-900/10'
+                            : 'border-blue-200 text-blue-600 bg-blue-50 dark:bg-blue-900/10'
+                            }`}>
                             {employee.status === 'leave' || employee.status === 'Afastado' ? 'Afastado' : 'Férias'}
                           </Badge>
                         </div>
@@ -455,7 +461,7 @@ export default function TimeOff() {
               pendingRequests.map((request) => {
                 const type = typeConfig[request.type as keyof typeof typeConfig];
                 const days = differenceInDays(new Date(request.endDate + 'T00:00:00'), new Date(request.startDate + 'T00:00:00')) + 1;
-                
+
                 return (
                   <div key={request.id} className="flex items-center justify-between p-4 rounded-lg border border-border">
                     <div className="flex items-center gap-4">
@@ -485,16 +491,16 @@ export default function TimeOff() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                         onClick={() => handleReject(request.id)}
                       >
                         <X className="h-4 w-4 mr-1" />
                         Rejeitar
                       </Button>
-                      <Button 
+                      <Button
                         size="sm"
                         onClick={() => handleApprove(request.id)}
                       >
@@ -518,7 +524,7 @@ export default function TimeOff() {
             {processedRequests.map((request) => {
               const type = typeConfig[request.type as keyof typeof typeConfig];
               const status = statusConfig[request.status as keyof typeof statusConfig];
-              
+
               return (
                 <div key={request.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
                   <div className="flex items-center gap-3">
@@ -676,60 +682,60 @@ export default function TimeOff() {
             <DialogTitle>Gerenciar Senhas de Ponto</DialogTitle>
             <DialogDescription>Defina as senhas (PIN) numéricas de 4 dígitos para os colaboradores.</DialogDescription>
           </DialogHeader>
-          
-          <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
-             <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input 
-                  placeholder="Buscar colaborador..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-             </div>
 
-             <div className="flex-1 overflow-y-auto border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Colaborador</TableHead>
-                      <TableHead>Departamento</TableHead>
-                      <TableHead>Senha (PIN)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {employees
-                      .filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map(employee => (
+          <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar colaborador..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Colaborador</TableHead>
+                    <TableHead>Departamento</TableHead>
+                    <TableHead>Senha (PIN)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {employees
+                    .filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map(employee => (
                       <TableRow key={employee.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                  {employee.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                </AvatarFallback>
-                              </Avatar>
-                              {employee.name}
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                {employee.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                              </AvatarFallback>
+                            </Avatar>
+                            {employee.name}
                           </div>
                         </TableCell>
                         <TableCell>{employee.department}</TableCell>
                         <TableCell>
-                          <Input 
-                              className="w-24 font-mono text-center" 
-                              maxLength={4} 
-                              placeholder="----"
-                              value={employee.password || ''}
-                              onChange={(e) => handlePinChange(employee.id, e.target.value)}
+                          <Input
+                            className="w-24 font-mono text-center"
+                            maxLength={4}
+                            placeholder="----"
+                            value={employee.password || ''}
+                            onChange={(e) => handlePinChange(employee.id, e.target.value)}
                           />
                         </TableCell>
                       </TableRow>
                     ))}
-                  </TableBody>
-                </Table>
-             </div>
+                </TableBody>
+              </Table>
+            </div>
           </div>
           <DialogFooter>
-              <Button onClick={() => setIsPinDialogOpen(false)}>Concluído</Button>
+            <Button onClick={() => setIsPinDialogOpen(false)}>Concluído</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
