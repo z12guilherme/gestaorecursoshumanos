@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { useTimeOff } from '../hooks/useTimeOff';
 import { useEmployees } from '../hooks/useEmployees';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
+import { whatsappService } from '@/services/whatsappService';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -50,9 +51,9 @@ export default function Tickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  
+
   const { requests, updateRequestStatus } = useTimeOff();
-  const { updateEmployee } = useEmployees();
+  const { employees, updateEmployee } = useEmployees();
 
   useEffect(() => {
     fetchTickets();
@@ -140,6 +141,12 @@ export default function Tickets() {
     if (request) {
       const newStatus = request.type === 'vacation' ? 'vacation' : 'leave';
       await updateEmployee(request.employee_id, { status: newStatus });
+
+      const employee = employees.find(e => e.id === request.employee_id);
+      if (employee) {
+        const message = `Olá ${employee.name}, sua solicitação de ${typeConfig[request.type as keyof typeof typeConfig]?.label || 'ausência'} para o período de ${request.start_date} a ${request.end_date} foi *APROVADA*! 🎉`;
+        await whatsappService.sendMessage(employee.phone || '', message);
+      }
     }
 
     toast({
@@ -312,7 +319,7 @@ export default function Tickets() {
                 pendingRequests.map((request) => {
                   const type = typeConfig[request.type as keyof typeof typeConfig] || typeConfig.personal;
                   const days = differenceInDays(new Date(request.endDate + 'T00:00:00'), new Date(request.startDate + 'T00:00:00')) + 1;
-                  
+
                   return (
                     <div key={request.id} className="flex items-center justify-between p-4 rounded-lg border border-border">
                       <div className="flex items-center gap-4">
@@ -342,16 +349,16 @@ export default function Tickets() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                           onClick={() => handleRejectTimeOff(request.id)}
                         >
                           <X className="h-4 w-4 mr-1" />
                           Rejeitar
                         </Button>
-                        <Button 
+                        <Button
                           size="sm"
                           onClick={() => handleApproveTimeOff(request.id)}
                         >
