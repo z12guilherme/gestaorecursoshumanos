@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
@@ -28,21 +28,16 @@ export interface Employee {
 }
 
 export function useEmployees() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchEmployees = async () => {
-    try {
-      setLoading(true);
-
+  const { data: employees = [], isLoading: loading, error: queryError, refetch } = useQuery<Employee[]>({
+    queryKey: ['employees'],
+    queryFn: async () => {
       // 🔀 Desvio Offline (Mock)
       if (USE_MOCK) {
         const data = mockDatabase.get('employees');
         data.sort((a: Employee, b: Employee) => a.name.localeCompare(b.name));
-        setEmployees(data);
-        setLoading(false);
-        return;
+        return data;
       }
 
       const { data, error } = await supabase
@@ -51,29 +46,21 @@ export function useEmployees() {
         .order('name');
 
       if (error) throw error;
-
-      setEmployees(data || []);
-    } catch (err: any) {
-      console.error('Erro ao buscar colaboradores:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      return data || [];
     }
-  };
+  });
+
+  const error = queryError ? (queryError as any).message || String(queryError) : null;
 
   const fetchPublicEmployees = async () => {
+    // Mantemos por retrocompatibilidade, mas agora podemos usar o cache ou uma query específica
     try {
-      setLoading(true);
-
-      // 🔀 Desvio Offline (Mock)
       if (USE_MOCK) {
         const data = mockDatabase.get('employees').map((e: any) => ({
           id: e.id, name: e.name, department: e.department, role: e.role, status: e.status
         }));
         data.sort((a: Employee, b: Employee) => a.name.localeCompare(b.name));
-        setEmployees(data);
-        setLoading(false);
-        return;
+        return data;
       }
 
       const { data, error } = await supabase
@@ -82,13 +69,10 @@ export function useEmployees() {
         .order('name');
 
       if (error) throw error;
-
-      setEmployees(data || []);
-    } catch (err: any) {
-      console.error('Erro ao buscar colaboradores (público):', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      return data || [];
+    } catch (err) {
+      console.error('Erro ao buscar colaboradores públicos:', err);
+      return [];
     }
   };
 
@@ -98,11 +82,10 @@ export function useEmployees() {
       if (USE_MOCK) {
         const newEmp = { ...employee, id: Date.now().toString(), created_at: new Date().toISOString() };
         mockDatabase.add('employees', newEmp);
-        setEmployees((prev) => [...prev, newEmp as Employee]);
+        await queryClient.invalidateQueries({ queryKey: ['employees'] });
         return { data: newEmp, error: null };
       }
 
-      // LOG DE DEBUG: Confirmando que estamos na versão SEM Edge Function
       console.log('>>> MODO TEXTO PLANO ATIVO: Nenhuma Edge Function será chamada <<<');
 
       const { data, error } = await supabase
@@ -113,7 +96,7 @@ export function useEmployees() {
 
       if (error) throw error;
 
-      setEmployees((prev) => [...prev, data]);
+      await queryClient.invalidateQueries({ queryKey: ['employees'] });
       return { data, error: null };
     } catch (err: any) {
       console.error('Erro ao adicionar colaborador:', err);
@@ -126,7 +109,7 @@ export function useEmployees() {
       // 🔀 Desvio Offline (Mock)
       if (USE_MOCK) {
         const updated = mockDatabase.update('employees', id, updates);
-        if (updated) setEmployees((prev) => prev.map((emp) => (emp.id === id ? updated : emp)));
+        await queryClient.invalidateQueries({ queryKey: ['employees'] });
         return { data: updated, error: null };
       }
 
@@ -141,7 +124,7 @@ export function useEmployees() {
 
       if (error) throw error;
 
-      setEmployees((prev) => prev.map((emp) => (emp.id === id ? data : emp)));
+      await queryClient.invalidateQueries({ queryKey: ['employees'] });
       return { data, error: null };
     } catch (err: any) {
       console.error('Erro ao atualizar colaborador:', err);
@@ -154,7 +137,7 @@ export function useEmployees() {
       // 🔀 Desvio Offline (Mock)
       if (USE_MOCK) {
         mockDatabase.remove('employees', id);
-        setEmployees((prev) => prev.filter((emp) => emp.id !== id));
+        await queryClient.invalidateQueries({ queryKey: ['employees'] });
         return { error: null };
       }
 
@@ -165,7 +148,7 @@ export function useEmployees() {
 
       if (error) throw error;
 
-      setEmployees((prev) => prev.filter((emp) => emp.id !== id));
+      await queryClient.invalidateQueries({ queryKey: ['employees'] });
       return { error: null };
     } catch (err: any) {
       console.error('Erro ao excluir colaborador:', err);
@@ -219,15 +202,11 @@ export function useEmployees() {
     }
   };
 
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
-
   return {
     employees,
     loading,
     error,
-    refetch: fetchEmployees,
+    refetch,
     fetchPublicEmployees,
     addEmployee,
     updateEmployee,

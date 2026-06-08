@@ -7,11 +7,9 @@
 - [x] Configurar **Vitest + React Testing Library** (Substituto moderno do Jest para Vite).
 - [x] Criar testes unitários para cálculo de folha/analytics (Exemplo criado em `analyticsService.test.ts`).
 - [x] Criar testes de integração para fluxo de Autenticação (`src/pages/Login.test.tsx`).
-- [x] Criar testes para transições de status de Ponto (`src/services/timeEntryService.test.ts`).
-- [x] **Meta:*  * Atingir 80% de cobertura nas regras de negócio.
 
 ### 1.1. 🏗️ Infraestrutura de Tipagem e Validação
-- [ ] Gerar tipos automáticos do Supabase via CLI (`supabase gen types`).
+- [x] Gerar tipos automáticos do Supabase via CLI (`supabase gen types`).
 - [ ] Padronizar validações de formulários com **Zod** para garantir integridade (CPF, Datas, Valores).
 
 ### 2. 👁️ Sistema de Auditoria (Audit Logs)

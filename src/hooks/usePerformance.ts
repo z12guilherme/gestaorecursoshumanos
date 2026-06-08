@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
+import { Database } from '@/types/supabase';
+
+type DBPerformanceReview = Database['public']['Tables']['performance_reviews']['Row'];
 
 export interface Goal {
   description: string;
@@ -45,7 +48,7 @@ export function usePerformance() {
           data = [
             {
               id: '1',
-              employee_id: 'emp-fg',
+              employee_id: '00000000-0000-0000-0000-000000000001',
               reviewer_id: 'rev-jm',
               period: '05/2026',
               overall_score: 4.5,
@@ -95,12 +98,12 @@ export function usePerformance() {
           ];
         }
 
-        const formatted = data.map((item: any) => ({
+        const formatted: PerformanceReview[] = data.map((item: any) => ({
           ...item,
           employee_name: item.employee?.name || 'Desconhecido',
           reviewer_name: item.reviewer?.name || 'Desconhecido',
         }));
-        formatted.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        formatted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setReviews(formatted);
         setLoading(false);
         return;
@@ -119,7 +122,7 @@ export function usePerformance() {
       if (error) throw error;
 
       // Formata os dados para facilitar o uso na tabela
-      const formattedReviews = data.map((item: any) => ({
+      const formattedReviews: PerformanceReview[] = (data as any[]).map((item) => ({
         ...item,
         employee_name: item.employee?.name || 'Desconhecido',
         reviewer_name: item.reviewer?.name || 'Desconhecido',

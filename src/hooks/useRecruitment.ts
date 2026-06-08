@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
@@ -29,44 +29,42 @@ export interface Candidate {
 }
 
 export function useRecruitment() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-
-      // 🔀 Desvio Offline (Mock)
+  const { data: jobs = [], isLoading: loadingJobs, error: errorJobs, refetch: refetchJobs } = useQuery<Job[]>({
+    queryKey: ['jobs'],
+    queryFn: async () => {
       if (USE_MOCK) {
         const mockJobs = mockDatabase.get('jobs');
-        const mockCandidates = mockDatabase.get('candidates');
         mockJobs.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        mockCandidates.sort((a: any, b: any) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime());
-        setJobs(mockJobs);
-        setCandidates(mockCandidates);
-        setLoading(false);
-        return;
+        return mockJobs;
       }
-      
-      // Busca vagas e candidatos em paralelo
-      const [jobsResponse, candidatesResponse] = await Promise.all([
-        supabase.from('jobs').select('*').order('created_at', { ascending: false }),
-        supabase.from('candidates').select('*').order('applied_at', { ascending: false })
-      ]);
-
-      if (jobsResponse.error) throw jobsResponse.error;
-      if (candidatesResponse.error) throw candidatesResponse.error;
-
-      setJobs(jobsResponse.data || []);
-      setCandidates(candidatesResponse.data || []);
-    } catch (err: any) {
-      console.error('Erro ao buscar dados de recrutamento:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      const { data, error } = await supabase.from('jobs').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
     }
+  });
+
+  const { data: candidates = [], isLoading: loadingCandidates, error: errorCandidates, refetch: refetchCandidates } = useQuery<Candidate[]>({
+    queryKey: ['candidates'],
+    queryFn: async () => {
+      if (USE_MOCK) {
+        const mockCandidates = mockDatabase.get('candidates');
+        mockCandidates.sort((a: any, b: any) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime());
+        return mockCandidates;
+      }
+      const { data, error } = await supabase.from('candidates').select('*').order('applied_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const loading = loadingJobs || loadingCandidates;
+  const errorObj = errorJobs || errorCandidates;
+  const error = errorObj ? (errorObj as any).message || String(errorObj) : null;
+
+  const refetch = async () => {
+    await Promise.all([refetchJobs(), refetchCandidates()]);
   };
 
   // --- Funções de Vagas ---
@@ -76,13 +74,13 @@ export function useRecruitment() {
       if (USE_MOCK) {
         const newJob = { ...job, id: Date.now().toString(), created_at: new Date().toISOString() };
         mockDatabase.add('jobs', newJob);
-        setJobs(prev => [newJob as Job, ...prev]);
+        await queryClient.invalidateQueries({ queryKey: ['jobs'] });
         return { data: newJob, error: null };
       }
 
       const { data, error } = await supabase.from('jobs').insert([job]).select().single();
       if (error) throw error;
-      setJobs(prev => [data, ...prev]);
+      await queryClient.invalidateQueries({ queryKey: ['jobs'] });
       return { data, error: null };
     } catch (err: any) {
       return { data: null, error: err };
@@ -93,13 +91,13 @@ export function useRecruitment() {
     try {
       if (USE_MOCK) {
         const updated = mockDatabase.update('jobs', id, updates);
-        if (updated) setJobs(prev => prev.map(j => j.id === id ? updated : j));
+        await queryClient.invalidateQueries({ queryKey: ['jobs'] });
         return { data: updated, error: null };
       }
 
       const { data, error } = await supabase.from('jobs').update(updates).eq('id', id).select().single();
       if (error) throw error;
-      setJobs(prev => prev.map(j => j.id === id ? data : j));
+      await queryClient.invalidateQueries({ queryKey: ['jobs'] });
       return { data, error: null };
     } catch (err: any) {
       return { data: null, error: err };
@@ -110,13 +108,13 @@ export function useRecruitment() {
     try {
       if (USE_MOCK) {
         mockDatabase.remove('jobs', id);
-        setJobs(prev => prev.filter(j => j.id !== id));
+        await queryClient.invalidateQueries({ queryKey: ['jobs'] });
         return { error: null };
       }
 
       const { error } = await supabase.from('jobs').delete().eq('id', id);
       if (error) throw error;
-      setJobs(prev => prev.filter(j => j.id !== id));
+      await queryClient.invalidateQueries({ queryKey: ['jobs'] });
       return { error: null };
     } catch (err: any) {
       return { error: err };
@@ -130,13 +128,13 @@ export function useRecruitment() {
       if (USE_MOCK) {
         const newCand = { ...candidate, id: Date.now().toString(), applied_at: new Date().toISOString() };
         mockDatabase.add('candidates', newCand);
-        setCandidates(prev => [newCand as Candidate, ...prev]);
+        await queryClient.invalidateQueries({ queryKey: ['candidates'] });
         return { data: newCand, error: null };
       }
 
       const { data, error } = await supabase.from('candidates').insert([candidate]).select().single();
       if (error) throw error;
-      setCandidates(prev => [data, ...prev]);
+      await queryClient.invalidateQueries({ queryKey: ['candidates'] });
       return { data, error: null };
     } catch (err: any) {
       return { data: null, error: err };
@@ -147,13 +145,13 @@ export function useRecruitment() {
     try {
       if (USE_MOCK) {
         const updated = mockDatabase.update('candidates', id, updates);
-        if (updated) setCandidates(prev => prev.map(c => c.id === id ? updated : c));
+        await queryClient.invalidateQueries({ queryKey: ['candidates'] });
         return { data: updated, error: null };
       }
 
       const { data, error } = await supabase.from('candidates').update(updates).eq('id', id).select().single();
       if (error) throw error;
-      setCandidates(prev => prev.map(c => c.id === id ? data : c));
+      await queryClient.invalidateQueries({ queryKey: ['candidates'] });
       return { data, error: null };
     } catch (err: any) {
       return { data: null, error: err };
@@ -164,22 +162,18 @@ export function useRecruitment() {
     try {
       if (USE_MOCK) {
         mockDatabase.remove('candidates', id);
-        setCandidates(prev => prev.filter(c => c.id !== id));
+        await queryClient.invalidateQueries({ queryKey: ['candidates'] });
         return { error: null };
       }
 
       const { error } = await supabase.from('candidates').delete().eq('id', id);
       if (error) throw error;
-      setCandidates(prev => prev.filter(c => c.id !== id));
+      await queryClient.invalidateQueries({ queryKey: ['candidates'] });
       return { error: null };
     } catch (err: any) {
       return { error: err };
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  return { jobs, candidates, loading, error, refetch: fetchData, addJob, updateJob, deleteJob, addCandidate, updateCandidate, deleteCandidate };
+  return { jobs, candidates, loading, error, refetch, addJob, updateJob, deleteJob, addCandidate, updateCandidate, deleteCandidate };
 }

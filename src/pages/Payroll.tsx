@@ -14,6 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { PayslipButton } from '@/components/PayslipButton';
 import { supabase } from '@/lib/supabase';
 import { payrollExportService } from '@/services/payrollExportService';
+import { calculatePayroll as calculatePayrollService } from '@/services/payrollService';
 import { PayslipViewerModal } from '@/components/PayslipViewerModal';
 import {
   DropdownMenu,
@@ -98,96 +99,11 @@ export default function Payroll() {
     fetchTaxTable();
   }, []);
 
-  // Função para cálculo progressivo do INSS (Dinâmica)
-  const calculateINSS = (grossSalary: number) => {
-    let discount = 0;
-    let previousLimit = 0;
-
-    for (const range of inssTable) {
-      if (grossSalary > previousLimit) {
-        // Calcula a parcela do salário que cai nesta faixa
-        const salaryInThisRange = Math.min(grossSalary, range.limit) - previousLimit;
-        discount += salaryInThisRange * range.rate;
-        previousLimit = range.limit;
-      } else {
-        break;
-      }
-    }
-
-    return discount;
-  };
-
   const calculatePayroll = (employee: any) => {
-    const baseSalary = Number(employee.baseSalary) || 0;
-    const hours = Number(employee.contractedHours) || 220;
-    const hourlyRate = hours > 0 ? baseSalary / hours : 0;
-
-    // Adicionais
-    const insalubrity = employee.hasInsalubrity ? (Number(employee.insalubrity_amount) || 0) : 0;
-    const nightShift = employee.hasNightShift ? (Number(employee.night_shift_amount) || 0) : 0;
-
-    // Horas Extras (50% de acréscimo exemplo)
     const overtimeHours = overtimeData[employee.id] || 0;
-    const overtimeValue = overtimeHours * hourlyRate * 1.5;
-
-    // Adicionais Variáveis
-    let variableAdditionsTotal = 0;
-    try {
-      const additions = Array.isArray(employee.variable_additions) ? employee.variable_additions : [];
-      variableAdditionsTotal = additions.reduce((acc: number, curr: any) => {
-        let val = Number(curr.value);
-        if (isNaN(val) && typeof curr.value === 'string') { val = Number(curr.value.replace(',', '.')); }
-        return acc + (val || 0);
-      }, 0);
-    } catch (e) {
-      variableAdditionsTotal = 0;
-    }
-
-    const totalAdditions = insalubrity + nightShift + overtimeValue + variableAdditionsTotal;
-
-    // Descontos Variáveis
-    let variableDiscountsTotal = 0;
-    try {
-      const vDiscounts = Array.isArray(employee.variable_discounts) ? employee.variable_discounts : [];
-      variableDiscountsTotal = vDiscounts.reduce((acc: number, curr: any) => {
-        let val = Number(curr.value);
-        if (isNaN(val) && typeof curr.value === 'string') { val = Number(curr.value.replace(',', '.')); }
-        return acc + (val || 0);
-      }, 0);
-    } catch (e) {
-      variableDiscountsTotal = 0;
-    }
-
-    // Descontos (Fixos + Variáveis)
-    const discounts = (Number(employee.fixedDiscounts) || 0) + variableDiscountsTotal;
-
-    // Base de Cálculo do INSS (Salário Base + Adicionais)
-    const inssBase = baseSalary + totalAdditions;
-
-    const hasManualInss = employee.inss_value !== undefined && employee.inss_value !== null;
-    let manualInss = 0;
-    if (hasManualInss) {
-      const valStr = String(employee.inss_value).replace(',', '.');
-      manualInss = Number(valStr) || 0;
-    }
-
-    // Se for terceirizado ou PJ, isenta INSS padrão a menos que preenchido
-    const isOutsourced = employee.contractType === 'Terceirizado' || employee.contract_type === 'Terceirizado' || employee.contractType === 'PJ' || employee.contract_type === 'PJ';
-    const estimatedTax = hasManualInss ? manualInss : (isOutsourced ? 0 : calculateINSS(inssBase));
-
-    const totalDiscounts = discounts + estimatedTax;
-    const netSalary = baseSalary + totalAdditions - totalDiscounts;
-
-    return {
-      baseSalary,
-      insalubrity,
-      nightShift,
-      overtimeValue,
-      totalDiscounts,
-      netSalary,
-      estimatedTax
-    };
+    return calculatePayrollService(employee, overtimeHours, inssTable);
   };
+
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
@@ -10,20 +10,16 @@ export interface TimeEntry {
 }
 
 export function useTimeEntries() {
-  const [entries, setEntries] = useState<TimeEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchEntries = async () => {
-    try {
-      setLoading(true);
-
+  const { data: entries = [], isLoading: loading, refetch } = useQuery<TimeEntry[]>({
+    queryKey: ['timeEntries'],
+    queryFn: async () => {
       // 🔀 Desvio Offline (Mock)
       if (USE_MOCK) {
         const data = mockDatabase.get('time_entries');
         data.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setEntries(data);
-        setLoading(false);
-        return;
+        return data;
       }
 
       const { data, error } = await supabase
@@ -32,13 +28,9 @@ export function useTimeEntries() {
         .order('timestamp', { ascending: false });
 
       if (error) throw error;
-      setEntries(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar registros de ponto:', error);
-    } finally {
-      setLoading(false);
+      return data || [];
     }
-  };
+  });
 
   const addEntry = async (entry: Omit<TimeEntry, 'id'>) => {
     try {
@@ -51,7 +43,7 @@ export function useTimeEntries() {
           employees: emp ? { name: emp.name, department: emp.department } : null,
         };
         mockDatabase.add('time_entries', newEntry);
-        setEntries(prev => [newEntry, ...prev]);
+        await queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
         return { data: newEntry, error: null };
       }
 
@@ -62,7 +54,7 @@ export function useTimeEntries() {
         .single();
 
       if (error) throw error;
-      setEntries(prev => [data, ...prev]);
+      await queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
       return { data, error: null };
     } catch (error) {
       console.error('Erro ao registrar ponto:', error);
@@ -70,9 +62,5 @@ export function useTimeEntries() {
     }
   };
 
-  useEffect(() => {
-    fetchEntries();
-  }, []);
-
-  return { entries, loading, addEntry, refetch: fetchEntries };
+  return { entries, loading, addEntry, refetch };
 }

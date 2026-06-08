@@ -11,13 +11,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Control,
+  Controller,
+  FieldErrors,
+  UseFormRegister,
+  UseFormWatch,
+  UseFormSetValue,
+  useFieldArray,
+} from 'react-hook-form';
+import type { EmployeeFormData } from '@/lib/schemas';
 
 interface FinancialDataProps {
-  formData: any;
-  setFormData: (data: any) => void;
+  control: Control<EmployeeFormData>;
+  register: UseFormRegister<EmployeeFormData>;
+  errors: FieldErrors<EmployeeFormData>;
+  watch: UseFormWatch<EmployeeFormData>;
+  setValue: UseFormSetValue<EmployeeFormData>;
 }
 
-export default function FinancialDataForm({ formData, setFormData }: FinancialDataProps) {
+export default function FinancialDataForm({ control, register, errors, watch, setValue }: FinancialDataProps) {
+  const hasInsalubrity = watch('has_insalubrity');
+  const hasNightShift = watch('has_night_shift');
+
+  const {
+    fields: additionFields,
+    append: appendAddition,
+    remove: removeAddition,
+  } = useFieldArray({ control, name: 'variable_additions' });
+
+  const {
+    fields: discountFields,
+    append: appendDiscount,
+    remove: removeDiscount,
+  } = useFieldArray({ control, name: 'variable_discounts' });
+
   return (
     <>
       {/* Novos Campos Financeiros */}
@@ -31,9 +59,9 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
           id="baseSalary"
           type="number"
           step="0.01"
-          value={formData.base_salary}
-          onChange={(e) => setFormData({ ...formData, base_salary: parseFloat(e.target.value) })}
+          {...register('base_salary', { valueAsNumber: true })}
         />
+        {errors.base_salary && <p className="text-xs text-red-500 mt-1">{errors.base_salary.message}</p>}
       </div>
       <div className="space-y-2">
         <Label htmlFor="fixedDiscounts">Descontos Fixos (R$)</Label>
@@ -41,22 +69,28 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
           id="fixedDiscounts"
           type="number"
           step="0.01"
-          value={formData.fixed_discounts}
-          onChange={(e) => setFormData({ ...formData, fixed_discounts: parseFloat(e.target.value) })}
+          {...register('fixed_discounts', { valueAsNumber: true })}
         />
+        {errors.fixed_discounts && <p className="text-xs text-red-500 mt-1">{errors.fixed_discounts.message}</p>}
       </div>
       <div className="space-y-2">
         <Label htmlFor="inss_value">INSS Manual (R$)</Label>
-        <Input
-          id="inss_value"
-          type="number"
-          step="0.01"
-          placeholder="0.00"
-          value={(formData as any).inss_value !== undefined && (formData as any).inss_value !== null ? (formData as any).inss_value : ''}
-          onChange={(e) => {
-            const val = e.target.value;
-            setFormData({ ...formData, inss_value: val === "" ? null : parseFloat(val) } as any);
-          }}
+        <Controller
+          control={control}
+          name="inss_value"
+          render={({ field }) => (
+            <Input
+              id="inss_value"
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              value={field.value !== undefined && field.value !== null ? field.value : ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                field.onChange(val === "" ? null : parseFloat(val));
+              }}
+            />
+          )}
         />
         <p className="text-[10px] text-muted-foreground">Se preenchido, substitui o cálculo automático.</p>
       </div>
@@ -69,34 +103,23 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => {
-              const current = (formData as any).variable_additions || [];
-              setFormData({
-                ...formData,
-                variable_additions: [...current, { description: "", value: 0 }]
-              } as any);
-            }}
+            onClick={() => appendAddition({ description: "", value: 0 })}
             className="h-7 text-xs gap-1 border-emerald-200 hover:bg-emerald-100 text-emerald-700"
           >
             <Plus className="h-3 w-3" /> Adicionar
           </Button>
         </div>
 
-        {((formData as any).variable_additions || []).length === 0 && (
+        {additionFields.length === 0 && (
           <p className="text-xs text-muted-foreground italic">Nenhum adicional lançado.</p>
         )}
 
-        {((formData as any).variable_additions || []).map((item: any, index: number) => (
-          <div key={index} className="flex gap-2 items-end animate-in fade-in slide-in-from-top-1">
+        {additionFields.map((field, index) => (
+          <div key={field.id} className="flex gap-2 items-end animate-in fade-in slide-in-from-top-1">
             <div className="flex-1">
               <Label className="text-[10px] uppercase text-muted-foreground">Descrição</Label>
               <Input
-                value={item.description}
-                onChange={(e) => {
-                  const newItems = [...((formData as any).variable_additions || [])];
-                  newItems[index].description = e.target.value;
-                  setFormData({ ...formData, variable_additions: newItems } as any);
-                }}
+                {...register(`variable_additions.${index}.description`)}
                 placeholder="Ex: Bônus Meta"
                 className="h-8 text-sm"
               />
@@ -105,12 +128,7 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
               <Label className="text-[10px] uppercase text-muted-foreground">Valor (R$)</Label>
               <Input
                 type="number"
-                value={item.value}
-                onChange={(e) => {
-                  const newItems = [...((formData as any).variable_additions || [])];
-                  newItems[index].value = Number(e.target.value);
-                  setFormData({ ...formData, variable_additions: newItems } as any);
-                }}
+                {...register(`variable_additions.${index}.value`, { valueAsNumber: true })}
                 placeholder="0.00"
                 className="h-8 text-sm"
               />
@@ -120,10 +138,7 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-              onClick={() => {
-                const newItems = ((formData as any).variable_additions || []).filter((_: any, i: number) => i !== index);
-                setFormData({ ...formData, variable_additions: newItems } as any);
-              }}
+              onClick={() => removeAddition(index)}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -139,34 +154,23 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => {
-              const current = (formData as any).variable_discounts || [];
-              setFormData({
-                ...formData,
-                variable_discounts: [...current, { description: "", value: 0 }]
-              } as any);
-            }}
+            onClick={() => appendDiscount({ description: "", value: 0 })}
             className="h-7 text-xs gap-1"
           >
             <Plus className="h-3 w-3" /> Adicionar
           </Button>
         </div>
 
-        {((formData as any).variable_discounts || []).length === 0 && (
+        {discountFields.length === 0 && (
           <p className="text-xs text-muted-foreground italic">Nenhum desconto variável adicionado.</p>
         )}
 
-        {((formData as any).variable_discounts || []).map((discount: any, index: number) => (
-          <div key={index} className="flex gap-2 items-end animate-in fade-in slide-in-from-top-1">
+        {discountFields.map((field, index) => (
+          <div key={field.id} className="flex gap-2 items-end animate-in fade-in slide-in-from-top-1">
             <div className="flex-1">
               <Label className="text-[10px] uppercase text-muted-foreground">Descrição</Label>
               <Input
-                value={discount.description}
-                onChange={(e) => {
-                  const newDiscounts = [...((formData as any).variable_discounts || [])];
-                  newDiscounts[index].description = e.target.value;
-                  setFormData({ ...formData, variable_discounts: newDiscounts } as any);
-                }}
+                {...register(`variable_discounts.${index}.description`)}
                 placeholder="Ex: Farmácia"
                 className="h-8 text-sm"
               />
@@ -175,12 +179,7 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
               <Label className="text-[10px] uppercase text-muted-foreground">Valor (R$)</Label>
               <Input
                 type="number"
-                value={discount.value}
-                onChange={(e) => {
-                  const newDiscounts = [...((formData as any).variable_discounts || [])];
-                  newDiscounts[index].value = Number(e.target.value);
-                  setFormData({ ...formData, variable_discounts: newDiscounts } as any);
-                }}
+                {...register(`variable_discounts.${index}.value`, { valueAsNumber: true })}
                 placeholder="0.00"
                 className="h-8 text-sm"
               />
@@ -190,10 +189,7 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-              onClick={() => {
-                const newDiscounts = ((formData as any).variable_discounts || []).filter((_: any, i: number) => i !== index);
-                setFormData({ ...formData, variable_discounts: newDiscounts } as any);
-              }}
+              onClick={() => removeDiscount(index)}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -206,62 +202,72 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
         <Input
           id="contractedHours"
           type="number"
-          value={formData.contracted_hours}
-          onChange={(e) => setFormData({ ...formData, contracted_hours: parseInt(e.target.value) })}
+          {...register('contracted_hours', { valueAsNumber: true })}
           placeholder="Ex: 220"
         />
+        {errors.contracted_hours && <p className="text-xs text-red-500 mt-1">{errors.contracted_hours.message}</p>}
       </div>
       <div className="space-y-2">
         <Label htmlFor="hasInsalubrity">Insalubridade</Label>
-        <Select
-          value={formData.has_insalubrity ? "yes" : "no"}
-          onValueChange={(value) => setFormData({ ...formData, has_insalubrity: value === "yes" })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="no">Não</SelectItem>
-            <SelectItem value="yes">Sim</SelectItem>
-          </SelectContent>
-        </Select>
+        <Controller
+          control={control}
+          name="has_insalubrity"
+          render={({ field }) => (
+            <Select
+              value={field.value ? "yes" : "no"}
+              onValueChange={(value) => field.onChange(value === "yes")}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no">Não</SelectItem>
+                <SelectItem value="yes">Sim</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        />
       </div>
-      {formData.has_insalubrity && (
+      {hasInsalubrity && (
         <div className="space-y-2">
           <Label htmlFor="insalubrityAmount">Valor Insalubridade (R$)</Label>
           <Input
             id="insalubrityAmount"
             type="number"
             step="0.01"
-            value={formData.insalubrity_amount || ''}
-            onChange={(e) => setFormData({ ...formData, insalubrity_amount: parseFloat(e.target.value) })}
+            {...register('insalubrity_amount', { valueAsNumber: true })}
           />
         </div>
       )}
       <div className="space-y-2">
         <Label htmlFor="hasNightShift">Adicional Noturno</Label>
-        <Select
-          value={formData.has_night_shift ? "yes" : "no"}
-          onValueChange={(value) => setFormData({ ...formData, has_night_shift: value === "yes" })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="no">Não</SelectItem>
-            <SelectItem value="yes">Sim</SelectItem>
-          </SelectContent>
-        </Select>
+        <Controller
+          control={control}
+          name="has_night_shift"
+          render={({ field }) => (
+            <Select
+              value={field.value ? "yes" : "no"}
+              onValueChange={(value) => field.onChange(value === "yes")}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no">Não</SelectItem>
+                <SelectItem value="yes">Sim</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        />
       </div>
-      {formData.has_night_shift && (
+      {hasNightShift && (
         <div className="space-y-2">
           <Label htmlFor="nightShiftAmount">Valor Adicional Noturno (R$)</Label>
           <Input
             id="nightShiftAmount"
             type="number"
             step="0.01"
-            value={formData.night_shift_amount || ''}
-            onChange={(e) => setFormData({ ...formData, night_shift_amount: parseFloat(e.target.value) })}
+            {...register('night_shift_amount', { valueAsNumber: true })}
           />
         </div>
       )}
@@ -275,8 +281,7 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
         <Label htmlFor="pisPasep">PIS/PASEP</Label>
         <Input
           id="pisPasep"
-          value={formData.pis_pasep || ''}
-          onChange={(e) => setFormData({ ...formData, pis_pasep: e.target.value })}
+          {...register('pis_pasep')}
           placeholder="000.00000.00-0"
         />
       </div>
@@ -284,8 +289,7 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
         <Label htmlFor="pixKey">Chave PIX</Label>
         <Input
           id="pixKey"
-          value={formData.pix_key || ''}
-          onChange={(e) => setFormData({ ...formData, pix_key: e.target.value })}
+          {...register('pix_key')}
           placeholder="CPF, Email ou Aleatória"
         />
       </div>
@@ -294,8 +298,7 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
         <Input
           id="vacationDueDate"
           type="date"
-          value={formData.vacation_due_date || ''}
-          onChange={(e) => setFormData({ ...formData, vacation_due_date: e.target.value })}
+          {...register('vacation_due_date')}
         />
       </div>
       <div className="space-y-2">
@@ -303,8 +306,7 @@ export default function FinancialDataForm({ formData, setFormData }: FinancialDa
         <Input
           id="vacationLimitDate"
           type="date"
-          value={formData.vacation_limit_date || ''}
-          onChange={(e) => setFormData({ ...formData, vacation_limit_date: e.target.value })}
+          {...register('vacation_limit_date')}
         />
       </div>
     </>
