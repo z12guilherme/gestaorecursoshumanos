@@ -128,6 +128,7 @@ export default function FinancialDataForm({ control, register, errors, watch, se
               <Label className="text-[10px] uppercase text-muted-foreground">Valor (R$)</Label>
               <Input
                 type="number"
+                step="0.01"
                 {...register(`variable_additions.${index}.value`, { valueAsNumber: true })}
                 placeholder="0.00"
                 className="h-8 text-sm"
@@ -179,6 +180,7 @@ export default function FinancialDataForm({ control, register, errors, watch, se
               <Label className="text-[10px] uppercase text-muted-foreground">Valor (R$)</Label>
               <Input
                 type="number"
+                step="0.01"
                 {...register(`variable_discounts.${index}.value`, { valueAsNumber: true })}
                 placeholder="0.00"
                 className="h-8 text-sm"

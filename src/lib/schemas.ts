@@ -62,11 +62,11 @@ export const employeeFormSchema = z.object({
     // === Listas Dinâmicas ===
     variable_discounts: z.array(z.object({
         description: z.string(),
-        value: z.number(),
+        value: z.coerce.number().min(0, "Valor não pode ser negativo"),
     })).default([]),
     variable_additions: z.array(z.object({
         description: z.string(),
-        value: z.number(),
+        value: z.coerce.number().min(0, "Valor não pode ser negativo"),
     })).default([]),
 
     // === Campos Personalizados ===
