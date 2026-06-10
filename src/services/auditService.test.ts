@@ -29,10 +29,6 @@ describe("auditService", () => {
         mockQueryResult = { data: [{ id: "log-1", action: "INSERT" }], count: 1, error: null };
     });
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
     describe("getLogs (Paginação e Filtros para escalabilidade)", () => {
         it("deve aplicar corretamente os limites de paginação (evita memory leaks)", async () => {
             const page = 3;
@@ -58,10 +54,17 @@ describe("auditService", () => {
     });
 
     describe("deleteOldLogs (Retenção de Dados / Storage Cleanup)", () => {
+        beforeEach(() => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
         it("deve subtrair com precisão a quantidade de dias para deletar", async () => {
             // Congela o relógio do sistema para uma data fixa a fim de testar a matemática
             const mockCurrentDate = new Date("2024-03-20T12:00:00Z");
-            vi.useFakeTimers();
             vi.setSystemTime(mockCurrentDate);
 
             const daysToRetain = 15;
