@@ -10,6 +10,7 @@
 
 ### 1.1. 🏗️ Infraestrutura de Tipagem e Validação
 - [x] Gerar tipos automáticos do Supabase via CLI (`supabase gen types`).
+
 - [ ] Padronizar validações de formulários com **Zod** para garantir integridade (CPF, Datas, Valores).
 
 ### 2. 👁️ Sistema de Auditoria (Audit Logs)
@@ -68,6 +69,17 @@
 - [x] Criar fluxo de Setup de MFA (Geração de QR Code) na tela de configurações.
 - [x] Validar código TOTP no fluxo de Login (Step-up AAL2).
 - [x] Criar gerenciamento de sessões ativas (permitir que o usuário encerre sessões abertas em outros dispositivos).
+
+### 8.1. 👔 Portal do Gestor & Comunicação Protocolada (Novo 🚀)
+> **Objetivo:** Criar um ambiente oficial para gestores se comunicarem com a administração e entre si, com rastreabilidade total (estilo e-mail corporativo protocolado).
+- [ ] **Infraestrutura de E-mail:** Criar e configurar e-mails corporativos para os gestores através do painel da **Hostinger**.
+- [ ] **Acesso e Segurança (Supabase):** Implementar controle de acesso via Supabase para a nova tela "**Área de Gestores**", definindo a role `manager` e políticas de RLS.
+- [ ] **Interface da Área de Gestores:** Desenvolver a tela principal/dashboard focado em indicadores de equipe e ferramentas de gestão.
+- [ ] **Sistema de Comunicação Semelhante a E-mail:** Criar interface para que gestores enviem informações e documentos um ao outro.
+- [ ] **Protocolo Digital:** Sistema de envio e recebimento de documentos com geração de número de protocolo único e auditável.
+- [ ] **Comunicação Interna:** Inbox estruturado para mensagens oficiais com confirmação de leitura e registro de "ciente".
+- [ ] **Chamados de Gestão:** Fluxo para que gestores abram solicitações formais diretamente para a Diretoria ou RH Estratégico.
+- [ ] **Notificações:** Integração de alertas (Push/E-mail) para novos protocolos que exigem ação do gestor.
 
 ### 9. 📱 Experiência Offline e PWA (Em Andamento 🚀)
 - [x] Configurar Service Workers robustos para caching offline (Vite PWA).
