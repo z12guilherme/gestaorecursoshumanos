@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 // Criação de um objeto "chainable" para mockar a API PostgREST do Supabase
 let mockQueryResult: any = { data: [], count: 0, error: null };
 
-const mockChain = {
+const mockChain: any = {
     select: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
@@ -13,7 +13,7 @@ const mockChain = {
     lte: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     lt: vi.fn().mockReturnThis(),
-    then: vi.fn((resolve) => resolve(mockQueryResult)),
+    then: vi.fn(function (resolve: any) { return Promise.resolve(mockQueryResult).then(resolve); }),
 };
 
 // Substitui as chamadas reais de banco de dados pelos mocks
