@@ -114,8 +114,8 @@ export default function LoginPage() {
         <div className="w-full lg:w-1/2 p-8 md:p-12 flex flex-col relative animate-in fade-in slide-in-from-left-8 duration-700">
           <div className="flex-1 flex flex-col justify-center">
             <div className="text-center mb-6">
-              <div className="inline-flex p-4 rounded-3xl bg-blue-50/50 mb-6 shadow-sm ring-1 ring-blue-100">
-                <img src={settings?.avatar_url || "/icone.png"} className="w-12 h-12 object-contain bg-white rounded-2xl p-1" alt="logo da empresa" />
+              <div className="inline-flex p-4 rounded-3xl bg-blue-50/50 mb-6 shadow-sm ring-1 ring-blue-100" style={{ backgroundImage: settings?.avatar_url ? 'none' : undefined }}>
+                <img src={settings?.avatar_url} className="w-12 h-12 object-contain bg-white rounded-2xl p-1" alt="logo da empresa" />
               </div>
               <h4 className="text-3xl font-bold text-slate-900 tracking-tight">Bem-vindo de volta</h4>
               <p className="text-slate-500 mt-3 text-sm">Acesse sua conta para gerenciar o RH</p>

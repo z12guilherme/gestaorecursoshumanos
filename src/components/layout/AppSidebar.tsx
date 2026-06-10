@@ -95,7 +95,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
           <img
-            src={settings?.avatar_url || "/icone.png"}
+            src={settings?.avatar_url}
             alt="Logo da Empresa"
             className="h-10 w-10 rounded-lg object-contain bg-white p-1"
           />

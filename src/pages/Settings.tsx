@@ -539,7 +539,7 @@ export default function Settings() {
                     <Avatar className="h-24 w-24 border-2 border-border bg-white p-2">
                       <AvatarImage
                         key={companySettings.avatar_url}
-                        src={companySettings.avatar_url || "/icone.png"}
+                        src={companySettings.avatar_url}
                         className="object-contain"
                       />
                       <AvatarFallback className="text-2xl">LG</AvatarFallback>
