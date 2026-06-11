@@ -157,4 +157,4 @@ s.
 - [ ] Criar ambiente de **Staging** automático via Vercel Preview para cada branch.
 
 ### Subir projeto para repositório e vercel
-- [x] **Realizar Deploy**
+- [x] **Realizar Deploy** "k"
