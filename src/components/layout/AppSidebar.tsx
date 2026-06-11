@@ -19,7 +19,8 @@ import {
   MessageCircle,
   DollarSign,
   ShieldAlert,
-  Loader2
+  Loader2,
+  Shield,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
@@ -44,6 +45,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettings } from '@/hooks/useSettings';
+import { useState, useEffect } from 'react';
+import { managerPortalService } from '@/services/managerPortalService';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -70,10 +73,35 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const { signOut, session, profile, loading: authLoading } = useAuth();
+  const { signOut, session, profile, loading: authLoading, isManager, user } = useAuth();
   const { employees } = useEmployees();
   const { settings } = useSettings();
   const isCollapsed = state === 'collapsed';
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const isAdmin = profile?.role === 'admin';
+  const isManagerLogged = profile?.role === 'manager' || isAdmin;
+
+  const filteredMainNavItems = mainNavItems.filter(item => {
+    if (isAdmin) return true;
+    if (isManagerLogged) {
+      return ['Dashboard', 'Controle de Ponto', 'Chamados', 'Comunicação'].includes(item.title);
+    }
+    return ['Dashboard', 'Controle de Ponto', 'Chamados'].includes(item.title);
+  });
+
+  const filteredToolsNavItems = toolsNavItems.filter(item => {
+    if (isAdmin) return true;
+    if (isManagerLogged) {
+      return ['Assistente IA'].includes(item.title);
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    if (!user?.id) return;
+    managerPortalService.getUnreadCount(user.id).then(setUnreadCount).catch(() => {});
+  }, [user?.id]);
 
   // Tenta encontrar o funcionário correspondente para definir o cargo (Role)
   const currentEmployee = employees.find(e => e.email === session?.user?.email);
@@ -112,7 +140,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarMenu className="p-2">
-          {mainNavItems.map((item) => (
+          {filteredMainNavItems.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 asChild
@@ -126,7 +154,7 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
-          {toolsNavItems.map((item) => (
+          {filteredToolsNavItems.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 asChild
@@ -140,6 +168,27 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+
+          {/* Área de Gestores — visível apenas para managers/admins */}
+          {isManager && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname === '/manager-portal'}
+                tooltip="Área de Gestores"
+              >
+                <NavLink to="/manager-portal" className="flex items-center gap-3">
+                  <Shield className="h-5 w-5" />
+                  <span className="flex-1">Área de Gestores</span>
+                  {unreadCount > 0 && (
+                    <span className="bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center shrink-0 font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarContent>
 

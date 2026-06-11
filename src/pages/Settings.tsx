@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { User, Building2, Bell, Palette, Upload, Loader2, Camera, Shield, ListPlus, Globe, Trash2, Plus, Linkedin, Instagram } from 'lucide-react';
+import { User, Building2, Bell, Palette, Upload, Loader2, Camera, Shield, ListPlus, Globe, Trash2, Plus, Linkedin, Instagram, Users, UserPlus, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { MfaSetup } from '@/components/settings/MfaSetup';
@@ -26,6 +26,11 @@ export default function Settings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const companyLogoRef = useRef<HTMLInputElement>(null);
   const { refreshProfile } = useAuth();
+
+  // Estado para gerenciamento de usuários
+  const [userProfiles, setUserProfiles] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [savingRole, setSavingRole] = useState<string | null>(null);
 
   // Estado para o perfil do usuário
   const [profileData, setProfileData] = useState({
@@ -425,10 +430,64 @@ export default function Settings() {
     { id: 'company', label: 'Empresa', icon: Building2 },
     { id: 'custom_fields', label: 'Campos Extras', icon: ListPlus },
     { id: 'career_page', label: 'Portal de Vagas', icon: Globe },
+    { id: 'users', label: 'Usuários & Perm.', icon: Users },
     { id: 'notifications', label: 'Notificações', icon: Bell },
     { id: 'security', label: 'Segurança', icon: Shield },
     { id: 'appearance', label: 'Aparência', icon: Palette },
   ];
+
+  // ── Funções da aba de usuários ────────────────────────
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      if (USE_MOCK) {
+        setUserProfiles([
+          { id: 'mock-admin-id', full_name: 'Administrador Demo', email: 'admin@empresa.com', role: 'admin', display_role: 'Gerente de RH' },
+          { id: '102', full_name: 'Ana do Marketing', email: 'ana.mkt@empresa.com', role: 'manager', display_role: 'Coordenadora de Marketing' },
+          { id: '103', full_name: 'João do Financeiro', email: 'joao.fin@empresa.com', role: 'employee', display_role: 'Analista Financeiro' },
+        ]);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role, display_role')
+        .order('full_name');
+      if (error) throw error;
+      setUserProfiles(data || []);
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Erro ao carregar usuários', variant: 'destructive' });
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    setSavingRole(userId);
+    try {
+      if (USE_MOCK) {
+        setUserProfiles(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        toast({ title: 'Role atualizada (Demo)', description: `Permissão alterada para ${newRole}.` });
+        return;
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+      if (error) throw error;
+      setUserProfiles(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      toast({ title: 'Permissão atualizada!', description: `Role alterada para "${newRole}" com sucesso.` });
+    } catch (err) {
+      toast({ title: 'Erro ao atualizar role', variant: 'destructive' });
+    } finally {
+      setSavingRole(null);
+    }
+  };
+
+  // Carrega usuários ao entrar na aba
+  useEffect(() => {
+    if (activeTab === 'users') loadUsers();
+  }, [activeTab]);
 
   return (
     <AppLayout title="Configurações" subtitle="Gerencie as preferências do sistema e sua conta">
@@ -790,18 +849,150 @@ export default function Settings() {
             </Card>
           )}
 
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={saving || loading} className="min-w-[120px]">
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                'Salvar Alterações'
+          {activeTab === 'users' && (
+            <div className="space-y-6">
+              {/* Instruções para criar novo usuário */}
+              <div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30 p-4">
+                <div className="flex gap-3">
+                  <UserPlus className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Como adicionar novos usuários?</p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      Por questões de segurança, para criar um novo usuário no sistema real você deve usar o painel do <strong>Supabase &gt; Authentication &gt; Add User</strong>.<br/><br/>
+                      Após o usuário ser criado lá (ou fazer login pela primeira vez), ele aparecerá automaticamente na lista abaixo. Então, você poderá definir livremente se o acesso dele é de <strong>Admin</strong>, <strong>Gestor</strong> ou <strong>Colaborador</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lista de Usuários */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-primary" />
+                      Usuários do Sistema
+                    </CardTitle>
+                    <CardDescription>
+                      Gerencie as permissões de acesso de cada usuário.
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={loadUsers} disabled={loadingUsers}>
+                    {loadingUsers ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Atualizar'}
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {loadingUsers ? (
+                    <div className="flex items-center justify-center py-12 text-muted-foreground">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      Carregando usuários...
+                    </div>
+                  ) : userProfiles.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">Nenhum usuário encontrado.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {userProfiles.map((u) => (
+                        <div
+                          key={u.id}
+                          className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border bg-secondary/20 hover:bg-secondary/40 transition-colors"
+                        >
+                          {/* Avatar + info */}
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                              <span className="text-sm font-semibold text-primary">
+                                {(u.full_name || u.email || '?').substring(0, 2).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{u.full_name || '(sem nome)'}</p>
+                              <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                              {u.display_role && (
+                                <p className="text-xs text-muted-foreground/70">{u.display_role}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Badge de role atual */}
+                          <div className="flex items-center gap-2">
+                            {u.role === 'admin' && (
+                              <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-0.5 rounded-full font-medium">
+                                🛡️ Admin
+                              </span>
+                            )}
+                            {u.role === 'manager' && (
+                              <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-0.5 rounded-full font-medium">
+                                👔 Gestor
+                              </span>
+                            )}
+                            {(!u.role || u.role === 'employee') && (
+                              <span className="text-xs bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 px-2 py-0.5 rounded-full font-medium">
+                                👤 Colaborador
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Selector de role */}
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={u.role || 'employee'}
+                              onValueChange={(val) => handleRoleChange(u.id, val)}
+                              disabled={savingRole === u.id}
+                            >
+                              <SelectTrigger className="w-44 h-8 text-xs">
+                                {savingRole === u.id ? (
+                                  <span className="flex items-center gap-1">
+                                    <Loader2 className="h-3 w-3 animate-spin" /> Salvando...
+                                  </span>
+                                ) : (
+                                  <SelectValue />
+                                )}
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin — Acesso total</SelectItem>
+                                <SelectItem value="manager">Gestor — Portal de Gestores</SelectItem>
+                                <SelectItem value="employee">Colaborador — Padrão</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Info sobre Service Role Key */}
+              {!USE_MOCK && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-4">
+                  <div className="flex gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Convite de Usuários</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                        O envio de convites requer a <strong>Service Role Key</strong> do Supabase configurada no backend.
+                        A alteração de roles funciona diretamente pela tabela <code>profiles</code>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
-            </Button>
-          </div>
+            </div>
+          )}
+
+          {activeTab !== 'users' && (
+            <div className="flex justify-end">
+              <Button onClick={handleSave} disabled={saving || loading} className="min-w-[120px]">
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar Alterações'
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>

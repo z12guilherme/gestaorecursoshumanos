@@ -23,7 +23,8 @@ export const mockDatabase = {
             'employees', 'time_off', 'payroll', 'candidates',
             'jobs', 'time_entries', 'announcements', 'performance_reviews',
             'documents', 'audit_logs', 'update_requests', 'automation_scripts',
-            'ai_messages', 'settings', 'suggestions'
+            'ai_messages', 'settings', 'suggestions',
+            'manager_protocols', 'protocol_recipients', 'protocol_replies', 'manager_tickets'
         ];
         tables.forEach(table => {
             const key = `mock_${table}`;
@@ -638,6 +639,98 @@ export const mockDatabase = {
             created_at: daysAgo(10),
             status: 'Lida'
         }
+    ],
+
+    defaultManagerProtocols: [
+        {
+            id: 'proto-1',
+            protocol_number: 'PROT-2026-000001',
+            subject: 'Reunião de Alinhamento Q3 - Metas e KPIs',
+            body: 'Prezados gestores,\n\nConvoco reunião de alinhamento para definição das metas do terceiro trimestre. Precisamos revisar os KPIs de cada área e definir planos de ação.\n\nA reunião ocorrerá via meet na próxima terça-feira às 10h.\n\nAtenciosamente,\nDiretoria',
+            sender_id: 'mock-admin-id',
+            sender_name: 'Administrador Demo',
+            priority: 'high',
+            category: 'directive',
+            status: 'open',
+            created_at: daysAgo(3),
+            updated_at: daysAgo(3),
+        },
+        {
+            id: 'proto-2',
+            protocol_number: 'PROT-2026-000002',
+            subject: 'Solicitação de Aprovação: Contratação Urgente - Setor Financeiro',
+            body: 'RH Estratégico,\n\nSolicito aprovação para abertura imediata de vaga no setor financeiro. A saída do colaborador João do Financeiro impactará diretamente o fechamento mensal.\n\nRationale: Sem reposição, risco de atraso no balanço do mês.',
+            sender_id: 'mock-admin-id',
+            sender_name: 'Administrador Demo',
+            priority: 'urgent',
+            category: 'request',
+            status: 'open',
+            created_at: daysAgo(1),
+            updated_at: daysAgo(1),
+        },
+    ],
+
+    defaultProtocolRecipients: [
+        {
+            id: 'recip-1',
+            protocol_id: 'proto-1',
+            recipient_id: 'mock-admin-id',
+            recipient_name: 'Administrador Demo',
+            read_at: daysAgo(2),
+            acknowledged_at: daysAgo(1),
+            created_at: daysAgo(3),
+        },
+        {
+            id: 'recip-2',
+            protocol_id: 'proto-2',
+            recipient_id: 'mock-admin-id',
+            recipient_name: 'Administrador Demo',
+            read_at: null,
+            acknowledged_at: null,
+            created_at: daysAgo(1),
+        },
+    ],
+
+    defaultProtocolReplies: [
+        {
+            id: 'reply-1',
+            protocol_id: 'proto-1',
+            sender_id: 'mock-admin-id',
+            sender_name: 'Administrador Demo',
+            body: 'Confirmo presença na reunião. Já preparei os slides com os dados do meu setor.',
+            created_at: daysAgo(2),
+        },
+    ],
+
+    defaultManagerTickets: [
+        {
+            id: 'tick-1',
+            ticket_number: 'TICK-2026-000001',
+            requester_id: 'mock-admin-id',
+            requester_name: 'Administrador Demo',
+            assigned_to: 'RH Estratégico',
+            subject: 'Revisão da Política de Banco de Horas',
+            description: 'A política atual de banco de horas está gerando conflitos com colaboradores do turno da tarde. Solicito revisão e emissão de nova circular explicativa.',
+            status: 'in_progress',
+            priority: 'normal',
+            resolution: null,
+            created_at: daysAgo(7),
+            updated_at: daysAgo(2),
+        },
+        {
+            id: 'tick-2',
+            ticket_number: 'TICK-2026-000002',
+            requester_id: 'mock-admin-id',
+            requester_name: 'Administrador Demo',
+            assigned_to: 'Diretoria',
+            subject: 'Autorização para Horas Extras - Projeto Especial',
+            description: 'Solicito autorização formal para banco de horas extras da equipe durante o mês de junho para entrega do projeto especial do cliente X.',
+            status: 'open',
+            priority: 'high',
+            resolution: null,
+            created_at: daysAgo(1),
+            updated_at: daysAgo(1),
+        },
     ],
 };
 

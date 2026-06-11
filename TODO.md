@@ -72,14 +72,16 @@
 
 ### 8.1. 👔 Portal do Gestor & Comunicação Protocolada (Novo 🚀)
 > **Objetivo:** Criar um ambiente oficial para gestores se comunicarem com a administração e entre si, com rastreabilidade total (estilo e-mail corporativo protocolado).
+
 - [ ] **Infraestrutura de E-mail:** Criar e configurar e-mails corporativos para os gestores através do painel da **Hostinger**.
-- [ ] **Acesso e Segurança (Supabase):** Implementar controle de acesso via Supabase para a nova tela "**Área de Gestores**", definindo a role `manager` e políticas de RLS.
-- [ ] **Interface da Área de Gestores:** Desenvolver a tela principal/dashboard focado em indicadores de equipe e ferramentas de gestão.
-- [ ] **Sistema de Comunicação Semelhante a E-mail:** Criar interface para que gestores enviem informações e documentos um ao outro.
-- [ ] **Protocolo Digital:** Sistema de envio e recebimento de documentos com geração de número de protocolo único e auditável.
-- [ ] **Comunicação Interna:** Inbox estruturado para mensagens oficiais com confirmação de leitura e registro de "ciente".
-- [ ] **Chamados de Gestão:** Fluxo para que gestores abram solicitações formais diretamente para a Diretoria ou RH Estratégico.
-- [ ] **Notificações:** Integração de alertas (Push/E-mail) para novos protocolos que exigem ação do gestor.
+- [x] **Acesso e Segurança (Supabase):** Implementar controle de acesso via Supabase para a nova tela "**Área de Gestores**", definindo a role `manager` e políticas de RLS.
+- [x] **Gerenciamento de Usuários (Settings):** Aba para convidar usuários e gerenciar roles (admin/manager/employee) usando a tabela `profiles` e Supabase Admin.
+- [x] **Interface da Área de Gestores:** Desenvolver a tela principal/dashboard focado em indicadores de equipe e ferramentas de gestão.
+- [x] **Sistema de Comunicação Semelhante a E-mail:** Criar interface para que gestores enviem informações e documentos um ao outro.
+- [x] **Protocolo Digital:** Sistema de envio e recebimento de documentos com geração de número de protocolo único e auditável.
+- [x] **Comunicação Interna:** Inbox estruturado para mensagens oficiais com confirmação de leitura e registro de "ciente".
+- [x] **Chamados de Gestão:** Fluxo para que gestores abram solicitações formais diretamente para a Diretoria ou RH Estratégico.
+- [x] **Notificações:** Integração de alertas por E-mail (via EmailJS) para novos protocolos que exigem ação do gestor.
 
 ### 9. 📱 Experiência Offline e PWA (Em Andamento 🚀)
 - [x] Configurar Service Workers robustos para caching offline (Vite PWA).

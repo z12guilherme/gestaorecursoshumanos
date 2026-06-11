@@ -9,6 +9,7 @@ export interface Profile {
   avatar_url: string;
   email: string;
   display_role?: string;
+  role?: string; // 'admin' | 'manager' | 'employee'
 }
 
 interface AuthContextType {
@@ -16,6 +17,7 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  isManager: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   signInMock?: () => void;
@@ -26,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   loading: true,
+  isManager: true, // default true para não bloquear no mock
   signOut: async () => {},
   refreshProfile: async () => {},
 });
@@ -46,6 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           avatar_url: '',
           email: 'admin@empresa.com',
           display_role: 'Gerente de RH',
+          role: 'admin',
         });
         return;
       }
@@ -229,8 +233,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const isManager = profile?.role === 'admin' || profile?.role === 'manager' || USE_MOCK;
+
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signOut, refreshProfile, signInMock }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, isManager, signOut, refreshProfile, signInMock }}>
       {children}
     </AuthContext.Provider>
   );

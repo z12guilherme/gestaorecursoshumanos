@@ -34,6 +34,8 @@ const Suggestions = lazy(() => import("@/pages/Suggestions"));
 const PublicSuggestion = lazy(() => import("@/pages/PublicSuggestion"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
 const PublicEvaluation = lazy(() => import("./pages/PublicEvaluation"));
+const ManagerPortal = lazy(() => import("./pages/ManagerPortal"));
+import { ManagerRoute } from "@/components/ManagerRoute";
 
 const LoadingSpinner = () => (
   <div className="flex h-screen w-full items-center justify-center bg-slate-50">
@@ -87,6 +89,14 @@ const App = () => {
                 <Route path="/tickets" element={<Support />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
+                <Route
+                  path="/manager-portal"
+                  element={
+                    <ManagerRoute>
+                      <ManagerPortal />
+                    </ManagerRoute>
+                  }
+                />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
