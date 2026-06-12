@@ -426,6 +426,7 @@ export default function Settings() {
     }
   };
 
+  const menuItems = [
     { id: 'profile', label: 'Perfil', icon: User },
     { id: 'company', label: 'Empresa', icon: Building2 },
     { id: 'custom_fields', label: 'Campos Extras', icon: ListPlus },
