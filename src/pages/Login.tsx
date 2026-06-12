@@ -19,15 +19,17 @@ export default function LoginPage() {
   const [factorId, setFactorId] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { session, signInMock } = useAuth();
+  const { session, signInMock, isManager, profile } = useAuth();
   const { settings } = useSettings();
 
   useEffect(() => {
     const checkMfaAndNavigate = async () => {
       if (session) {
+        if (!USE_MOCK && !profile) return; // Wait for profile to load before routing
+        
         // 🔀 Mock: pula verificação MFA
         if (USE_MOCK) {
-          navigate("/");
+          navigate(isManager ? "/manager-portal" : "/");
           return;
         }
         const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -41,11 +43,11 @@ export default function LoginPage() {
             return;
           }
         }
-        navigate("/");
+        navigate(isManager ? "/manager-portal" : "/");
       }
     };
     checkMfaAndNavigate();
-  }, [session, navigate]);
+  }, [session, profile, isManager, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +58,6 @@ export default function LoginPage() {
       // 🔀 Desvio Offline (Mock)
       if (USE_MOCK) {
         if (signInMock) signInMock();
-        navigate("/");
         return;
       }
 
@@ -95,7 +96,7 @@ export default function LoginPage() {
       if (verify.error) throw verify.error;
 
       setIsLoading(false);
-      navigate("/");
+      // Let useEffect handle navigation after MFA
     } catch (error: any) {
       toast({
         title: "Código inválido",

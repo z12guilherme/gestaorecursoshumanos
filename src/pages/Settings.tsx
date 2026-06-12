@@ -11,10 +11,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { User, Building2, Bell, Palette, Upload, Loader2, Camera, Shield, ListPlus, Globe, Trash2, Plus, Linkedin, Instagram, Users, UserPlus, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, Building2, Bell, Palette, Upload, Loader2, Camera, Shield, ListPlus, Globe, Trash2, Plus, Linkedin, Instagram, Users, UserPlus, CheckCircle2, AlertCircle, KeyRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { MfaSetup } from '@/components/settings/MfaSetup';
+import { ChangePassword } from '@/components/settings/ChangePassword';
 import { ActiveSessionsManager } from '@/components/ActiveSessionsManager';
 import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
 
@@ -425,7 +426,6 @@ export default function Settings() {
     }
   };
 
-  const menuItems = [
     { id: 'profile', label: 'Perfil', icon: User },
     { id: 'company', label: 'Empresa', icon: Building2 },
     { id: 'custom_fields', label: 'Campos Extras', icon: ListPlus },
@@ -433,6 +433,7 @@ export default function Settings() {
     { id: 'users', label: 'Usuários & Perm.', icon: Users },
     { id: 'notifications', label: 'Notificações', icon: Bell },
     { id: 'security', label: 'Segurança', icon: Shield },
+    { id: 'password', label: 'Trocar Senha', icon: KeyRound },
     { id: 'appearance', label: 'Aparência', icon: Palette },
   ];
 
@@ -787,6 +788,12 @@ export default function Settings() {
             <div className="space-y-6">
               <MfaSetup />
               <ActiveSessionsManager />
+            </div>
+          )}
+
+          {activeTab === 'password' && (
+            <div className="space-y-6">
+              <ChangePassword />
             </div>
           )}
 
