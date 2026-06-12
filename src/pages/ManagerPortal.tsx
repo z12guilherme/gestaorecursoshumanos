@@ -21,6 +21,9 @@ import {
   FileText,
   ArrowLeft,
   KeyRound,
+  Paperclip,
+  X,
+  Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -109,6 +112,9 @@ export default function ManagerPortal() {
 
   // New Ticket Form
   const [ticketTarget, setTicketTarget] = useState<TicketTarget>("RH Estratégico");
+
+  // Attachments
+  const [newFile, setNewFile] = useState<File | null>(null);
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'chat' | 'password'>('chat');
@@ -308,6 +314,37 @@ export default function ManagerPortal() {
   const handleCreate = async () => {
     setSubmitting(true);
     try {
+      let attachment_url = null;
+      let attachment_name = null;
+
+      if (newFile) {
+        const { supabase } = await import("@/lib/supabase");
+        const { USE_MOCK } = await import("@/lib/mockDatabase");
+
+        if (USE_MOCK) {
+          attachment_url = URL.createObjectURL(newFile);
+          attachment_name = newFile.name;
+        } else {
+          const fileName = `${userId}/${Date.now()}_${newFile.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(fileName, newFile);
+            
+          if (uploadError) {
+            toast.error("Erro ao fazer upload do anexo.");
+            setSubmitting(false);
+            return;
+          }
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('documents')
+            .getPublicUrl(fileName);
+            
+          attachment_url = publicUrl;
+          attachment_name = newFile.name;
+        }
+      }
+
       if (newType === 'protocol') {
         if (!newSubject || !newBody || newRecipients.length === 0) {
           toast.error("Preencha todos os campos do protocolo.");
@@ -327,6 +364,8 @@ export default function ManagerPortal() {
           priority: newPriority,
           category: newCategory,
           recipient_ids: recipientObjects,
+          attachment_url,
+          attachment_name,
         });
 
         // Email notification
@@ -364,6 +403,8 @@ export default function ManagerPortal() {
           subject: newSubject,
           description: newBody,
           priority: newPriority,
+          attachment_url,
+          attachment_name,
         });
         setTickets([newT, ...tickets]);
         setSelectedConvId(newT.id);
@@ -373,6 +414,7 @@ export default function ManagerPortal() {
       setNewSubject("");
       setNewBody("");
       setNewRecipients([]);
+      setNewFile(null);
       setIsMobileListHidden(true);
     } catch {
       toast.error("Erro na criação.");
@@ -500,7 +542,40 @@ export default function ManagerPortal() {
                           <Textarea value={newBody} onChange={e => setNewBody(e.target.value)} rows={4} placeholder="Digite sua mensagem aqui..." className="resize-none" />
                         </div>
 
-                        <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white" onClick={handleCreate} disabled={submitting}>
+                        <div className="space-y-2">
+                          <Label>Anexo (Opcional)</Label>
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor="file-upload" className="cursor-pointer flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 px-4 rounded-md transition-colors border border-slate-200 dark:border-slate-700 border-dashed w-full">
+                              <Paperclip className="w-4 h-4" />
+                              <span className="text-sm font-medium">Anexar Documento</span>
+                            </Label>
+                            <input
+                              id="file-upload"
+                              type="file"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  setNewFile(e.target.files[0]);
+                                }
+                              }}
+                            />
+                          </div>
+                          {newFile && (
+                            <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-md mt-2 border border-blue-100 dark:border-blue-800/50">
+                              <span className="text-sm text-blue-700 dark:text-blue-300 truncate max-w-[200px] sm:max-w-[300px]">
+                                {newFile.name}
+                              </span>
+                              <button
+                                onClick={() => setNewFile(null)}
+                                className="text-blue-500 hover:text-blue-700 dark:hover:text-blue-200 transition-colors"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white mt-4" onClick={handleCreate} disabled={submitting}>
                           {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
                           Enviar
                         </Button>
@@ -598,6 +673,28 @@ export default function ManagerPortal() {
                         </div>
                       </div>
                     </div>
+                    
+                    {/* Attachment for Initial Message */}
+                    {activeConv.originalData.attachment_url && (
+                      <div className="flex gap-2 max-w-[85%] self-start relative z-10 mt-[-8px]">
+                        <a 
+                          href={activeConv.originalData.attachment_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="bg-white dark:bg-slate-800 flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0">
+                            <Paperclip className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px] sm:max-w-[200px]">
+                              {activeConv.originalData.attachment_name || "Anexo"}
+                            </p>
+                          </div>
+                          <Download className="w-4 h-4 text-slate-400" />
+                        </a>
+                      </div>
+                    )}
                   </div>
 
 

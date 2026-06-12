@@ -21,6 +21,8 @@ export interface ManagerProtocol {
   status: ProtocolStatus;
   created_at: string;
   updated_at: string;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
   recipients?: ProtocolRecipient[];
   replies?: ProtocolReply[];
 }
@@ -55,6 +57,8 @@ export interface ManagerTicket {
   status: TicketStatus;
   priority: ProtocolPriority;
   resolution?: string | null;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -68,6 +72,8 @@ export interface CreateProtocolPayload {
   priority: ProtocolPriority;
   category: ProtocolCategory;
   recipient_ids: { id: string; name: string }[];
+  attachment_url?: string | null;
+  attachment_name?: string | null;
 }
 
 // Payload para criação de chamado
@@ -78,4 +84,6 @@ export interface CreateTicketPayload {
   subject: string;
   description: string;
   priority: ProtocolPriority;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
 }

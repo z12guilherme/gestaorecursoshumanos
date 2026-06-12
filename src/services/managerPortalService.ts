@@ -122,6 +122,8 @@ export const managerPortalService = {
         sender_name: payload.sender_name,
         priority: payload.priority,
         category: payload.category,
+        attachment_url: payload.attachment_url,
+        attachment_name: payload.attachment_name,
         status: "open",
         created_at: now,
         updated_at: now,
@@ -151,6 +153,8 @@ export const managerPortalService = {
         sender_name: payload.sender_name,
         priority: payload.priority,
         category: payload.category,
+        attachment_url: payload.attachment_url,
+        attachment_name: payload.attachment_name,
         protocol_number: `PROT-${new Date().getFullYear()}-${Date.now()}`, // será sobrescrito pela função SQL
       })
       .select()
@@ -285,6 +289,8 @@ export const managerPortalService = {
         status: "open",
         priority: payload.priority,
         resolution: null,
+        attachment_url: payload.attachment_url,
+        attachment_name: payload.attachment_name,
         created_at: now,
         updated_at: now,
       };
@@ -301,6 +307,8 @@ export const managerPortalService = {
         subject: payload.subject,
         description: payload.description,
         priority: payload.priority,
+        attachment_url: payload.attachment_url,
+        attachment_name: payload.attachment_name,
         ticket_number: generateMockTicketNumber(),
       })
       .select()
