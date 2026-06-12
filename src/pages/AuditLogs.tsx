@@ -12,10 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ShieldAlert, Trash2, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ShieldAlert, Trash2, ChevronLeft, ChevronRight, Search, Copy, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -32,6 +32,7 @@ export default function AuditLogs() {
   const today = format(new Date(), "yyyy-MM-dd");
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false);
   const [cleanupDate, setCleanupDate] = useState(today);
 
@@ -56,9 +57,20 @@ export default function AuditLogs() {
     }
   };
 
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    toast({ title: "Copiado", description: "Dados copiados para a área de transferência." });
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const handleFilter = () => {
-    if (page === 1) fetchLogs();
-    else setPage(1); // Mudar a página de volta para 1 reflete automaticamente no useEffect
+    if (page !== 1) {
+      setPage(1);
+    } else {
+      // Se já estiver na página 1, o useEffect não disparará, então chamamos manualmente
+      fetchLogs();
+    }
   };
 
   const handleCleanupByDate = async () => {
@@ -169,19 +181,31 @@ export default function AuditLogs() {
                       <TableCell>
                         <details className="cursor-pointer text-sm text-muted-foreground group">
                           <summary className="hover:text-primary transition-colors">Ver Dados</summary>
-                          <div className="mt-2 rounded bg-muted p-2 font-mono text-xs overflow-x-auto max-w-[400px]">
-                            {log.old_data && (
-                              <div className="mb-2">
-                                <span className="font-bold text-red-500 block mb-1">Antes:</span>
-                                <pre>{JSON.stringify(log.old_data, null, 2)}</pre>
-                              </div>
-                            )}
-                            {log.new_data && (
-                              <div>
-                                <span className="font-bold text-green-500 block mb-1">Depois:</span>
-                                <pre>{JSON.stringify(log.new_data, null, 2)}</pre>
-                              </div>
-                            )}
+                          <div className="mt-2 relative rounded bg-muted p-3 font-mono text-xs max-w-[500px]">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="absolute right-2 top-2 h-6 w-6"
+                              onClick={() => copyToClipboard(JSON.stringify({ antes: log.old_data, depois: log.new_data }, null, 2), log.id)}
+                            >
+                              {copiedId === log.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                            </Button>
+                            <ScrollArea className="max-h-[300px] w-full">
+                              {log.old_data && (
+                                <div className="mb-4">
+                                  <span className="font-bold text-red-500 block mb-1 underline">ANTES:</span>
+                                  <pre className="whitespace-pre-wrap">{JSON.stringify(log.old_data, null, 2)}</pre>
+                                </div>
+                              )}
+                              {log.new_data && (
+                                <div>
+                                  <span className="font-bold text-green-500 block mb-1 underline">DEPOIS:</span>
+                                  <pre className="whitespace-pre-wrap">{JSON.stringify(log.new_data, null, 2)}</pre>
+                                </div>
+                              )}
+                              {!log.old_data && !log.new_data && <span>Nenhum dado detalhado disponível.</span>}
+                              <ScrollBar orientation="horizontal" />
+                            </ScrollArea>
                           </div>
                         </details>
                       </TableCell>
