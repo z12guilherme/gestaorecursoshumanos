@@ -39,6 +39,7 @@ import {
 import emailjs from '@emailjs/browser';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ChangePassword } from "@/components/settings/ChangePassword";
+import { Switch } from "@/components/ui/switch";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -98,6 +99,7 @@ export default function ManagerPortal() {
   const [isMobileListHidden, setIsMobileListHidden] = useState(false);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [newType, setNewType] = useState<'protocol' | 'ticket'>('protocol');
+  const [isGlobalNotice, setIsGlobalNotice] = useState(false);
 
   // Reply / Ack state
   const [replyText, setReplyText] = useState("");
@@ -346,18 +348,23 @@ export default function ManagerPortal() {
       }
 
       if (newType === 'protocol') {
-        if (!newSubject || !newBody || newRecipients.length === 0) {
-          toast.error("Preencha todos os campos do protocolo.");
+        const recipientObjects = isGlobalNotice
+          ? managerProfiles.map((m) => ({ id: m.id, name: m.name }))
+          : newRecipients.map((id) => {
+              const found = managerProfiles.find((m) => m.id === id);
+              return { id, name: found?.name || id };
+            });
+
+        if (!newSubject || !newBody || recipientObjects.length === 0) {
+          toast.error("Preencha todos os campos do protocolo e adicione destinatários.");
           setSubmitting(false);
           return;
         }
-        const recipientObjects = newRecipients.map((id) => {
-          const found = managerProfiles.find((m) => m.id === id);
-          return { id, name: found?.name || id };
-        });
+
+        const subjectWithPrefix = isGlobalNotice ? `[AVISO GLOBAL] ${newSubject}` : newSubject;
 
         const newP = await managerPortalService.createProtocol({
-          subject: newSubject,
+          subject: subjectWithPrefix,
           body: newBody,
           sender_id: userId,
           sender_name: userName,
@@ -373,14 +380,14 @@ export default function ManagerPortal() {
         const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
         const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
         if (serviceId && templateId && publicKey) {
-          Promise.all(newRecipients.map(async (id) => {
-            const found = managerProfiles.find((m) => m.id === id);
+          Promise.all(recipientObjects.map(async (rec) => {
+            const found = managerProfiles.find((m) => m.id === rec.id);
             if (found && found.email) {
               emailjs.send(serviceId, templateId, {
                 to_name: found.name,
                 to_email: found.email,
                 name: "Portal",
-                title: newSubject,
+                title: subjectWithPrefix,
                 message: "Você tem uma nova mensagem.",
                 link: window.location.origin + '/manager-portal'
               }, publicKey).catch(console.error);
@@ -414,6 +421,7 @@ export default function ManagerPortal() {
       setNewSubject("");
       setNewBody("");
       setNewRecipients([]);
+      setIsGlobalNotice(false);
       setNewFile(null);
       setIsMobileListHidden(true);
     } catch {
@@ -487,33 +495,45 @@ export default function ManagerPortal() {
                         </div>
 
                         {newType === 'protocol' && (
-                          <div className="space-y-2">
-                            <Label>Destinatários</Label>
-                            <Select
-                              onValueChange={(val) => {
-                                if (!newRecipients.includes(val)) setNewRecipients([...newRecipients, val]);
-                              }}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecione um gestor" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {managerProfiles.map(m => (
-                                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {newRecipients.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {newRecipients.map(id => {
-                                  const m = managerProfiles.find(x => x.id === id);
-                                  return (
-                                    <span key={id} className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full flex items-center gap-1">
-                                      {m?.name || id}
-                                      <button onClick={() => setNewRecipients(prev => prev.filter(x => x !== id))} className="hover:text-blue-900 ml-1">×</button>
-                                    </span>
-                                  )
-                                })}
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 px-4 py-3 rounded-xl border border-blue-100 dark:border-blue-800/50">
+                              <div className="space-y-0.5">
+                                <Label className="text-blue-900 dark:text-blue-100 font-semibold text-sm cursor-pointer" onClick={() => setIsGlobalNotice(!isGlobalNotice)}>Aviso Global</Label>
+                                <p className="text-xs text-blue-700 dark:text-blue-300">Enviar para todos os gestores cadastrados</p>
+                              </div>
+                              <Switch checked={isGlobalNotice} onCheckedChange={setIsGlobalNotice} />
+                            </div>
+
+                            {!isGlobalNotice && (
+                              <div className="space-y-2">
+                                <Label>Destinatários</Label>
+                                <Select
+                                  onValueChange={(val) => {
+                                    if (!newRecipients.includes(val)) setNewRecipients([...newRecipients, val]);
+                                  }}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione um gestor" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {managerProfiles.map(m => (
+                                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {newRecipients.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {newRecipients.map(id => {
+                                      const m = managerProfiles.find(x => x.id === id);
+                                      return (
+                                        <span key={id} className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full flex items-center gap-1">
+                                          {m?.name || id}
+                                          <button onClick={() => setNewRecipients(prev => prev.filter(x => x !== id))} className="hover:text-blue-900 ml-1">×</button>
+                                        </span>
+                                      )
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
