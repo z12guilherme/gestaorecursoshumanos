@@ -388,7 +388,7 @@ export default function ManagerPortal() {
                 to_email: found.email,
                 name: "Portal",
                 title: subjectWithPrefix,
-                message: "Você tem uma nova mensagem.",
+                message: newBody,
                 link: window.location.origin + '/manager-portal'
               }, publicKey).catch(console.error);
             }
@@ -413,6 +413,22 @@ export default function ManagerPortal() {
           attachment_url,
           attachment_name,
         });
+
+        // Email confirmation for the ticket requester (copy)
+        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+        if (serviceId && templateId && publicKey && profile?.email) {
+          emailjs.send(serviceId, templateId, {
+            to_name: userName,
+            to_email: profile.email,
+            name: "Portal",
+            title: `[Chamado - ${ticketTarget}] ${newSubject}`,
+            message: newBody,
+            link: window.location.origin + '/manager-portal'
+          }, publicKey).catch(console.error);
+        }
+
         setTickets([newT, ...tickets]);
         setSelectedConvId(newT.id);
         toast.success("Aberto!");
