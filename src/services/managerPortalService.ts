@@ -57,24 +57,32 @@ export const managerPortalService = {
       }));
     }
 
-    const { data: recipientRows, error: rErr } = await supabase
+    // Com as políticas RLS corrigidas, podemos buscar diretamente os protocolos
+    // onde o usuário é destinatário.
+    const { data: protocols, error } = await supabase
       .from("protocol_recipients")
-      .select("protocol_id")
+      .select(`
+        protocols:manager_protocols(*, replies:protocol_replies(*), recipients:protocol_recipients(*))
+      `)
       .eq("recipient_id", userId);
 
-    if (rErr) throw rErr;
+    if (error) {
+      console.error("Erro ao buscar inbox:", error);
+      throw error;
+    }
 
-    const ids = (recipientRows || []).map((r) => r.protocol_id);
-    if (ids.length === 0) return [];
-
-    const { data, error } = await supabase
-      .from("manager_protocols")
-      .select(`*, recipients:protocol_recipients(*), replies:protocol_replies(*)`)
-      .in("id", ids)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    return (data as ManagerProtocol[]) || [];
+    // Extrai os protocolos do array de objetos retornados e mapeia os campos do banco
+    return (protocols || [])
+      .map(item => {
+        const p: any = item.protocols;
+        if (!p) return null;
+        return {
+          ...p,
+          subject: p.title,
+          body: p.description
+        };
+      })
+      .filter(Boolean) as ManagerProtocol[];
   },
 
   // ── Enviados ─────────────────────────────────
@@ -98,14 +106,20 @@ export const managerPortalService = {
       }));
     }
 
-    const { data, error } = await supabase
+    // Com as políticas RLS corrigidas, podemos buscar diretamente os protocolos
+    // onde o usuário é o remetente.
+    const { data: protocols, error } = await supabase
       .from("manager_protocols")
-      .select(`*, recipients:protocol_recipients(*), replies:protocol_replies(*)`)
+      .select(`*, replies:protocol_replies(*), recipients:protocol_recipients(*)`)
       .eq("sender_id", userId)
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
-    return (data as ManagerProtocol[]) || [];
+    if (error) { console.error("Erro ao buscar enviados:", error); throw error; }
+    return ((protocols || []) as any[]).map(p => ({
+      ...p,
+      subject: p.title,
+      body: p.description
+    })) as ManagerProtocol[];
   },
 
   // ── Criar Protocolo ──────────────────────────
@@ -147,15 +161,14 @@ export const managerPortalService = {
     const { data: protoData, error: protoError } = await supabase
       .from("manager_protocols")
       .insert({
-        subject: payload.subject,
-        body: payload.body,
+        title: payload.subject,
+        description: payload.body,
         sender_id: payload.sender_id,
         sender_name: payload.sender_name,
         priority: payload.priority,
         category: payload.category,
         attachment_url: payload.attachment_url,
         attachment_name: payload.attachment_name,
-        protocol_number: `PROT-${new Date().getFullYear()}-${Date.now()}`, // será sobrescrito pela função SQL
       })
       .select()
       .single();
@@ -174,7 +187,22 @@ export const managerPortalService = {
 
     if (recipError) throw recipError;
 
-    return protoData as ManagerProtocol;
+    // Retorna o objeto com os destinatários mapeados para evitar "Desconhecido" na UI imediata
+    return {
+      ...(protoData as any),
+      subject: protoData.title,
+      body: protoData.description,
+      recipients: recipientsToInsert.map((r, i) => ({
+        id: `temp-${i}`,
+        protocol_id: protoData.id,
+        recipient_id: r.recipient_id,
+        recipient_name: r.recipient_name,
+        read_at: null,
+        acknowledged_at: null,
+        created_at: protoData.created_at
+      })),
+      replies: []
+    };
   },
 
   // ── Marcar como Lido ─────────────────────────
@@ -309,7 +337,6 @@ export const managerPortalService = {
         priority: payload.priority,
         attachment_url: payload.attachment_url,
         attachment_name: payload.attachment_name,
-        ticket_number: generateMockTicketNumber(),
       })
       .select()
       .single();

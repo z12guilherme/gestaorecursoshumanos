@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { managerPortalService } from "@/services/managerPortalService";
+import { supabase } from "@/lib/supabase";
+import { USE_MOCK } from "@/lib/mockDatabase";
 import {
   ManagerProtocol,
   ManagerTicket,
@@ -37,7 +39,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import emailjs from '@emailjs/browser';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger
+} from "@/components/ui/dialog";
 import { ChangePassword } from "@/components/settings/ChangePassword";
 import { Switch } from "@/components/ui/switch";
 
@@ -123,6 +133,14 @@ export default function ManagerPortal() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+
+    // Segurança extra: se não for ambiente mock e o ID for o padrão de inicialização,
+    // aguardamos o carregamento real do AuthContext.
+    if (!USE_MOCK && (userId === "mock-admin-id" || !user?.id)) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const [inboxData, sentData, ticketsData] = await Promise.all([
         managerPortalService.getInbox(userId),
@@ -132,9 +150,6 @@ export default function ManagerPortal() {
       setInbox(inboxData);
       setSent(sentData);
       setTickets(ticketsData);
-
-      const { supabase } = await import("@/lib/supabase");
-      const { USE_MOCK } = await import("@/lib/mockDatabase");
 
       if (USE_MOCK) {
         setManagerProfiles([
@@ -177,12 +192,12 @@ export default function ManagerPortal() {
     inbox.forEach(p => {
       const myRecipient = p.recipients?.find((r) => r.recipient_id === userId);
       const isUnread = myRecipient ? !myRecipient.read_at : false;
-      list.push({
+      if (p.id) list.push({
         id: p.id,
         type: 'protocol',
         title: p.sender_name,
         subtitle: p.subject,
-        snippet: (p.body || "").substring(0, 50) + "...",
+        snippet: String(p?.body || "").substring(0, 50) + "...",
         date: formatTime(p.created_at),
         timestamp: new Date(p.created_at).getTime(),
         unread: isUnread,
@@ -194,12 +209,12 @@ export default function ManagerPortal() {
     sent.forEach(p => {
       if (list.some(i => i.id === p.id)) return;
       const recNames = p.recipients?.map(r => r.recipient_name).join(', ') || 'Desconhecido';
-      list.push({
+      if (p.id) list.push({
         id: p.id,
         type: 'protocol',
         title: `Para: ${recNames}`,
         subtitle: p.subject,
-        snippet: (p.body || "").substring(0, 50) + "...",
+        snippet: String(p?.body || "").substring(0, 50) + "...",
         date: formatTime(p.created_at),
         timestamp: new Date(p.created_at).getTime(),
         unread: false,
@@ -209,12 +224,12 @@ export default function ManagerPortal() {
     });
 
     tickets.forEach(t => {
-      list.push({
+      if (t.id) list.push({
         id: t.id,
         type: 'ticket',
         title: `Chamado: ${t.assigned_to}`,
         subtitle: t.subject,
-        snippet: (t.description || "").substring(0, 50) + "...",
+        snippet: String(t?.description || "").substring(0, 50) + "...",
         date: formatTime(t.created_at),
         timestamp: new Date(t.created_at).getTime(),
         unread: t.status === 'open' || t.status === 'in_progress',
@@ -320,9 +335,6 @@ export default function ManagerPortal() {
       let attachment_name = null;
 
       if (newFile) {
-        const { supabase } = await import("@/lib/supabase");
-        const { USE_MOCK } = await import("@/lib/mockDatabase");
-
         if (USE_MOCK) {
           attachment_url = URL.createObjectURL(newFile);
           attachment_name = newFile.name;
@@ -331,17 +343,17 @@ export default function ManagerPortal() {
           const { error: uploadError } = await supabase.storage
             .from('documents')
             .upload(fileName, newFile);
-            
+
           if (uploadError) {
             toast.error("Erro ao fazer upload do anexo.");
             setSubmitting(false);
             return;
           }
-          
+
           const { data: { publicUrl } } = supabase.storage
             .from('documents')
             .getPublicUrl(fileName);
-            
+
           attachment_url = publicUrl;
           attachment_name = newFile.name;
         }
@@ -351,9 +363,9 @@ export default function ManagerPortal() {
         const recipientObjects = isGlobalNotice
           ? managerProfiles.map((m) => ({ id: m.id, name: m.name }))
           : newRecipients.map((id) => {
-              const found = managerProfiles.find((m) => m.id === id);
-              return { id, name: found?.name || id };
-            });
+            const found = managerProfiles.find((m) => m.id === id);
+            return { id, name: found?.name || id };
+          });
 
         if (!newSubject || !newBody || recipientObjects.length === 0) {
           toast.error("Preencha todos os campos do protocolo e adicione destinatários.");
@@ -491,6 +503,7 @@ export default function ManagerPortal() {
                     <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                       <DialogHeader>
                         <DialogTitle className="text-slate-900 dark:text-white">Nova Mensagem</DialogTitle>
+                        <DialogDescription className="text-slate-500">Crie um novo protocolo ou abra um chamado para a diretoria.</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-2">
                         <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
@@ -709,13 +722,13 @@ export default function ManagerPortal() {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Attachment for Initial Message */}
                     {activeConv.originalData.attachment_url && (
                       <div className="flex gap-2 max-w-[85%] self-start relative z-10 mt-[-8px]">
-                        <a 
-                          href={activeConv.originalData.attachment_url} 
-                          target="_blank" 
+                        <a
+                          href={activeConv.originalData.attachment_url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="bg-white dark:bg-slate-800 flex items-center gap-2 px-3 py-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                         >
