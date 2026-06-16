@@ -6,7 +6,7 @@ Um sistema moderno, intuitivo e completo para a gestão de recursos humanos, pro
 
 **🌟 Plataforma SaaS Configurável:** O sistema foi arquitetado como uma solução SaaS (Software as a Service) *White-label* e multi-instância. Projetado para ser facilmente replicado e customizado, permitindo personalização completa da identidade visual (cores, logotipos, portais públicos) e adaptação dos processos de RH para diferentes empresas ou clientes.
 
-![GestãoRH Screenshot](./img/print.JPG)
+![GestãoRH Screenshot](docs/img/print.JPG)
 
 > **🔗 Demonstração Online:** [Acesse o sistema aqui](https://gestaorecursoshumanos.vercel.app/login)
 

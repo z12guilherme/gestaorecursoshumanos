@@ -108,7 +108,8 @@ export default function ManagerPortal() {
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [isMobileListHidden, setIsMobileListHidden] = useState(false);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
-  const [newType, setNewType] = useState<'protocol' | 'ticket'>('protocol');
+  const [newType, setNewType] = useState<'protocol' | 'ticket' | 'chat'>('protocol');
+  const [selectedChatManagerId, setSelectedChatManagerId] = useState<string>("");
   const [isGlobalNotice, setIsGlobalNotice] = useState(false);
 
   // Reply / Ack state
@@ -192,11 +193,12 @@ export default function ManagerPortal() {
     inbox.forEach(p => {
       const myRecipient = p.recipients?.find((r) => r.recipient_id === userId);
       const isUnread = myRecipient ? !myRecipient.read_at : false;
+      const isChat = p.subject?.startsWith('[Chat]');
       if (p.id) list.push({
         id: p.id,
         type: 'protocol',
         title: p.sender_name,
-        subtitle: p.subject,
+        subtitle: isChat ? "Conversa Direta" : p.subject,
         snippet: String(p?.body || "").substring(0, 50) + "...",
         date: formatTime(p.created_at),
         timestamp: new Date(p.created_at).getTime(),
@@ -209,11 +211,12 @@ export default function ManagerPortal() {
     sent.forEach(p => {
       if (list.some(i => i.id === p.id)) return;
       const recNames = p.recipients?.map(r => r.recipient_name).join(', ') || 'Desconhecido';
+      const isChat = p.subject?.startsWith('[Chat]');
       if (p.id) list.push({
         id: p.id,
         type: 'protocol',
-        title: `Para: ${recNames}`,
-        subtitle: p.subject,
+        title: isChat ? recNames : `Para: ${recNames}`,
+        subtitle: isChat ? "Conversa Direta" : p.subject,
         snippet: String(p?.body || "").substring(0, 50) + "...",
         date: formatTime(p.created_at),
         timestamp: new Date(p.created_at).getTime(),
@@ -387,28 +390,46 @@ export default function ManagerPortal() {
           attachment_name,
         });
 
-        // Email notification
-        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-        if (serviceId && templateId && publicKey) {
-          Promise.all(recipientObjects.map(async (rec) => {
-            const found = managerProfiles.find((m) => m.id === rec.id);
-            if (found && found.email) {
-              emailjs.send(serviceId, templateId, {
-                to_name: found.name,
-                to_email: found.email,
-                name: "Portal",
-                title: subjectWithPrefix,
-                message: newBody,
-                link: window.location.origin + '/manager-portal'
-              }, publicKey).catch(console.error);
-            }
-          }));
-        }
+        // Notifica todos os destinatários do novo protocolo
+        recipientObjects.forEach(rec => {
+          const found = managerProfiles.find(m => m.id === rec.id);
+          if (found?.email) {
+            sendEmailNotification(found.name, found.email, subjectWithPrefix, newBody);
+          }
+        });
+
         setSent([newP, ...sent]);
         setSelectedConvId(newP.id);
         toast.success("Enviado!");
+      } else if (newType === 'chat') {
+        if (!selectedChatManagerId || !newBody) {
+          toast.error("Selecione um gestor e digite sua mensagem inicial.");
+          setSubmitting(false);
+          return;
+        }
+
+        const found = managerProfiles.find(m => m.id === selectedChatManagerId);
+        const recipientName = found?.name || "Gestor";
+
+        const newP = await managerPortalService.createProtocol({
+          subject: `[Chat] ${userName} & ${recipientName}`,
+          body: newBody,
+          sender_id: userId,
+          sender_name: userName,
+          priority: 'normal',
+          category: 'general',
+          recipient_ids: [{ id: selectedChatManagerId, name: recipientName }],
+          attachment_url,
+          attachment_name,
+        });
+
+        if (found?.email) {
+          sendEmailNotification(found.name, found.email, `Nova conversa de ${userName}`, newBody);
+        }
+
+        setSent([newP, ...sent]);
+        setSelectedConvId(newP.id);
+        toast.success("Conversa iniciada!");
       } else {
         if (!newSubject || !newBody) {
           toast.error("Preencha todos os campos do chamado.");
@@ -426,19 +447,11 @@ export default function ManagerPortal() {
           attachment_name,
         });
 
-        // Email confirmation for the ticket requester (copy)
-        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-        if (serviceId && templateId && publicKey && profile?.email) {
-          emailjs.send(serviceId, templateId, {
-            to_name: userName,
-            to_email: profile.email,
-            name: "Portal",
-            title: `[Chamado - ${ticketTarget}] ${newSubject}`,
-            message: newBody,
-            link: window.location.origin + '/manager-portal'
-          }, publicKey).catch(console.error);
+        // Determine email of the manager assigned to the ticket; fall back to the requester’s email if not found
+        const manager = managerProfiles.find(m => m.name === ticketTarget);
+        const recipientEmail = manager?.email ?? profile?.email;
+        if (recipientEmail) {
+          sendEmailNotification(userName, recipientEmail, `[Chamado - ${ticketTarget}] ${newSubject}`, newBody);
         }
 
         setTickets([newT, ...tickets]);
@@ -449,6 +462,7 @@ export default function ManagerPortal() {
       setNewSubject("");
       setNewBody("");
       setNewRecipients([]);
+      setSelectedChatManagerId("");
       setIsGlobalNotice(false);
       setNewFile(null);
       setIsMobileListHidden(true);
@@ -516,6 +530,13 @@ export default function ManagerPortal() {
                           </Button>
                           <Button
                             variant="ghost"
+                            className={`flex-1 ${newType === 'chat' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''}`}
+                            onClick={() => setNewType('chat')}
+                          >
+                            Conversa Direta
+                          </Button>
+                          <Button
+                            variant="ghost"
                             className={`flex-1 ${newType === 'ticket' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''}`}
                             onClick={() => setNewType('ticket')}
                           >
@@ -568,6 +589,25 @@ export default function ManagerPortal() {
                           </div>
                         )}
 
+                        {newType === 'chat' && (
+                          <div className="space-y-2">
+                            <Label>Gestor</Label>
+                            <Select
+                              value={selectedChatManagerId}
+                              onValueChange={setSelectedChatManagerId}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Selecione um gestor" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {managerProfiles.map(m => (
+                                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
                         {newType === 'ticket' && (
                           <div className="space-y-2">
                             <Label>Para</Label>
@@ -581,10 +621,12 @@ export default function ManagerPortal() {
                           </div>
                         )}
 
-                        <div className="space-y-2">
-                          <Label>Assunto</Label>
-                          <Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Título da mensagem" />
-                        </div>
+                        {newType !== 'chat' && (
+                          <div className="space-y-2">
+                            <Label>Assunto</Label>
+                            <Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Título da mensagem" />
+                          </div>
+                        )}
 
                         <div className="space-y-2">
                           <Label>Mensagem</Label>
@@ -657,9 +699,19 @@ export default function ManagerPortal() {
                         onClick={() => handleSelectConversation(conv)}
                         className={`w-full text-left p-4 border-b border-slate-100 dark:border-white/5 transition-colors flex items-start gap-3 relative hover:bg-slate-50 dark:hover:bg-white/5 ${selectedConvId === conv.id ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
                       >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-semibold text-white shadow-sm ${conv.type === 'protocol' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-amber-500 to-orange-600'}`}>
-                          {conv.type === 'protocol' ? getInitial(conv.title) : <AlertCircle className="w-5 h-5" />}
-                        </div>
+                        {(() => {
+                          const isChat = conv.type === 'protocol' && conv.originalData.subject?.startsWith('[Chat]');
+                          return (
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-semibold text-white shadow-sm ${isChat
+                                ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                                : conv.type === 'protocol'
+                                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                                  : 'bg-gradient-to-br from-amber-500 to-orange-600'
+                              }`}>
+                              {isChat ? getInitial(conv.title) : conv.type === 'protocol' ? getInitial(conv.title) : <AlertCircle className="w-5 h-5" />}
+                            </div>
+                          );
+                        })()}
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-baseline mb-0.5">
                             <span className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate pr-2">{conv.title}</span>
@@ -692,9 +744,19 @@ export default function ManagerPortal() {
                     >
                       <ArrowLeft className="w-5 h-5" />
                     </button>
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-semibold text-white ${activeConv.type === 'protocol' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-amber-500 to-orange-600'}`}>
-                      {activeConv.type === 'protocol' ? getInitial(activeConv.title) : <AlertCircle className="w-5 h-5" />}
-                    </div>
+                    {(() => {
+                      const isChatActive = activeConv.type === 'protocol' && activeConv.originalData.subject?.startsWith('[Chat]');
+                      return (
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-semibold text-white ${isChatActive
+                            ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                            : activeConv.type === 'protocol'
+                              ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                              : 'bg-gradient-to-br from-amber-500 to-orange-600'
+                          }`}>
+                          {isChatActive ? getInitial(activeConv.title) : activeConv.type === 'protocol' ? getInitial(activeConv.title) : <AlertCircle className="w-5 h-5" />}
+                        </div>
+                      );
+                    })()}
                     <div className="flex-1 min-w-0">
                       <h2 className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate">{activeConv.title}</h2>
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{activeConv.subtitle}</p>
@@ -707,25 +769,47 @@ export default function ManagerPortal() {
                     <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
 
                     {/* Initial Message */}
-                    <div className="flex gap-2 max-w-[85%] self-start relative z-10">
-                      <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-slate-100 dark:border-slate-700">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                            {activeConv.type === 'protocol' ? activeConv.originalData.sender_name : activeConv.originalData.requester_name}
-                          </span>
+                    {(() => {
+                      const isInitialMe = activeConv.type === 'protocol'
+                        ? activeConv.originalData.sender_id === userId
+                        : activeConv.originalData.requester_id === userId;
+                      const senderName = activeConv.type === 'protocol'
+                        ? activeConv.originalData.sender_name
+                        : activeConv.originalData.requester_name;
+                      const bodyText = activeConv.type === 'protocol'
+                        ? activeConv.originalData.body
+                        : activeConv.originalData.description;
+
+                      return (
+                        <div className={`flex gap-2 max-w-[85%] relative z-10 ${isInitialMe ? 'self-end' : 'self-start'}`}>
+                          <div className={`${isInitialMe
+                              ? 'bg-[#d9fdd3] dark:bg-emerald-900/60 text-slate-900 border-emerald-100 dark:border-emerald-800/50 rounded-tr-sm'
+                              : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-100 dark:border-slate-700 rounded-tl-sm'
+                            } rounded-2xl px-4 py-3 shadow-sm border`}>
+                            {!isInitialMe && (
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                  {senderName}
+                                </span>
+                              </div>
+                            )}
+                            <p className={`text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed ${isInitialMe ? 'dark:text-emerald-100' : ''}`}>
+                              {bodyText}
+                            </p>
+                            <div className={`text-[10px] text-right mt-2 font-medium ${isInitialMe ? 'text-emerald-700 dark:text-emerald-400/80' : 'text-slate-400'}`}>
+                              {formatTime(activeConv.originalData.created_at)}
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
-                          {activeConv.type === 'protocol' ? activeConv.originalData.body : activeConv.originalData.description}
-                        </p>
-                        <div className="text-[10px] text-slate-400 text-right mt-2 font-medium">
-                          {formatTime(activeConv.originalData.created_at)}
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     {/* Attachment for Initial Message */}
                     {activeConv.originalData.attachment_url && (
-                      <div className="flex gap-2 max-w-[85%] self-start relative z-10 mt-[-8px]">
+                      <div className={`flex gap-2 max-w-[85%] relative z-10 mt-[-8px] ${(activeConv.type === 'protocol' ? activeConv.originalData.sender_id === userId : activeConv.originalData.requester_id === userId)
+                          ? 'self-end'
+                          : 'self-start'
+                        }`}>
                         <a
                           href={activeConv.originalData.attachment_url}
                           target="_blank"

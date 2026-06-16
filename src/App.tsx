@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ReloadPrompt } from "@/components/ReloadPrompt";
+import { supabase } from "@/lib/supabase";
 
 
 // Lazy Loading das Páginas
@@ -46,67 +47,101 @@ const LoadingSpinner = () => (
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [branding, setBranding] = useState<{ name: string; logo: string | null }>({
+    name: "",
+    logo: null
+  });
+
   useEffect(() => {
-    document.title = " RH - Rede DMI";
+    async function fetchBranding() {
+      try {
+        const { data } = await supabase
+          .from('settings')
+          .select('company_name, avatar_url')
+          .maybeSingle();
+
+        if (data) {
+          setBranding({
+            name: data.company_name || "",
+            logo: data.avatar_url || null
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao carregar branding da aba:", error);
+      }
+    }
+    fetchBranding();
   }, []);
 
+  useEffect(() => {
+    document.title = branding.name ? `Portal RH - ${branding.name}` : "Portal RH - Rede DMI";
+
+    if (branding.logo) {
+      const link = (document.querySelector("link[rel*='icon']") || document.createElement('link')) as HTMLLinkElement;
+      link.type = 'image/x-icon';
+      link.rel = 'shortcut icon';
+      link.href = branding.logo;
+      document.getElementsByTagName('head')[0].appendChild(link);
+    }
+  }, [branding]);
+
   return (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <ReloadPrompt />
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
-            <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
-              <Route path="/clock-in" element={<ClockInPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/jobs/:jobId" element={<JobDetails />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/sugestoes-publico" element={<PublicSuggestion />} />
-              <Route path="/avaliacao/:token" element={<PublicEvaluation />} />
-              <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/employees" element={<Employees />} />
-                <Route path="/recruitment" element={<Recruitment />} />
-                <Route path="/performance" element={<Performance />} />
-                <Route path="/absences" element={<TimeOff />} />
-                <Route path="/payroll" element={<Payroll />} />
-                <Route path="/timesheet" element={<TimesheetPage />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/communication" element={<Communication />} />
-                <Route path="/suggestions" element={<Suggestions />} />
-                <Route path="/ai-assistant" element={<AIAssistant />} />
-                <Route path="/automations" element={<Automations />} />
-                <Route path="/tickets" element={<Support />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/audit-logs" element={<AuditLogs />} />
-                <Route
-                  path="/manager-portal"
-                  element={
-                    <ManagerRoute>
-                      <ManagerPortal />
-                    </ManagerRoute>
-                  }
-                />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <ReloadPrompt />
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                  <Route path="/clock-in" element={<ClockInPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/jobs/:jobId" element={<JobDetails />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/sugestoes-publico" element={<PublicSuggestion />} />
+                  <Route path="/avaliacao/:token" element={<PublicEvaluation />} />
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/employees" element={<Employees />} />
+                    <Route path="/recruitment" element={<Recruitment />} />
+                    <Route path="/performance" element={<Performance />} />
+                    <Route path="/absences" element={<TimeOff />} />
+                    <Route path="/payroll" element={<Payroll />} />
+                    <Route path="/timesheet" element={<TimesheetPage />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/communication" element={<Communication />} />
+                    <Route path="/suggestions" element={<Suggestions />} />
+                    <Route path="/ai-assistant" element={<AIAssistant />} />
+                    <Route path="/automations" element={<Automations />} />
+                    <Route path="/tickets" element={<Support />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/audit-logs" element={<AuditLogs />} />
+                    <Route
+                      path="/manager-portal"
+                      element={
+                        <ManagerRoute>
+                          <ManagerPortal />
+                        </ManagerRoute>
+                      }
+                    />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
 };
 
 export default App;
