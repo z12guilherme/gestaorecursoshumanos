@@ -6,7 +6,7 @@ echo.
 
 REM Inicia o supergateway na porta 8080 usando caminho curto (sem espacos)
 echo [1/2] Iniciando MCP Filesystem Server na porta 8080...
-start "MCP Filesystem Server" powershell -ExecutionPolicy Bypass -Command "supergateway --stdio 'npx @modelcontextprotocol/server-filesystem C:\Users\SANTAF~1\Desktop\GESTAO~3' --port 8080 --baseUrl http://localhost:8080"
+start "MCP Filesystem Server" powershell -ExecutionPolicy Bypass -Command "supergateway --stdio 'npx @modelcontextprotocol/server-filesystem C:\Users\SANTAF~1\Desktop\GESTAO~3' --port 8080 --outputTransport streamableHttp --cors --healthEndpoint /healthz"
 
 timeout /t 5 /nobreak >nul
 
