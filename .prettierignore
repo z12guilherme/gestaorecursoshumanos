@@ -1,0 +1,8 @@
+dist/
+dev-dist/
+node_modules/
+*.lockb
+bun.lockb
+package-lock.json
+stats.html
+public/
