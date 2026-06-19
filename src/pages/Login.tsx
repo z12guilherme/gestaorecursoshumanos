@@ -7,7 +7,7 @@ import { ManualModal } from "@/components/ManualModal";
 import { SecurityBadge } from "@/components/auth/SecurityBadge";
 import { useSettings } from "@/hooks/useSettings";
 import { USE_MOCK } from "@/lib/mockDatabase";
-import hsfBg from "@/assets/hsf.jpeg";
+import { DEFAULT_EMPLOYEE_PORTAL_NAME } from "@/lib/branding";
 import { Mail, Lock, ArrowRight, Clock, CheckCircle2, Shield } from "lucide-react";
 
 export default function LoginPage() {
@@ -116,7 +116,7 @@ export default function LoginPage() {
           <div className="flex-1 flex flex-col justify-center">
             <div className="text-center mb-6">
               <div className="inline-flex p-4 rounded-3xl bg-blue-50/50 mb-6 shadow-sm ring-1 ring-blue-100" style={{ backgroundImage: settings?.avatar_url ? 'none' : undefined }}>
-                <img src={settings?.avatar_url} className="w-12 h-12 object-contain bg-white rounded-2xl p-1" alt="logo da empresa" />
+                <img src={settings?.avatar_url || "/placeholder.svg"} className="w-12 h-12 object-contain bg-white rounded-2xl p-1" alt="logo da empresa" />
               </div>
               <h4 className="text-3xl font-bold text-slate-900 tracking-tight">Bem-vindo de volta</h4>
               <p className="text-slate-500 mt-3 text-sm">Acesse sua conta para gerenciar o RH</p>
@@ -232,7 +232,7 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center flex flex-col items-center gap-1.5">
             <p className="text-[10px] text-slate-400">
-              © {new Date().getFullYear()} {settings?.company_name || 'Rede DMI'}. Todos os direitos reservados.
+              © {new Date().getFullYear()} {settings?.company_name || DEFAULT_EMPLOYEE_PORTAL_NAME}. Todos os direitos reservados.
             </p>
             <p className="text-[10px] text-slate-500 font-medium tracking-wide">Desenvolvido e Auditado por Marcos Guilherme</p>
           </div>
@@ -242,11 +242,15 @@ export default function LoginPage() {
         <div className="w-full lg:w-1/2 relative hidden lg:block bg-slate-900">
           <div className="absolute inset-0 bg-blue-400/10 mix-blend-overlay z-10" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent z-20" />
-          <img
-            src={settings?.login_background_url || hsfBg}
-            alt={settings?.company_name || "Hospital DMI"}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          {settings?.login_background_url ? (
+            <img
+              src={settings.login_background_url}
+              alt={settings?.company_name || DEFAULT_EMPLOYEE_PORTAL_NAME}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950" />
+          )}
           <div className="absolute bottom-0 left-0 right-0 p-12 z-30 text-white">
             <div className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -254,7 +258,7 @@ export default function LoginPage() {
             </div>
             <h2 className="text-4xl font-bold mb-4 leading-tight">{settings?.login_title || 'Excelência em Gestão de Pessoas'}</h2>
             <p className="text-slate-200 text-lg leading-relaxed max-w-md">
-              {settings?.login_subtitle || `Plataforma integrada para otimizar os processos de RH da ${settings?.company_name || 'REDE DMI'}, garantindo eficiência e cuidado com nossos colaboradores.`}
+              {settings?.login_subtitle || 'Plataforma integrada para otimizar os processos de RH da sua empresa, garantindo eficiência e cuidado com seus colaboradores.'}
             </p>
           </div>
         </div>

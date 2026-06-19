@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { mockDatabase, USE_MOCK } from '@/lib/mockDatabase';
+import { buildAppTitle } from '@/lib/branding';
 
 export interface Settings {
     company_name: string | null;
@@ -26,9 +27,7 @@ export function useSettings() {
                     const settingsData = Array.isArray(data) ? data[0] : data;
                     if (settingsData) {
                         setSettings(settingsData);
-                        if (settingsData.company_name) {
-                            document.title = `${settingsData.company_name} | Portal RH`;
-                        }
+                        document.title = buildAppTitle(settingsData.company_name);
                     }
                     setLoading(false);
                     return;
@@ -39,9 +38,7 @@ export function useSettings() {
                     setSettings(data);
 
                     // 🎨 Aplica o White-label dinamicamente na aba do navegador (index.html)
-                    if (data.company_name) {
-                        document.title = `${data.company_name} | Portal RH`;
-                    }
+                    document.title = buildAppTitle(data.company_name);
                     if (data.avatar_url) {
                         const favicon = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
                         if (favicon) favicon.href = data.avatar_url;

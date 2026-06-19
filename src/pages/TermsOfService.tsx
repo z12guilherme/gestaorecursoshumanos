@@ -1,5 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DEFAULT_APP_NAME } from '@/lib/branding';
 
 export default function TermsOfService() {
   return (
@@ -17,12 +18,12 @@ export default function TermsOfService() {
             <div className="text-justify leading-relaxed">
               <h2>1. Aceitação dos Termos</h2>
               <br />
-              <p>Ao acessar e usar o sistema  RH - Rede DMI ("Serviço"), você concorda em cumprir e estar vinculado a estes Termos de Serviço. Se você não concorda com estes termos, não use o Serviço.</p>
+              <p>Ao acessar e usar este sistema ("Serviço"), você concorda em cumprir e estar vinculado a estes Termos de Serviço. Se você não concorda com estes termos, não use o Serviço.</p>
               <br /><br />
 
               <h2>2. Descrição do Serviço</h2>
               <br />
-              <p>O  RH - Rede DMI é um sistema de gerenciamento de recursos humanos que oferece funcionalidades como controle de ponto, gestão de férias, recrutamento e outras ferramentas para otimizar os processos de RH.</p>
+              <p>{DEFAULT_APP_NAME} é um sistema de gerenciamento de recursos humanos que oferece funcionalidades como controle de ponto, gestão de férias, recrutamento e outras ferramentas para otimizar os processos de RH.</p>
               <br /><br />
 
               <h2>3. Contas de Usuário</h2>
@@ -37,7 +38,7 @@ export default function TermsOfService() {
 
               <h2>5. Propriedade Intelectual</h2>
               <br />
-              <p>O Serviço e seu conteúdo original, recursos e funcionalidades são e permanecerão propriedade exclusiva da  RH - Rede DMI Inc. e de seus licenciadores.</p>
+              <p>O Serviço e seu conteúdo original, recursos e funcionalidades são e permanecerão propriedade exclusiva do titular licenciado e de seus licenciadores.</p>
               <br /><br />
 
               <h2>6. Rescisão</h2>
@@ -47,7 +48,7 @@ export default function TermsOfService() {
 
               <h2>7. Limitação de Responsabilidade</h2>
               <br />
-              <p>Em nenhuma circunstância a  RH - Rede DMI Inc. será responsável por quaisquer danos indiretos, incidentais, especiais, consequenciais ou punitivos resultantes do seu acesso ou uso do Serviço.</p>
+              <p>Em nenhuma circunstância o titular licenciado será responsável por quaisquer danos indiretos, incidentais, especiais, consequenciais ou punitivos resultantes do seu acesso ou uso do Serviço.</p>
               <br /><br />
 
               <h2>8. Alterações nos Termos</h2>
@@ -57,7 +58,7 @@ export default function TermsOfService() {
 
               <h2>9. Contato</h2>
               <br />
-              <p>Se você tiver alguma dúvida sobre estes Termos, entre em contato conosco em <a href="mailto:suporte@ RH - Rede DMI.com" className="text-primary hover:underline">suporte@ RH - Rede DMI.com</a>.</p>
+              <p>Se você tiver alguma dúvida sobre estes Termos, entre em contato com o administrador do sistema para obter os canais oficiais de suporte.</p>
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2, Download } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
+import { DEFAULT_APP_NAME } from '@/lib/branding';
 
 interface PayslipViewerModalProps {
   open: boolean;
@@ -72,8 +73,8 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
         const doc = new jsPDF();
         const fullEmployee = employee as FullEmployee;
 
-        const companyName = settings?.company_name || "EMPRESA NÃO CONFIGURADA";
-        const companyCNPJ = settings?.cnpj || "00.000.000/0000-00";
+        const companyName = settings?.company_name || DEFAULT_APP_NAME;
+        const companyCNPJ = settings?.cnpj || "";
         const hasLogo = logoBase64 && logoBase64 !== "ERROR";
         const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
 
@@ -96,7 +97,9 @@ export function PayslipViewerModal({ open, onOpenChange, employee, referenceDate
 
         const headerTextX = hasLogo ? 42 : 14;
         doc.setFontSize(12).setFont("helvetica", "bold").text(companyName, headerTextX, 15);
-        doc.setFontSize(9).setFont("helvetica", "normal").text(`CNPJ: ${companyCNPJ}`, headerTextX, 20);
+        if (companyCNPJ) {
+          doc.setFontSize(9).setFont("helvetica", "normal").text(`CNPJ: ${companyCNPJ}`, headerTextX, 20);
+        }
         doc.setFontSize(12).setFont("helvetica", "bold").text("RECIBO DE PAGAMENTO", 196, 15, { align: "right" });
         doc.setFontSize(9).setFont("helvetica", "normal");
         const period = format(referenceDate, "MMMM 'de' yyyy", { locale: ptBR }).toUpperCase();

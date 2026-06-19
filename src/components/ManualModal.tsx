@@ -8,6 +8,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { BookOpen, CheckCircle2, HelpCircle } from "lucide-react";
+import { DEFAULT_APP_NAME } from "@/lib/branding";
 
 export function ManualModal() {
   return (
@@ -23,7 +24,7 @@ export function ManualModal() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
               <BookOpen className="h-6 w-6 text-primary" />
-              Manual do Sistema RH - Rede DMI
+              Manual do Sistema {DEFAULT_APP_NAME}
             </DialogTitle>
             <DialogDescription>
               Guia completo de funcionalidades e operações do sistema.

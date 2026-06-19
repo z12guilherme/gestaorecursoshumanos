@@ -47,6 +47,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSettings } from '@/hooks/useSettings';
 import { useState, useEffect } from 'react';
 import { managerPortalService } from '@/services/managerPortalService';
+import { DEFAULT_APP_NAME } from '@/lib/branding';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -124,13 +125,13 @@ export function AppSidebar() {
         <div className="flex items-center gap-3">
           <img
             src={settings?.avatar_url}
-            alt="Logo da Empresa"
+            alt="Logo da empresa"
             className="h-10 w-10 rounded-lg object-contain bg-white p-1"
           />
           {!isCollapsed && (
             <div className="flex flex-col">
-              <span className="font-semibold text-sidebar-foreground truncate max-w-[140px]" title={settings?.company_name || "RH - Rede DMI"}>
-                {settings?.company_name || "RH - Rede DMI"}
+              <span className="font-semibold text-sidebar-foreground truncate max-w-[140px]" title={settings?.company_name || DEFAULT_APP_NAME}>
+                {settings?.company_name || DEFAULT_APP_NAME}
               </span>
               <span className="text-xs text-muted-foreground">Gestão de Pessoas</span>
             </div>

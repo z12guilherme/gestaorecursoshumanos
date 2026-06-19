@@ -38,6 +38,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSettings } from "@/hooks/useSettings";
+import { whatsappService } from "@/services/whatsappService";
 
 export default function Recruitment() {
   const {
@@ -59,6 +61,7 @@ export default function Recruitment() {
   const [isAiScreeningOpen, setIsAiScreeningOpen] = useState(false);
   const [aiScreeningLoading, setAiScreeningLoading] = useState(false);
   const [aiResults, setAiResults] = useState<any[]>([]);
+  const { settings } = useSettings();
   const { toast } = useToast();
 
   const handleMoveCandidate = async (candidateId: string, newStatus: Candidate['status']) => {
@@ -80,7 +83,8 @@ export default function Recruitment() {
   };
 
   const handleWhatsAppContact = async (candidate: Candidate) => {
-    const message = `Olá ${candidate.name}, aqui é do RH da Rede DMI. Gostaríamos de agendar uma conversa sobre a vaga de ${candidate.position}. Você teria disponibilidade?`;
+    const companyName = settings?.company_name || 'sua empresa';
+    const message = `Olá ${candidate.name}, aqui é do RH da ${companyName}. Gostaríamos de agendar uma conversa sobre a vaga de ${candidate.position}. Você teria disponibilidade?`;
 
     const { success } = await whatsappService.sendMessage(candidate.phone, message);
 

@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "Perplexity": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "C:\\Users\\santa fe\\.perplexity-mcp\\start.mjs"
+      ],
+      "env": {},
+      "type": "stdio"
+    }
+  }
+}

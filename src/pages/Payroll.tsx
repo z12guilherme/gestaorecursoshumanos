@@ -25,6 +25,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { DEFAULT_APP_NAME } from '@/lib/branding';
 
 export default function Payroll() {
   const { employees: dbEmployees, loading } = useEmployees();
@@ -114,9 +115,11 @@ export default function Payroll() {
     const doc = new jsPDF();
 
     doc.setFontSize(14);
-    doc.text(companySettings?.company_name || 'EMPRESA DEMONSTRAÇÃO', 14, 15);
+    doc.text(companySettings?.company_name || DEFAULT_APP_NAME, 14, 15);
     doc.setFontSize(10);
-    doc.text(companySettings?.cnpj || 'CNPJ: 00.000.000/0001-00', 14, 20);
+    if (companySettings?.cnpj) {
+      doc.text(companySettings.cnpj, 14, 20);
+    }
 
     const referenceMonth = subMonths(new Date(), 1);
     doc.setFontSize(18);
@@ -169,16 +172,18 @@ export default function Payroll() {
     doc.setTextColor(41, 128, 185);
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    doc.text((companySettings?.company_name || 'EMPRESA').substring(0, 25), stampX + stampWidth / 2, stampY + 6, { align: 'center' });
+    doc.text((companySettings?.company_name || DEFAULT_APP_NAME).substring(0, 25), stampX + stampWidth / 2, stampY + 6, { align: 'center' });
 
     doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
-    doc.text(companySettings?.cnpj || 'CNPJ: 00.000.000/0001-00', stampX + stampWidth / 2, stampY + 10, { align: 'center' });
+    if (companySettings?.cnpj) {
+      doc.text(companySettings.cnpj, stampX + stampWidth / 2, stampY + 10, { align: 'center' });
+    }
 
     doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, stampX + 2, stampY + 15);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(5);
-    doc.text('GestãoRH System', stampX + 22, stampY + 15);
+    doc.text(companySettings?.company_name || DEFAULT_APP_NAME, stampX + 22, stampY + 15);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(5);
@@ -203,8 +208,8 @@ export default function Payroll() {
     });
 
     const fileContent = payrollExportService.generateCNAB240(dataToExport, {
-      name: companySettings?.company_name || 'EMPRESA',
-      cnpj: companySettings?.cnpj || '00000000000100',
+      name: companySettings?.company_name || DEFAULT_APP_NAME,
+      cnpj: companySettings?.cnpj || '',
       bankCode: '341'
     });
 

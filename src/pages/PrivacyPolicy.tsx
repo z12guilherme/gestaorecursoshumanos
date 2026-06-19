@@ -1,5 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DEFAULT_APP_NAME } from '@/lib/branding';
 
 export default function PrivacyPolicy() {
   return (
@@ -17,7 +18,7 @@ export default function PrivacyPolicy() {
             <div className="text-justify leading-relaxed">
               <h2>1. Introdução</h2>
               <br />
-              <p>A  RH - Rede DMI Inc. respeita sua privacidade e está comprometida em protegê-la através do nosso cumprimento desta política. Esta política descreve os tipos de informações que podemos coletar de você ou que você pode fornecer ao usar o sistema  RH - Rede DMI ("Serviço") e nossas práticas para coletar, usar, manter, proteger e divulgar essas informações.</p>
+              <p>O titular licenciado respeita sua privacidade e está comprometido em protegê-la através do cumprimento desta política. Esta política descreve os tipos de informações que podem ser coletadas ao usar o sistema {DEFAULT_APP_NAME} ("Serviço") e as práticas para coletar, usar, manter, proteger e divulgar essas informações.</p>
               <br /><br />
               <h2>2. Informações que Coletamos</h2>
               <br />
@@ -48,7 +49,7 @@ export default function PrivacyPolicy() {
               <br /><br />
               <h2>6. Contato</h2>
               <br />
-              <p>Para fazer perguntas ou comentar sobre esta política de privacidade e nossas práticas de privacidade, entre em contato conosco em <a href="mailto:privacidade@ RH - Rede DMI.com" className="text-primary hover:underline">contato@inovedev.com.br</a>.</p>
+              <p>Para fazer perguntas ou comentar sobre esta política de privacidade, entre em contato com o administrador do sistema para obter os canais oficiais de contato.</p>
             </div>
           </div>
         </div>

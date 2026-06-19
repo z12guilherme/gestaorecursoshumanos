@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PayrollReport from '@/components/reports/PayrollReport';
 import TimeSheetReport from '@/components/reports/TimeSheetReport';
+import { DEFAULT_APP_NAME } from '@/lib/branding';
 
 const requestTypeLabels: Record<string, string> = {
   vacation: 'Férias',
@@ -255,9 +256,11 @@ export default function Reports() {
     // --- Cabeçalho Visual ---
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(18);
-    doc.text(companySettings?.company_name || 'HOSPITAL DMI LTDA', 14, 15);
+    doc.text(companySettings?.company_name || DEFAULT_APP_NAME, 14, 15);
     doc.setFontSize(10);
-    doc.text(companySettings?.cnpj || 'CNPJ: 30.882.426/0001-87', 14, 20);
+    if (companySettings?.cnpj) {
+      doc.text(companySettings.cnpj, 14, 20);
+    }
     
     doc.setFontSize(16);
     doc.text('Dossiê do Colaborador', 14, 30);
@@ -468,7 +471,7 @@ export default function Reports() {
     doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, stampX + 2, stampY + 15);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(5); 
-    doc.text('GestãoRH System', stampX + 22, stampY + 15);
+    doc.text(companySettings?.company_name || DEFAULT_APP_NAME, stampX + 22, stampY + 15);
     
     doc.setFont("helvetica", "normal");
     doc.setFontSize(5);

@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ReloadPrompt } from "@/components/ReloadPrompt";
 import { supabase } from "@/lib/supabase";
+import { buildAppTitle } from "@/lib/branding";
 
 
 // Lazy Loading das Páginas
@@ -74,7 +75,7 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    document.title = branding.name ? `Portal RH - ${branding.name}` : "Portal RH - Rede DMI";
+    document.title = buildAppTitle(branding.name);
 
     if (branding.logo) {
       const link = (document.querySelector("link[rel*='icon']") || document.createElement('link')) as HTMLLinkElement;

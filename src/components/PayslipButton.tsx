@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/hooks/useSettings';
+import { DEFAULT_APP_NAME } from '@/lib/branding';
 
 // Definição da interface baseada nos campos do banco de dados (employees)
 interface Employee {
@@ -90,8 +91,8 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
   const sigCanvas = useRef<any>(null);
   const { toast } = useToast();
 
-  const companyName = settings?.company_name || "EMPRESA NÃO CONFIGURADA";
-  const companyCNPJ = settings?.cnpj || "00.000.000/0000-00";
+  const companyName = settings?.company_name || DEFAULT_APP_NAME;
+  const companyCNPJ = settings?.cnpj || "";
 
   // Carregar o logo e converter para Base64 para o PDF
   useEffect(() => {
@@ -305,7 +306,9 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text(`CNPJ: ${companyCNPJ}`, headerTextX, 20);
+    if (companyCNPJ) {
+      doc.text(`CNPJ: ${companyCNPJ}`, headerTextX, 20);
+    }
 
     // Lado Direito: Título e Referência
     doc.setFontSize(12);

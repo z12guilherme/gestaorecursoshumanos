@@ -29,6 +29,7 @@ import { PayslipButton } from '@/components/PayslipButton';
 import { PayslipViewerModal } from '@/components/PayslipViewerModal';
 import { EmployeeBadge } from '@/components/EmployeeBadge';
 import { offlineDb } from '@/lib/offlineDb';
+import { DEFAULT_EMPLOYEE_PORTAL_NAME } from '@/lib/branding';
 
 export default function ClockInPage() {
   const { employees } = useEmployees();
@@ -40,8 +41,8 @@ export default function ClockInPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [companySettings, setCompanySettings] = useState<any>({
-    company_name: 'Hospital DMI',
-    cnpj: '04.232.442/0001-14'
+    company_name: '',
+    cnpj: ''
   });
 
   // Documents State
@@ -349,10 +350,10 @@ export default function ClockInPage() {
         {/* Logo & Company Name */}
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
-            DMI
+            {companySettings?.company_name ? companySettings.company_name.substring(0, 3).toUpperCase() : 'RH'}
           </div>
           <div>
-            <h1 className="font-bold text-slate-800 leading-tight">{companySettings?.company_name}</h1>
+            <h1 className="font-bold text-slate-800 leading-tight">{companySettings?.company_name || DEFAULT_EMPLOYEE_PORTAL_NAME}</h1>
             <p className="text-xs text-slate-500">Portal do Colaborador</p>
           </div>
         </div>
