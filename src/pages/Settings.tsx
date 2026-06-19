@@ -444,9 +444,9 @@ export default function Settings() {
     try {
       if (USE_MOCK) {
         setUserProfiles([
-          { id: 'mock-admin-id', full_name: 'Administrador Demo', email: 'admin@empresa.com', role: 'admin', display_role: 'Gerente de RH' },
-          { id: '102', full_name: 'Ana do Marketing', email: 'ana.mkt@empresa.com', role: 'manager', display_role: 'Coordenadora de Marketing' },
-          { id: '103', full_name: 'João do Financeiro', email: 'joao.fin@empresa.com', role: 'employee', display_role: 'Analista Financeiro' },
+          { id: 'mock-admin-id', full_name: 'Administrador Demo', email: 'admin@demo.com', role: 'admin', display_role: 'Gerente de RH' },
+          { id: '102', full_name: 'Ana do Marketing', email: 'ana.mkt@demo.com', role: 'manager', display_role: 'Coordenadora de Marketing' },
+          { id: '103', full_name: 'João do Financeiro', email: 'joao.fin@demo.com', role: 'employee', display_role: 'Analista Financeiro' },
         ]);
         return;
       }
@@ -580,7 +580,7 @@ export default function Settings() {
                       value={profileData.email}
                       readOnly
                       disabled
-                      placeholder="admin@empresa.com"
+                      placeholder="admin@demo.com"
                     />
                   </div>
                 </div>
@@ -648,7 +648,7 @@ export default function Settings() {
                     id="companyEmail"
                     value={companySettings.email}
                     onChange={(e) => setCompanySettings({ ...companySettings, email: e.target.value })}
-                    placeholder="contato@empresa.com.br"
+                    placeholder="contato@demo.com.br"
                   />
                 </div>
               </CardContent>
@@ -754,7 +754,7 @@ export default function Settings() {
                     <Input
                       value={companySettings.social_links.website}
                       onChange={(e) => setCompanySettings(prev => ({ ...prev, social_links: { ...prev.social_links, website: e.target.value } }))}
-                      placeholder="https://www.suaempresa.com.br"
+                      placeholder="https://www.suaempresa-demo.com.br"
                     />
                   </div>
                 </div>

@@ -43,9 +43,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       },
       manifest: {
-        name: 'GestãoRH',
-        short_name: 'GestãoRH',
-        description: 'Sistema de Gestão de Recursos Humanos',
+        name: 'Sistema Demo',
+        short_name: 'Demo',
+        description: 'Sistema demo de gestão de recursos humanos',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',

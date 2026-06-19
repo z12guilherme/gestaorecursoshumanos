@@ -1,8 +1,5 @@
 export const USE_MOCK = String(import.meta.env.VITE_USE_MOCK).trim().toLowerCase() === 'true';
 
-console.log("🕵️‍♂️ Ambiente MOCK ativado?", USE_MOCK);
-console.log("🕵️‍♂️ Valor cru no .env:", import.meta.env.VITE_USE_MOCK);
-
 // Helper para gerar datas relativas ao "hoje"
 const today = new Date();
 const daysAgo = (n: number) => {
@@ -79,7 +76,7 @@ export const mockDatabase = {
         {
             id: '101',
             name: 'Carlos Desenvolvedor',
-            email: 'carlos.dev@empresa.com',
+            email: 'carlos.dev@demo.com',
             department: 'TI',
             role: 'Engenheiro de Software Sênior',
             status: 'active',
@@ -101,7 +98,7 @@ export const mockDatabase = {
         {
             id: '102',
             name: 'Ana do Marketing',
-            email: 'ana.mkt@empresa.com',
+            email: 'ana.mkt@demo.com',
             department: 'Marketing',
             role: 'Coordenadora de Marketing',
             status: 'active',
@@ -123,7 +120,7 @@ export const mockDatabase = {
         {
             id: '103',
             name: 'João do Financeiro',
-            email: 'joao.fin@empresa.com',
+            email: 'joao.fin@demo.com',
             department: 'Financeiro',
             role: 'Analista Financeiro Pleno',
             status: 'active',
@@ -145,7 +142,7 @@ export const mockDatabase = {
         {
             id: '104',
             name: 'Fernanda RH',
-            email: 'fernanda.rh@empresa.com',
+            email: 'fernanda.rh@demo.com',
             department: 'Recursos Humanos',
             role: 'Analista de RH Sênior',
             status: 'active',
@@ -167,7 +164,7 @@ export const mockDatabase = {
         {
             id: '105',
             name: 'Ricardo Operações',
-            email: 'ricardo.ops@empresa.com',
+            email: 'ricardo.ops@demo.com',
             department: 'Operações',
             role: 'Supervisor de Operações',
             status: 'vacation',
@@ -536,7 +533,7 @@ export const mockDatabase = {
             action: 'UPDATE' as const,
             old_data: { base_salary: 7500 },
             new_data: { base_salary: 8500 },
-            changed_by: 'admin@empresa.com',
+            changed_by: 'admin@demo.com',
             changed_at: daysAgo(10),
         },
         {
@@ -546,7 +543,7 @@ export const mockDatabase = {
             action: 'INSERT' as const,
             old_data: null,
             new_data: { employee_id: '102', type: 'vacation', status: 'approved' },
-            changed_by: 'fernanda.rh@empresa.com',
+            changed_by: 'fernanda.rh@demo.com',
             changed_at: daysAgo(5),
         },
         {
@@ -556,7 +553,7 @@ export const mockDatabase = {
             action: 'UPDATE' as const,
             old_data: { status: 'active' },
             new_data: { status: 'vacation' },
-            changed_by: 'fernanda.rh@empresa.com',
+            changed_by: 'fernanda.rh@demo.com',
             changed_at: daysAgo(3),
         },
     ],
@@ -565,7 +562,7 @@ export const mockDatabase = {
         {
             id: 'upd-1',
             employee_id: '103',
-            requested_changes: { phone: '(11) 91234-5678', email: 'joao.novo@empresa.com' },
+            requested_changes: { phone: '(11) 91234-5678', email: 'joao.novo@demo.com' },
             status: 'pending' as const,
             created_at: daysAgo(1),
             employees: { name: 'João do Financeiro', department: 'Financeiro', avatar_url: '' },
@@ -605,13 +602,13 @@ export const mockDatabase = {
     ],
 
     defaultSettings: {
-        company_name: 'TechCorp Brasil',
+        company_name: 'Empresa Demo',
         cnpj: '12.345.678/0001-99',
         avatar_url: null,
         theme: 'system',
         login_background_url: null,
-        login_title: 'Portal de Gestão de RH',
-        login_subtitle: 'Sistema inteligente de recursos humanos',
+        login_title: 'Portal de Gestão de Pessoas',
+        login_subtitle: 'Sistema demo para gestão de recursos humanos',
     },
 
     defaultSuggestions: [
@@ -634,7 +631,7 @@ export const mockDatabase = {
         {
             id: 'sug-3',
             customer_name: 'Juliana TI',
-            contact_info: 'juliana@empresa.com',
+            contact_info: 'juliana@demo.com',
             content: 'Queria deixar um elogio incrível para a equipe do RH pelo evento de fim de ano, foi maravilhoso! Parabéns!',
             created_at: daysAgo(10),
             status: 'Lida'

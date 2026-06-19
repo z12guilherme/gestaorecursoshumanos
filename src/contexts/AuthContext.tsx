@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           id: userId,
           full_name: 'Administrador Demo',
           avatar_url: '',
-          email: 'admin@empresa.com',
+          email: 'admin@demo.com',
           display_role: 'Gerente de RH',
           role: 'admin',
         });
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!USE_MOCK) return;
     const mockUser = {
       id: 'mock-admin-id',
-      email: 'admin@empresa.com',
+      email: 'admin@demo.com',
       app_metadata: {},
       user_metadata: { full_name: 'Administrador Demo' },
       aud: 'authenticated',
@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (localStorage.getItem('mock_logged_in') === 'true') {
         const mockUser = {
           id: 'mock-admin-id',
-          email: 'admin@empresa.com',
+          email: 'admin@demo.com',
           app_metadata: {},
           user_metadata: { full_name: 'Administrador Demo' },
           aud: 'authenticated',

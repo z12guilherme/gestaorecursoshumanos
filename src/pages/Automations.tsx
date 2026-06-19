@@ -28,9 +28,9 @@ from email.mime.text import MIMEText
 
 def send_birthday_emails(csv_file):
     # Configurações do servidor de e-mail (ajuste conforme necessário)
-    smtp_server = "smtp.empresa.com"
+    smtp_server = "smtp.demo.com"
     smtp_port = 587
-    sender_email = "rh@empresa.com"
+    sender_email = "rh@demo.com"
     password = "sua_senha_de_app_aqui" # Use uma senha de aplicativo se tiver 2FA
 
     try:

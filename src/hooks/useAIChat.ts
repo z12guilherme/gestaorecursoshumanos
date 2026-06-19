@@ -355,7 +355,7 @@ export function useAIChat() {
                          // Normaliza email removendo acentos e espaços
                          const normalizedEmail = name.toLowerCase()
                             .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                            .replace(/\s+/g, '.') + '@empresa.com';
+                            .replace(/\s+/g, '.') + '@demo.com';
 
                          const { error } = await supabase.from('employees').insert([{
                              name,
@@ -601,7 +601,7 @@ export function useAIChat() {
              const [_, name, role, department] = registrationMatch;
              const normalizedEmail = name.trim().toLowerCase()
                 .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                .replace(/\s+/g, '.') + '@empresa.com';
+                .replace(/\s+/g, '.') + '@demo.com';
 
              const { error } = await supabase.from('employees').insert([{
                  name: name.trim(),

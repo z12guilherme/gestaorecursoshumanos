@@ -33,7 +33,7 @@ export const WithLabel: Story = {
   render: () => (
     <div className="grid w-full max-w-sm items-center gap-1.5">
       <Label htmlFor="email">E-mail corporativo</Label>
-      <Input type="email" id="email" placeholder="joao@empresa.com.br" />
+      <Input type="email" id="email" placeholder="joao@demo.com.br" />
     </div>
   ),
 };

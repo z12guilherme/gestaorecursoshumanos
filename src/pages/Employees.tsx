@@ -393,7 +393,7 @@ export default function Employees() {
     const template = [
       {
         "Nome": "João Silva",
-        "Email": "joao.silva@empresa.com",
+        "Email": "joao.silva@demo.com",
         "Cargo": "Desenvolvedor",
         "Departamento": "TI",
         "Telefone": "(11) 99999-9999",
@@ -405,7 +405,7 @@ export default function Employees() {
       },
       {
         "Nome": "Maria Santos",
-        "Email": "maria.santos@empresa.com",
+        "Email": "maria.santos@demo.com",
         "Cargo": "Analista de RH",
         "Departamento": "Recursos Humanos / Departamento Pessoal",
         "Telefone": "(11) 98888-8888",
