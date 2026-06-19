@@ -51,7 +51,7 @@ export default function ClockIn() {
 
   const handleLogin = async () => {
     if (!selectedId || !pin) {
-      toast({ title: "Erro", description: "Selecione seu nome e digite a senha.", variant: "destructive" });
+      toast({ title: "Erro", description: "Selecione o seu nome e digite a senha.", variant: "destructive" });
       return;
     }
 
