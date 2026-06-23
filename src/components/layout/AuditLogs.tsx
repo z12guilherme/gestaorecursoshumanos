@@ -18,6 +18,15 @@ import { ptBR } from "date-fns/locale";
 import { ShieldAlert, ChevronLeft, ChevronRight, Archive, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+type AuditValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Record<string, unknown>
+  | unknown[];
+
 export default function AuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [userMap, setUserMap] = useState<Record<string, string>>({});
@@ -33,7 +42,7 @@ export default function AuditLogs() {
 
   const fetchUsers = async () => {
     try {
-      const { data } = await supabase.from('profiles').select('id, full_name');
+      const { data } = await supabase.from("profiles").select("id, full_name");
       if (data) {
         const map: Record<string, string> = {};
         data.forEach((u) => {
@@ -58,14 +67,19 @@ export default function AuditLogs() {
   };
 
   const handleArchiveLogs = async () => {
-    if (!window.confirm("Deseja realmente arquivar e excluir os logs com mais de 6 meses? Um arquivo CSV será baixado com o backup.")) return;
+    if (
+      !window.confirm(
+        "Deseja realmente arquivar e excluir os logs com mais de 6 meses? Um arquivo CSV será baixado com o backup."
+      )
+    )
+      return;
 
     setArchiving(true);
     try {
-      const oldLogs = await archiveService.archiveAndDeleteColdData('audit_logs', 6);
+      const oldLogs = await archiveService.archiveAndDeleteColdData("audit_logs", 6);
 
       if (oldLogs.length > 0) {
-        archiveService.downloadAsCSV(oldLogs, 'backup_audit_logs');
+        archiveService.downloadAsCSV(oldLogs, "backup_audit_logs");
         alert(`${oldLogs.length} logs antigos foram arquivados e removidos do banco de dados.`);
         fetchLogs();
       } else {
@@ -81,11 +95,142 @@ export default function AuditLogs() {
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case "INSERT": return "bg-green-500 hover:bg-green-600";
-      case "UPDATE": return "bg-blue-500 hover:bg-blue-600";
-      case "DELETE": return "bg-red-500 hover:bg-red-600";
-      default: return "bg-gray-500";
+      case "INSERT":
+        return "bg-green-500 hover:bg-green-600";
+      case "UPDATE":
+        return "bg-blue-500 hover:bg-blue-600";
+      case "DELETE":
+        return "bg-red-500 hover:bg-red-600";
+      default:
+        return "bg-gray-500";
     }
+  };
+
+  const formatAuditValue = (value: AuditValue) => {
+    if (value === null) return "null";
+    if (value === undefined) return "—";
+    if (typeof value === "string") return value || "—";
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    return JSON.stringify(value, null, 2);
+  };
+
+  const getChangedFields = (
+    oldData: Record<string, AuditValue> | null,
+    newData: Record<string, AuditValue> | null
+  ) => {
+    const before = oldData ?? {};
+    const after = newData ?? {};
+    const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+
+    return Array.from(keys)
+      .filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
+      .sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  const renderAuditDetails = (log: AuditLog) => {
+    const oldData = log.old_data as Record<string, AuditValue> | null;
+    const newData = log.new_data as Record<string, AuditValue> | null;
+    const changedFields = getChangedFields(oldData, newData);
+    const hasStructuredDiff = changedFields.length > 0;
+
+    return (
+      <div className="mt-2 rounded-xl border bg-muted/60 p-3 font-mono text-xs max-w-[680px] shadow-sm">
+        <ScrollArea className="max-h-[320px] w-full pr-4">
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-background/80 p-3">
+              <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                Resumo do registro
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                <div>
+                  <span className="text-muted-foreground">Ação:</span> {log.action}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Tabela:</span> {log.table_name}
+                </div>
+                <div className="md:col-span-2">
+                  <span className="text-muted-foreground">Registro:</span> {log.record_id}
+                </div>
+              </div>
+            </div>
+
+            {hasStructuredDiff && (
+              <div className="space-y-4">
+                <div className="rounded-lg border bg-background/80 p-3">
+                  <span className="font-bold text-primary block mb-2 underline">
+                    Campos alterados
+                  </span>
+                  <div className="space-y-3">
+                    {changedFields.map((field) => {
+                      const before = oldData?.[field];
+                      const after = newData?.[field];
+                      const isAdded = before === undefined && after !== undefined;
+                      const isRemoved = before !== undefined && after === undefined;
+
+                      return (
+                        <div key={field} className="rounded-lg border bg-muted/40 p-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <span className="font-semibold text-foreground">{field}</span>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] uppercase tracking-wide"
+                            >
+                              {isAdded ? "adicionado" : isRemoved ? "removido" : "alterado"}
+                            </Badge>
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="rounded-md bg-red-50 p-2 text-red-900 dark:bg-red-950/40 dark:text-red-200">
+                              <div className="mb-1 text-[10px] font-bold uppercase tracking-wide opacity-80">
+                                Antes
+                              </div>
+                              <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed">
+                                {formatAuditValue(before)}
+                              </pre>
+                            </div>
+                            <div className="rounded-md bg-emerald-50 p-2 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+                              <div className="mb-1 text-[10px] font-bold uppercase tracking-wide opacity-80">
+                                Depois
+                              </div>
+                              <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed">
+                                {formatAuditValue(after)}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-4">
+              {log.old_data && (
+                <div className="rounded-lg border bg-background/80 p-3">
+                  <span className="font-bold text-red-500 block mb-2 underline">
+                    Antes - JSON completo:
+                  </span>
+                  <pre className="whitespace-pre-wrap break-words">
+                    {JSON.stringify(log.old_data, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {log.new_data && (
+                <div className="rounded-lg border bg-background/80 p-3">
+                  <span className="font-bold text-green-500 block mb-2 underline">
+                    Depois - JSON completo:
+                  </span>
+                  <pre className="whitespace-pre-wrap break-words">
+                    {JSON.stringify(log.new_data, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {!log.old_data && !log.new_data && <span>Nenhum dado detalhado disponível.</span>}
+            </div>
+          </div>
+        </ScrollArea>
+      </div>
+    );
   };
 
   // Lógica de Paginação
@@ -108,7 +253,11 @@ export default function AuditLogs() {
           disabled={archiving}
           className="gap-2"
         >
-          {archiving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
+          {archiving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Archive className="h-4 w-4" />
+          )}
           {archiving ? "Arquivando..." : "Arquivar Logs Antigos"}
         </Button>
       </div>
@@ -140,25 +289,14 @@ export default function AuditLogs() {
                     </TableCell>
                     <TableCell className="font-mono text-xs">{log.table_name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {log.changed_by ? (userMap[log.changed_by] || log.changed_by) : "Sistema"}
+                      {log.changed_by ? userMap[log.changed_by] || log.changed_by : "Sistema"}
                     </TableCell>
                     <TableCell>
                       <details className="cursor-pointer text-sm text-muted-foreground group">
-                        <summary className="hover:text-primary transition-colors">Ver Dados</summary>
-                        <div className="mt-2 rounded bg-muted p-2 font-mono text-xs overflow-x-auto max-w-[400px]">
-                          {log.old_data && (
-                            <div className="mb-2">
-                              <span className="font-bold text-red-500 block mb-1">Antes:</span>
-                              <pre>{JSON.stringify(log.old_data, null, 2)}</pre>
-                            </div>
-                          )}
-                          {log.new_data && (
-                            <div>
-                              <span className="font-bold text-green-500 block mb-1">Depois:</span>
-                              <pre>{JSON.stringify(log.new_data, null, 2)}</pre>
-                            </div>
-                          )}
-                        </div>
+                        <summary className="hover:text-primary transition-colors">
+                          Ver Dados
+                        </summary>
+                        {renderAuditDetails(log)}
                       </details>
                     </TableCell>
                   </TableRow>
