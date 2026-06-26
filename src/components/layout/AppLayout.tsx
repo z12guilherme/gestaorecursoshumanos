@@ -1,7 +1,7 @@
 import { ReactNode, useState } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, UserPlus, CalendarOff, UserCheck, Star, Cake, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useNotifications, AppNotification, NotificationType } from "@/hooks/useNotifications";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -21,13 +22,28 @@ interface AppLayoutProps {
   subtitle?: string;
 }
 
+const notificationIcons: Record<NotificationType, React.ReactNode> = {
+  time_off: <CalendarOff className="h-4 w-4 text-orange-500" />,
+  new_employee: <UserPlus className="h-4 w-4 text-green-500" />,
+  new_candidate: <UserCheck className="h-4 w-4 text-blue-500" />,
+  performance: <Star className="h-4 w-4 text-yellow-500" />,
+  birthday: <Cake className="h-4 w-4 text-pink-500" />,
+};
+
 export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { notifications, unreadCount, isLoading, formatRelativeTime } = useNotifications();
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {
       navigate(`/employees?search=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  const handleNotificationClick = (notification: AppNotification) => {
+    if (notification.link) {
+      navigate(notification.link);
     }
   };
 
@@ -60,51 +76,80 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative cursor-pointer">
-                    <Bell className="h-5 w-5" />
-                    <Badge
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                      variant="destructive"
-                    >
-                      3
-                    </Badge>
+                    {isLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Bell className="h-5 w-5" />
+                    )}
+                    {unreadCount > 0 && (
+                      <Badge
+                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                        variant="destructive"
+                      >
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </Badge>
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
-                  <DropdownMenuLabel>Notificações</DropdownMenuLabel>
+                  <DropdownMenuLabel className="flex items-center justify-between">
+                    <span>Notificações</span>
+                    {unreadCount > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {unreadCount} nova{unreadCount > 1 ? "s" : ""}
+                      </Badge>
+                    )}
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <div className="max-h-[300px] overflow-auto">
-                    <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer">
-                      <div className="flex items-center justify-between w-full">
-                        <span className="font-medium text-sm">Novo colaborador admitido</span>
-                        <span className="text-xs text-muted-foreground">Há 5 min</span>
+                  <div className="max-h-[380px] overflow-auto">
+                    {isLoading ? (
+                      <div className="flex items-center justify-center p-6 text-muted-foreground text-sm gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Carregando notificações…
                       </div>
-                      <span className="text-xs text-muted-foreground line-clamp-2">
-                        João Silva concluiu o processo de onboarding.
-                      </span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer">
-                      <div className="flex items-center justify-between w-full">
-                        <span className="font-medium text-sm">Solicitação de férias</span>
-                        <span className="text-xs text-muted-foreground">Há 2 horas</span>
+                    ) : notifications.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center p-6 gap-2 text-muted-foreground">
+                        <Bell className="h-8 w-8 opacity-30" />
+                        <span className="text-sm">Nenhuma notificação recente</span>
                       </div>
-                      <span className="text-xs text-muted-foreground line-clamp-2">
-                        Maria Souza solicitou férias pendentes de aprovação.
-                      </span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer">
-                      <div className="flex items-center justify-between w-full">
-                        <span className="font-medium text-sm">Atualização do sistema</span>
-                        <span className="text-xs text-muted-foreground">Ontem</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground line-clamp-2">
-                        Novas melhorias de desempenho foram aplicadas.
-                      </span>
-                    </DropdownMenuItem>
+                    ) : (
+                      notifications.map((notification) => (
+                        <DropdownMenuItem
+                          key={notification.id}
+                          className="flex items-start gap-3 p-3 cursor-pointer"
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="mt-0.5 shrink-0">
+                            {notificationIcons[notification.type]}
+                          </div>
+                          <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                            <div className="flex items-center justify-between w-full gap-2">
+                              <span className="font-medium text-sm truncate">
+                                {notification.title}
+                              </span>
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {formatRelativeTime(notification.timestamp)}
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground line-clamp-2">
+                              {notification.description}
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+                      ))
+                    )}
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="w-full justify-center text-sm font-medium text-primary cursor-pointer">
-                    Marcar todas como lidas
-                  </DropdownMenuItem>
+                  {notifications.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="w-full justify-center text-sm font-medium text-primary cursor-pointer"
+                        onClick={() => navigate("/employees")}
+                      >
+                        Ver todas as atividades
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

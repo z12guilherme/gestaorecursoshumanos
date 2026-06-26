@@ -1,17 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import SignatureCanvas from 'react-signature-canvas';
-import { FileText, CheckCircle2, PenTool, Loader2, Eraser } from 'lucide-react';
-import emailjs from '@emailjs/browser';
-import { Button } from './ui/button';
-import { format, subMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { supabase } from '@/lib/supabase';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import { useSettings } from '@/hooks/useSettings';
-import { DEFAULT_APP_NAME } from '@/lib/branding';
+import React, { useState, useEffect, useRef } from "react";
+import type jsPDF from "jspdf";
+import SignatureCanvas from "react-signature-canvas";
+import { FileText, CheckCircle2, PenTool, Loader2, Eraser } from "lucide-react";
+import emailjs from "@emailjs/browser";
+import { Button } from "./ui/button";
+import { format, subMonths } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { supabase } from "@/lib/supabase";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/hooks/useSettings";
+import { DEFAULT_APP_NAME } from "@/lib/branding";
 
 // Definição da interface baseada nos campos do banco de dados (employees)
 interface Employee {
@@ -44,7 +50,7 @@ interface PayslipButtonProps {
 
 // Função auxiliar para remover espaços em branco da assinatura (substitui getTrimmedCanvas)
 const trimCanvas = (canvas: HTMLCanvasElement) => {
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
 
   const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -57,10 +63,14 @@ const trimCanvas = (canvas: HTMLCanvasElement) => {
   for (let i = 0; i < length; i += 4) {
     if (pixels.data[i + 3] !== 0) {
       const x = (i / 4) % canvas.width;
-      const y = Math.floor((i / 4) / canvas.width);
+      const y = Math.floor(i / 4 / canvas.width);
 
-      if (top === null) { top = y; bottom = y; left = x; right = x; }
-      else {
+      if (top === null) {
+        top = y;
+        bottom = y;
+        left = x;
+        right = x;
+      } else {
         if (y < top) top = y;
         if (y > bottom) bottom = y;
         if (x < left) left = x;
@@ -71,18 +81,29 @@ const trimCanvas = (canvas: HTMLCanvasElement) => {
 
   if (top === null || bottom === null || left === null || right === null) return null;
 
-  const trimmed = document.createElement('canvas');
+  const trimmed = document.createElement("canvas");
   trimmed.width = right - left + 1;
   trimmed.height = bottom - top + 1;
-  trimmed.getContext('2d')?.drawImage(canvas, left, top, trimmed.width, trimmed.height, 0, 0, trimmed.width, trimmed.height);
+  trimmed
+    .getContext("2d")
+    ?.drawImage(
+      canvas,
+      left,
+      top,
+      trimmed.width,
+      trimmed.height,
+      0,
+      0,
+      trimmed.width,
+      trimmed.height
+    );
   return trimmed;
 };
 
 export const PayslipButton: React.FC<PayslipButtonProps> = ({
   employee,
-  referenceDate = subMonths(new Date(), 1)
+  referenceDate = subMonths(new Date(), 1),
 }) => {
-
   const { settings } = useSettings();
   const [loading, setLoading] = useState(false);
   const [signatureData, setSignatureData] = useState<any>(null);
@@ -102,7 +123,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
         return;
       }
       try {
-        const response = await fetch(settings.logo_url, { mode: 'cors' });
+        const response = await fetch(settings.logo_url, { mode: "cors" });
         if (!response.ok) throw new Error("Logo fetch failed");
         const blob = await response.blob();
         const reader = new FileReader();
@@ -119,7 +140,9 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
   }, [settings?.logo_url]);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+      value || 0
+    );
   };
 
   const sendPayslipEmail = async (doc: jsPDF) => {
@@ -127,15 +150,15 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
     try {
       // 1. Upload para o Supabase Storage (Bucket 'documents')
-      const pdfBlob = doc.output('blob');
+      const pdfBlob = doc.output("blob");
       // Cria um caminho organizado: payslips/ID_DO_FUNC/ANO-MES_TIMESTAMP.pdf
-      const fileName = `payslips/${employee.id}/${format(referenceDate, 'yyyy-MM')}_${Date.now()}.pdf`;
+      const fileName = `payslips/${employee.id}/${format(referenceDate, "yyyy-MM")}_${Date.now()}.pdf`;
 
       const { error: uploadError } = await supabase.storage
-        .from('documents')
+        .from("documents")
         .upload(fileName, pdfBlob, {
-          contentType: 'application/pdf',
-          upsert: true
+          contentType: "application/pdf",
+          upsert: true,
         });
 
       if (uploadError) {
@@ -143,9 +166,9 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       }
 
       // 2. Obter Link Público
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("documents").getPublicUrl(fileName);
 
       const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
       const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
@@ -163,9 +186,9 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
           to_name: employee.name,
           to_email: employee.email,
           name: companyName,
-          title: `Holerite - ${format(referenceDate, 'MM/yyyy')}`,
-          message: 'Seu holerite assinado está disponível para download.',
-          link: publicUrl
+          title: `Holerite - ${format(referenceDate, "MM/yyyy")}`,
+          message: "Seu holerite assinado está disponível para download.",
+          link: publicUrl,
         },
         publicKey
       );
@@ -174,13 +197,12 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
         title: "E-mail enviado",
         description: `Enviado para ${employee.email}. Pode levar alguns minutos para chegar.`,
       });
-
     } catch (error) {
       console.error("Erro ao enviar email:", error);
       toast({
         title: "Aviso",
         description: "Holerite baixado, mas houve um erro ao enviar a cópia por e-mail.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -195,7 +217,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       toast({
         title: "Erro de Configuração",
         description: "As credenciais de e-mail não foram configuradas no servidor.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -207,7 +229,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
         toast({
           title: "Assinatura obrigatória",
           description: "Por favor, assine no campo indicado antes de confirmar.",
-          variant: "destructive"
+          variant: "destructive",
         });
         setLoading(false);
         return;
@@ -215,28 +237,33 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
       const originalCanvas = sigCanvas.current.getCanvas();
       const trimmedCanvas = trimCanvas(originalCanvas);
-      const signatureImage = (trimmedCanvas || originalCanvas).toDataURL('image/png');
+      const signatureImage = (trimmedCanvas || originalCanvas).toDataURL("image/png");
 
       // Captura de IP dinâmica para validade jurídica da assinatura
-      let userIp = '0.0.0.0';
+      let userIp = "0.0.0.0";
       try {
-        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipRes = await fetch("https://api.ipify.org?format=json");
         const ipData = await ipRes.json();
         userIp = ipData.ip;
-      } catch (e) { console.error("Erro ao obter IP para auditoria:", e); }
+      } catch (e) {
+        console.error("Erro ao obter IP para auditoria:", e);
+      }
 
       // 1. Registrar assinatura no banco
-      const refDate = format(referenceDate, 'yyyy-MM-dd');
+      const refDate = format(referenceDate, "yyyy-MM-dd");
       const { data, error } = await supabase
-        .from('payslip_acknowledgments')
-        .upsert({
-          employee_id: employee.id,
-          reference_date: refDate,
-          user_agent: navigator.userAgent,
-          ip_address: userIp,
-          signature_image: signatureImage,
-          signed_at: new Date().toISOString()
-        }, { onConflict: 'employee_id, reference_date' })
+        .from("payslip_acknowledgments")
+        .upsert(
+          {
+            employee_id: employee.id,
+            reference_date: refDate,
+            user_agent: navigator.userAgent,
+            ip_address: userIp,
+            signature_image: signatureImage,
+            signed_at: new Date().toISOString(),
+          },
+          { onConflict: "employee_id, reference_date" }
+        )
         .select()
         .single();
 
@@ -246,21 +273,20 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       setIsDialogOpen(false);
 
       // 2. Gerar PDF com os dados da assinatura recém criada
-      const doc = generatePayslip(data);
+      const doc = await generatePayslip(data);
       await sendPayslipEmail(doc);
 
       toast({
         title: "Sucesso",
         description: "Holerite assinado e baixado com sucesso.",
-        className: "bg-green-600 text-white border-none"
+        className: "bg-green-600 text-white border-none",
       });
-
     } catch (error: any) {
       console.error("Erro detalhado ao assinar:", error);
       toast({
         title: "Erro ao registrar",
         description: error.message || "Ocorreu um erro ao salvar a assinatura.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -275,9 +301,9 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
   const parseJsonbField = (field: any): any[] => {
     try {
       if (Array.isArray(field)) return field;
-      if (typeof field === 'string') {
+      if (typeof field === "string") {
         const parsed = JSON.parse(field);
-        return typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+        return typeof parsed === "string" ? JSON.parse(parsed) : parsed;
       }
       return [];
     } catch {
@@ -285,7 +311,10 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     }
   };
 
-  const generatePayslip = (currentSignatureData = signatureData) => {
+  const generatePayslip = async (currentSignatureData = signatureData) => {
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
+
     const doc = new jsPDF();
 
     const hasLogo = logoBase64 && logoBase64 !== "ERROR";
@@ -293,7 +322,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     // --- Cabeçalho ---
     if (hasLogo && logoBase64 && logoBase64 !== "ERROR") {
       // doc.addImage(base64, format, x, y, width, height)
-      const format = logoBase64.toLowerCase().includes('png') ? 'PNG' : 'JPEG';
+      const format = logoBase64.toLowerCase().includes("png") ? "PNG" : "JPEG";
       doc.addImage(logoBase64, format, 14, 10, 25, 15);
     }
 
@@ -355,7 +384,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       { desc: "SALÁRIO FAMÍLIA", value: Number(employee.family_salary_amount) },
       { desc: "FÉRIAS", value: Number(employee.vacation_amount) },
       { desc: "1/3 FÉRIAS", value: Number(employee.vacation_third_amount) },
-    ].filter(item => item.value > 0);
+    ].filter((item) => item.value > 0);
 
     // Processar adicionais variáveis (JSONB)
     const varAdditions = parseJsonbField(employee.variable_additions);
@@ -363,24 +392,27 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     if (Array.isArray(varAdditions)) {
       varAdditions.forEach((d: any) => {
         let val = Number(d.value);
-        if (isNaN(val) && typeof d.value === 'string') { val = Number(d.value.replace(',', '.')); }
+        if (isNaN(val) && typeof d.value === "string") {
+          val = Number(d.value.replace(",", "."));
+        }
         if (!isNaN(val) && val > 0) {
           earnings.push({
             desc: d.description ? d.description.toUpperCase() : "GRATIFICAÇÃO",
-            value: val
+            value: val,
           });
         }
       });
     }
 
-    const discounts = [
-      { desc: "DESCONTOS FIXOS", value: Number(employee.fixed_discounts) },
-    ];
+    const discounts = [{ desc: "DESCONTOS FIXOS", value: Number(employee.fixed_discounts) }];
 
     // Adicionar INSS se houver valor
     const hasManualInss = employee.inss_value !== undefined && employee.inss_value !== null;
     if (hasManualInss) {
-      discounts.push({ desc: `INSS (${format(referenceDate, 'yyyy')})`, value: Number(employee.inss_value) });
+      discounts.push({
+        desc: `INSS (${format(referenceDate, "yyyy")})`,
+        value: Number(employee.inss_value),
+      });
     }
 
     // Processar descontos variáveis (JSONB)
@@ -389,7 +421,9 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     if (Array.isArray(varDiscounts)) {
       varDiscounts.forEach((d: any) => {
         let val = Number(d.value);
-        if (isNaN(val) && typeof d.value === 'string') { val = Number(d.value.replace(',', '.')); }
+        if (isNaN(val) && typeof d.value === "string") {
+          val = Number(d.value.replace(",", "."));
+        }
         if (!isNaN(val) && val > 0) {
           // Evitar duplicar o INSS se ele já for fornecido no campo inss_value
           const description = d.description ? d.description.toUpperCase() : "OUTROS DESCONTOS";
@@ -397,7 +431,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
           discounts.push({
             desc: description,
-            value: val
+            value: val,
           });
         }
       });
@@ -405,8 +439,8 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
 
     // Montar linhas da tabela
     const rows: any[] = [];
-    earnings.forEach(e => rows.push(["001", e.desc, "0,00", formatCurrency(e.value), "0,00"]));
-    discounts.forEach(d => rows.push(["002", d.desc, "0,00", "0,00", formatCurrency(d.value)]));
+    earnings.forEach((e) => rows.push(["001", e.desc, "0,00", formatCurrency(e.value), "0,00"]));
+    discounts.forEach((d) => rows.push(["002", d.desc, "0,00", "0,00", formatCurrency(d.value)]));
 
     const totalEarnings = earnings.reduce((acc, curr) => acc + curr.value, 0);
     const totalDiscounts = discounts.reduce((acc, curr) => acc + curr.value, 0);
@@ -419,9 +453,9 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     // --- Tabela ---
     autoTable(doc, {
       startY: boxY + 18,
-      head: [['Cód.', 'Descrição', 'Ref.', 'Vencimentos', 'Descontos']],
+      head: [["Cód.", "Descrição", "Ref.", "Vencimentos", "Descontos"]],
       body: rows,
-      theme: 'grid',
+      theme: "grid",
       styles: {
         fontSize: 8,
         cellPadding: 2,
@@ -431,18 +465,18 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       headStyles: {
         fillColor: [240, 240, 240],
         textColor: 20,
-        fontStyle: 'bold',
+        fontStyle: "bold",
         lineWidth: 0.1,
-        lineColor: [200, 200, 200]
+        lineColor: [200, 200, 200],
       },
       columnStyles: {
         0: { cellWidth: 12 },
-        1: { cellWidth: 'auto' },
-        2: { cellWidth: 15, halign: 'center' },
-        3: { cellWidth: 30, halign: 'right' },
-        4: { cellWidth: 30, halign: 'right' },
+        1: { cellWidth: "auto" },
+        2: { cellWidth: 15, halign: "center" },
+        3: { cellWidth: 30, halign: "right" },
+        4: { cellWidth: 30, halign: "right" },
       },
-      margin: { left: 14, right: 14 }
+      margin: { left: 14, right: 14 },
     });
 
     const finalY = (doc as any).lastAutoTable.finalY;
@@ -490,7 +524,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     ];
 
     bases.forEach((item, index) => {
-      const x = 14 + (index * boxWidth);
+      const x = 14 + index * boxWidth;
       doc.rect(x, footerInfoY, boxWidth, 10);
       doc.text(item.label, x + 2, footerInfoY + 3);
       doc.setFont("helvetica", "bold");
@@ -503,7 +537,11 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
 
-    doc.text(`Declaramos ter recebido a importância líquida de ${formatCurrency(netPay)}, referente ao pagamento do salário do mês acima.`, 14, footerY);
+    doc.text(
+      `Declaramos ter recebido a importância líquida de ${formatCurrency(netPay)}, referente ao pagamento do salário do mês acima.`,
+      14,
+      footerY
+    );
 
     const displayDate = currentSignatureData?.signed_at
       ? format(new Date(currentSignatureData.signed_at), "dd/MM/yyyy")
@@ -529,7 +567,7 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       // Inserir a imagem da assinatura desenhada
       if (currentSignatureData.signature_image) {
         // doc.addImage(imagem, formato, x, y, largura, altura)
-        doc.addImage(currentSignatureData.signature_image, 'PNG', 130, footerY - 2, 40, 15);
+        doc.addImage(currentSignatureData.signature_image, "PNG", 130, footerY - 2, 40, 15);
       }
 
       const signY = footerY + 22;
@@ -548,18 +586,15 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
       doc.text(`Data: ${signDate}`, 110, signY + 6);
     }
 
-    doc.save(`Holerite_${employee.name.replace(/\s+/g, '_')}_${format(referenceDate, 'MM-yyyy')}.pdf`);
+    doc.save(
+      `Holerite_${employee.name.replace(/\s+/g, "_")}_${format(referenceDate, "MM-yyyy")}.pdf`
+    );
     return doc;
   };
 
   return (
     <>
-      <Button
-        onClick={() => setIsDialogOpen(true)}
-        variant="default"
-        size="sm"
-        className="gap-2"
-      >
+      <Button onClick={() => setIsDialogOpen(true)} variant="default" size="sm" className="gap-2">
         <PenTool className="h-4 w-4" />
         Assinar e Baixar
       </Button>
@@ -574,24 +609,39 @@ export const PayslipButton: React.FC<PayslipButtonProps> = ({
           </DialogHeader>
 
           <div className="p-4 bg-muted rounded-md text-sm text-muted-foreground">
-            <p>Eu, <strong>{employee.name}</strong>, declaro ter recebido a importância líquida discriminada neste recibo de pagamento.</p>
-            <p className="mt-2 text-xs">Ao clicar em confirmar, será registrado o carimbo de tempo e dados do seu dispositivo como prova de assinatura.</p>
+            <p>
+              Eu, <strong>{employee.name}</strong>, declaro ter recebido a importância líquida
+              discriminada neste recibo de pagamento.
+            </p>
+            <p className="mt-2 text-xs">
+              Ao clicar em confirmar, será registrado o carimbo de tempo e dados do seu dispositivo
+              como prova de assinatura.
+            </p>
 
             <div className="mt-4 bg-white border border-dashed border-gray-400 rounded-md p-2 flex flex-col items-center justify-center">
-              <p className="text-xs text-gray-500 mb-1 w-full text-left">Desenhe sua assinatura abaixo:</p>
+              <p className="text-xs text-gray-500 mb-1 w-full text-left">
+                Desenhe sua assinatura abaixo:
+              </p>
               <SignatureCanvas
                 ref={sigCanvas}
                 penColor="black"
-                canvasProps={{ width: 400, height: 150, className: 'sigCanvas cursor-crosshair' }}
+                canvasProps={{ width: 400, height: 150, className: "sigCanvas cursor-crosshair" }}
               />
-              <Button variant="ghost" size="sm" onClick={clearSignature} className="mt-2 text-xs h-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearSignature}
+                className="mt-2 text-xs h-6"
+              >
                 <Eraser className="w-3 h-3 mr-1" /> Limpar Assinatura
               </Button>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancelar
+            </Button>
             <Button onClick={handleSignAndDownload} disabled={loading} className="gap-2">
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               Confirmar Assinatura

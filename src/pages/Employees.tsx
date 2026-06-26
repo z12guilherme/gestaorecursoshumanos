@@ -1,15 +1,21 @@
-import { useState, useEffect } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { EmployeeTable } from '@/components/employees/EmployeeTable';
-import { EmployeeFilters } from '@/components/employees/EmployeeFilters';
-import { EmployeeFormDialog } from '@/components/employees/EmployeeFormDialog';
-import { EmployeeDetailSheet } from '@/components/employees/EmployeeDetailSheet';
-import { Employee } from '@/types/hr';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { EmployeeTable } from "@/components/employees/EmployeeTable";
+import { EmployeeFilters } from "@/components/employees/EmployeeFilters";
+import { EmployeeFormDialog } from "@/components/employees/EmployeeFormDialog";
+import { EmployeeDetailSheet } from "@/components/employees/EmployeeDetailSheet";
+import { Employee } from "@/types/hr";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,18 +26,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Users, UserCheck, UserX, Calendar, LogOut, KeyRound, Link as LinkIcon, IdCard, FolderOpen, FileText, Download, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useEmployees } from '@/hooks/useEmployees';
-import { useAuth } from '@/lib/AuthContext';
-import { useTimeOff } from '@/hooks/useTimeOff';
-import { supabase } from '@/lib/supabase';
-import { format } from 'date-fns';
-import { useDebounce } from '@/hooks/useDebounce';
-import { EvaluationLinkGenerator } from '@/components/performance/EvaluationLinkGenerator';
-import { EmployeeBadge } from '@/components/EmployeeBadge';
-import { useSettings } from '@/hooks/useSettings';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Users,
+  UserCheck,
+  UserX,
+  Calendar,
+  LogOut,
+  KeyRound,
+  Link as LinkIcon,
+  IdCard,
+  FolderOpen,
+  FileText,
+  Download,
+  Trash2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useAuth } from "@/lib/AuthContext";
+import { useTimeOff } from "@/hooks/useTimeOff";
+import { supabase } from "@/lib/supabase";
+import { format } from "date-fns";
+import { useDebounce } from "@/hooks/useDebounce";
+import { EvaluationLinkGenerator } from "@/components/performance/EvaluationLinkGenerator";
+import { EmployeeBadge } from "@/components/EmployeeBadge";
+import { useSettings } from "@/hooks/useSettings";
 
 // Função auxiliar para formatar datas e garantir que dados em branco vão como "null" para o banco
 const sanitizeDate = (dateString?: string | null) => {
@@ -44,27 +70,33 @@ const sanitizeDate = (dateString?: string | null) => {
 
   // Se vier no formato BR (DD/MM/YYYY), converte para YYYY-MM-DD
   if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-    const [day, month, year] = dateString.split('/');
+    const [day, month, year] = dateString.split("/");
     return `${year}-${month}-${day}`;
   }
 
   try {
     const dateObj = new Date(dateString);
-    if (!isNaN(dateObj.getTime())) return dateObj.toISOString().split('T')[0];
-  } catch (e) { }
+    if (!isNaN(dateObj.getTime())) return dateObj.toISOString().split("T")[0];
+  } catch (_e) {
+    /* valor inválido – ignora e retorna null */
+  }
 
   return null;
 };
 
 export default function Employees() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
   const {
     employees: dbEmployees,
+    totalCount,
     loading,
     addEmployee,
     updateEmployee,
     deleteEmployee,
-    refetch
-  } = useEmployees();
+    refetch,
+  } = useEmployees(page, pageSize);
   const { signOut } = useAuth();
   const { requests: timeOffRequests, updateRequest, refetch: refetchTimeOff } = useTimeOff();
   const { settings } = useSettings();
@@ -73,81 +105,97 @@ export default function Employees() {
   const employees: Employee[] = (dbEmployees || []).map((dbEmp: any) => {
     // Garante que os campos JSON sejam arrays, mesmo se vierem como string do banco
     let varDiscounts = [];
-    try { varDiscounts = typeof dbEmp.variable_discounts === 'string' ? JSON.parse(dbEmp.variable_discounts) : (dbEmp.variable_discounts || []); } catch { varDiscounts = []; }
+    try {
+      varDiscounts =
+        typeof dbEmp.variable_discounts === "string"
+          ? JSON.parse(dbEmp.variable_discounts)
+          : dbEmp.variable_discounts || [];
+    } catch {
+      varDiscounts = [];
+    }
 
     let varAdditions = [];
-    try { varAdditions = typeof dbEmp.variable_additions === 'string' ? JSON.parse(dbEmp.variable_additions) : (dbEmp.variable_additions || []); } catch { varAdditions = []; }
+    try {
+      varAdditions =
+        typeof dbEmp.variable_additions === "string"
+          ? JSON.parse(dbEmp.variable_additions)
+          : dbEmp.variable_additions || [];
+    } catch {
+      varAdditions = [];
+    }
 
     return {
       id: dbEmp.id,
       name: dbEmp.name,
       email: dbEmp.email,
-      position: dbEmp.role || '', // Mapeia role -> position
+      position: dbEmp.role || "", // Mapeia role -> position
       department: dbEmp.department,
       status: dbEmp.status as any, // Cast simples para o status da UI
       hireDate: dbEmp.admission_date, // Mapeia admission_date -> hireDate
-      phone: dbEmp.phone || '',
-      contractType: dbEmp.contract_type || 'CLT',
-      birthDate: dbEmp.birth_date || '',
+      phone: dbEmp.phone || "",
+      contractType: dbEmp.contract_type || "CLT",
+      birthDate: dbEmp.birth_date || "",
       salary: dbEmp.salary || 0,
-      manager: dbEmp.manager || '',
-      workSchedule: dbEmp.work_schedule || '09:00 - 18:00',
-      unit: dbEmp.unit || '',
-      role: dbEmp.role || '',
+      manager: dbEmp.manager || "",
+      workSchedule: dbEmp.work_schedule || "09:00 - 18:00",
+      unit: dbEmp.unit || "",
+      role: dbEmp.role || "",
       admissionDate: dbEmp.admission_date,
       baseSalary: dbEmp.base_salary || 0,
       fixedDiscounts: dbEmp.fixed_discounts || 0,
-      inss_value: dbEmp.inss_value !== undefined && dbEmp.inss_value !== null ? dbEmp.inss_value : null,
+      inss_value:
+        dbEmp.inss_value !== undefined && dbEmp.inss_value !== null ? dbEmp.inss_value : null,
       hasInsalubrity: dbEmp.has_insalubrity || false,
       insalubrityAmount: dbEmp.insalubrity_amount || 0,
       hasNightShift: dbEmp.has_night_shift || false,
       nightShiftAmount: dbEmp.night_shift_amount || 0,
       contractedHours: dbEmp.contracted_hours || 220,
-      pisPasep: dbEmp.pis_pasep || '',
-      pixKey: dbEmp.pix_key || '',
-      vacationDueDate: dbEmp.vacation_due_date || '',
-      vacationLimitDate: dbEmp.vacation_limit_date || '',
+      pisPasep: dbEmp.pis_pasep || "",
+      pixKey: dbEmp.pix_key || "",
+      vacationDueDate: dbEmp.vacation_due_date || "",
+      vacationLimitDate: dbEmp.vacation_limit_date || "",
       variable_discounts: varDiscounts,
       variable_additions: varAdditions,
       avatar_url: dbEmp.avatar_url,
       custom_fields: dbEmp.custom_fields || {},
-    } as unknown as Employee
+    } as unknown as Employee;
   });
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300); // 300ms de atraso
-  const [departmentFilter, setDepartmentFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [passwordToUpdate, setPasswordToUpdate] = useState('');
+  const [passwordToUpdate, setPasswordToUpdate] = useState("");
   const [employeeToTerminate, setEmployeeToTerminate] = useState<Employee | null>(null);
-  const [terminationDate, setTerminationDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [terminationDate, setTerminationDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [isLinkGeneratorOpen, setIsLinkGeneratorOpen] = useState(false);
   const [isBadgeDialogOpen, setIsBadgeDialogOpen] = useState(false);
-  const [selectedBadgeEmployeeId, setSelectedBadgeEmployeeId] = useState<string>('');
+  const [selectedBadgeEmployeeId, setSelectedBadgeEmployeeId] = useState<string>("");
   const { toast } = useToast();
 
   // Computa o status real baseado nas solicitações de férias ativas
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const employeesWithStatus = employees.map(emp => {
+  const employeesWithStatus = employees.map((emp) => {
     // FIX: Se o funcionário estiver desligado, não sobrescreve o status com férias
-    if (emp.status === 'terminated' || emp.status === 'Desligado') {
+    if (emp.status === "terminated" || emp.status === "Desligado") {
       return emp;
     }
 
-    const isOnVacation = (timeOffRequests || []).some(r =>
-      r.employee_id === emp.id &&
-      r.status === 'approved' &&
-      r.type === 'vacation' &&
-      new Date(r.start_date + 'T00:00:00') <= today &&
-      new Date(r.end_date + 'T00:00:00') >= today
+    const isOnVacation = (timeOffRequests || []).some(
+      (r) =>
+        r.employee_id === emp.id &&
+        r.status === "approved" &&
+        r.type === "vacation" &&
+        new Date(r.start_date + "T00:00:00") <= today &&
+        new Date(r.end_date + "T00:00:00") >= today
     );
-    return isOnVacation ? { ...emp, status: 'vacation' } : emp;
+    return isOnVacation ? { ...emp, status: "vacation" } : emp;
   });
 
   const filteredEmployees = employeesWithStatus.filter((employee) => {
@@ -156,8 +204,9 @@ export default function Employees() {
       employee.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
       employee.position.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
-    const matchesDepartment = departmentFilter === 'all' || employee.department === departmentFilter;
-    const matchesStatus = statusFilter === 'all' || employee.status === statusFilter;
+    const matchesDepartment =
+      departmentFilter === "all" || employee.department === departmentFilter;
+    const matchesStatus = statusFilter === "all" || employee.status === statusFilter;
 
     return matchesSearch && matchesDepartment && matchesStatus;
   });
@@ -185,23 +234,25 @@ export default function Employees() {
       if (photoFile) {
         try {
           const compressedFile = await compressImage(photoFile);
-          const fileExt = 'jpg'; // Forçamos jpg devido à compressão
+          const fileExt = "jpg"; // Forçamos jpg devido à compressão
           const fileName = `employees/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
           const { data, error: uploadError } = await supabase.storage
-            .from('avatars')
+            .from("avatars")
             .upload(fileName, compressedFile, { upsert: true });
 
           if (uploadError) throw uploadError;
 
-          const { data: publicUrlData } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(fileName);
+          const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
 
           avatarUrl = publicUrlData.publicUrl;
         } catch (imgError) {
           console.error("Erro no upload da imagem:", imgError);
-          toast({ title: "Aviso:", description: "Erro ao salvar a foto, mas os dados serão salvos.", variant: "warning" });
+          toast({
+            title: "Aviso:",
+            description: "Erro ao salvar a foto, mas os dados serão salvos.",
+            variant: "warning",
+          });
         }
       }
 
@@ -210,11 +261,13 @@ export default function Employees() {
       const dbPayload = {
         name: employeeData.name!,
         email: employeeData.email!,
-        role: employeeData.position || (employeeData as any).role || '', // UI (position) -> DB (role)
+        role: employeeData.position || (employeeData as any).role || "", // UI (position) -> DB (role)
         department: employeeData.department!,
-        status: employeeData.status || 'active',
+        status: employeeData.status || "active",
         avatar_url: employeeData.avatar_url,
-        admission_date: sanitizeDate(employeeData.hireDate || (employeeData as any).admissionDate) || new Date().toISOString(),
+        admission_date:
+          sanitizeDate(employeeData.hireDate || (employeeData as any).admissionDate) ||
+          new Date().toISOString(),
         phone: employeeData.phone,
         contract_type: employeeData.contractType,
         birth_date: sanitizeDate(employeeData.birthDate),
@@ -244,14 +297,14 @@ export default function Employees() {
       if (selectedEmployee) {
         result = await updateEmployee(selectedEmployee.id, dbPayload);
       } else {
-        result = await addEmployee({ ...dbPayload, password: '1234' });
+        result = await addEmployee({ ...dbPayload, password: "1234" });
       }
 
       if (result.error) throw result.error;
 
       toast({
         title: "Sucesso",
-        description: selectedEmployee ? "Colaborador atualizado" : "Colaborador criado"
+        description: selectedEmployee ? "Colaborador atualizado" : "Colaborador criado",
       });
       setIsFormOpen(false);
     } catch (error: any) {
@@ -259,7 +312,7 @@ export default function Employees() {
       toast({
         title: "Erro",
         description: error.message || "Falha ao salvar colaborador.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -270,37 +323,43 @@ export default function Employees() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const activeRequests = (timeOffRequests || []).filter(r =>
-        r.employee_id === employeeId &&
-        r.status === 'approved' &&
-        r.type === 'vacation' &&
-        new Date(r.start_date + 'T00:00:00') <= today &&
-        new Date(r.end_date + 'T00:00:00') >= today
+      const activeRequests = (timeOffRequests || []).filter(
+        (r) =>
+          r.employee_id === employeeId &&
+          r.status === "approved" &&
+          r.type === "vacation" &&
+          new Date(r.start_date + "T00:00:00") <= today &&
+          new Date(r.end_date + "T00:00:00") >= today
       );
 
       // 2. Atualiza o status do funcionário para 'active'
-      const { error: updateError } = await updateEmployee(employeeId, { status: 'active' });
+      const { error: updateError } = await updateEmployee(employeeId, { status: "active" });
       if (updateError) throw updateError;
 
       // 3. Se houver solicitações ativas, atualiza a data de término de TODAS para ontem
       if (activeRequests.length > 0) {
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
+        const yesterdayStr = format(yesterday, "yyyy-MM-dd");
 
         // Atualiza todas as solicitações em paralelo de forma segura
-        await Promise.all(activeRequests.map(async (req) => {
-          if (typeof updateRequest === 'function') {
-            return updateRequest(req.id, { end_date: yesterdayStr });
-          } else {
-            // Fallback seguro com o Supabase caso o hook useTimeOff não exporte a função updateRequest
-            const { error } = await supabase.from('time_off_requests').update({ end_date: yesterdayStr }).eq('id', req.id);
-            if (error) throw error;
-          }
-        }));
+        await Promise.all(
+          activeRequests.map(async (req) => {
+            if (typeof updateRequest === "function") {
+              return updateRequest(req.id, { end_date: yesterdayStr });
+            } else {
+              // Fallback seguro com o Supabase caso o hook useTimeOff não exporte a função updateRequest
+              const { error } = await supabase
+                .from("time_off_requests")
+                .update({ end_date: yesterdayStr })
+                .eq("id", req.id);
+              if (error) throw error;
+            }
+          })
+        );
 
         await refetchTimeOff(); // Atualiza a lista de férias
-        if (typeof refetchTimeOff === 'function') {
+        if (typeof refetchTimeOff === "function") {
           await refetchTimeOff(); // Atualiza a lista de férias
         }
       }
@@ -316,15 +375,15 @@ export default function Employees() {
       toast({
         title: "Erro",
         description: "Falha ao encerrar férias.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const handlePasswordClick = (employee: Employee) => {
-    const dbEmp = dbEmployees.find(d => d.id === employee.id);
+    const dbEmp = dbEmployees.find((d) => d.id === employee.id);
     setSelectedEmployee(employee);
-    setPasswordToUpdate(dbEmp?.password || '');
+    setPasswordToUpdate(dbEmp?.password || "");
     setIsPasswordDialogOpen(true);
   };
 
@@ -350,8 +409,8 @@ export default function Employees() {
     try {
       // Altera o status para 'terminated' em vez de deletar o registro
       const { error } = await updateEmployee(employeeToTerminate.id, {
-        status: 'terminated',
-        termination_date: terminationDate
+        status: "terminated",
+        termination_date: terminationDate,
       } as any);
 
       if (error) throw error;
@@ -365,64 +424,66 @@ export default function Employees() {
       toast({
         title: "Erro ao desligar",
         description: "Não foi possível realizar o desligamento. Tente novamente.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
     setEmployeeToTerminate(null);
-    setTerminationDate(format(new Date(), 'yyyy-MM-dd'));
+    setTerminationDate(format(new Date(), "yyyy-MM-dd"));
   };
 
   const handleDownloadTemplate = async () => {
-    const ExcelJS = await import('exceljs');
+    const ExcelJS = await import("exceljs");
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Modelo Importação');
+    const worksheet = workbook.addWorksheet("Modelo Importação");
 
     worksheet.columns = [
-      { header: 'Nome', key: 'Nome', width: 30 },
-      { header: 'Email', key: 'Email', width: 30 },
-      { header: 'Cargo', key: 'Cargo', width: 20 },
-      { header: 'Departamento', key: 'Departamento', width: 20 },
-      { header: 'Telefone', key: 'Telefone', width: 15 },
-      { header: 'Data de Admissão', key: 'Data de Admissão', width: 15 },
-      { header: 'PIS/PASEP', key: 'PIS/PASEP', width: 15 },
-      { header: 'Chave PIX', key: 'Chave PIX', width: 20 },
-      { header: 'Vencimento Férias', key: 'Vencimento Férias', width: 15 },
-      { header: 'Limite Férias', key: 'Limite Férias', width: 15 }
+      { header: "Nome", key: "Nome", width: 30 },
+      { header: "Email", key: "Email", width: 30 },
+      { header: "Cargo", key: "Cargo", width: 20 },
+      { header: "Departamento", key: "Departamento", width: 20 },
+      { header: "Telefone", key: "Telefone", width: 15 },
+      { header: "Data de Admissão", key: "Data de Admissão", width: 15 },
+      { header: "PIS/PASEP", key: "PIS/PASEP", width: 15 },
+      { header: "Chave PIX", key: "Chave PIX", width: 20 },
+      { header: "Vencimento Férias", key: "Vencimento Férias", width: 15 },
+      { header: "Limite Férias", key: "Limite Férias", width: 15 },
     ];
 
     const template = [
       {
-        "Nome": "João Silva",
-        "Email": "joao.silva@empresa.com",
-        "Cargo": "Desenvolvedor",
-        "Departamento": "TI",
-        "Telefone": "(11) 99999-9999",
+        Nome: "João Silva",
+        Email: "joao.silva@empresa.com",
+        Cargo: "Desenvolvedor",
+        Departamento: "TI",
+        Telefone: "(11) 99999-9999",
         "Data de Admissão": "2024-01-15",
         "PIS/PASEP": "123.45678.90-0",
         "Chave PIX": "email@pix.com.br",
         "Vencimento Férias": "2025-01-15",
-        "Limite Férias": "2025-12-15"
+        "Limite Férias": "2025-12-15",
       },
       {
-        "Nome": "Maria Santos",
-        "Email": "maria.santos@empresa.com",
-        "Cargo": "Analista de RH",
-        "Departamento": "Recursos Humanos / Departamento Pessoal",
-        "Telefone": "(11) 98888-8888",
+        Nome: "Maria Santos",
+        Email: "maria.santos@empresa.com",
+        Cargo: "Analista de RH",
+        Departamento: "Recursos Humanos / Departamento Pessoal",
+        Telefone: "(11) 98888-8888",
         "Data de Admissão": "2024-02-01",
         "PIS/PASEP": "",
         "Chave PIX": "",
         "Vencimento Férias": "",
-        "Limite Férias": ""
-      }
+        "Limite Férias": "",
+      },
     ];
 
     worksheet.addRows(template);
 
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = "modelo_importacao_funcionarios.xlsx";
     a.click();
@@ -431,7 +492,7 @@ export default function Employees() {
 
   const handleImport = async (file: File) => {
     try {
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await import("exceljs");
       const workbook = new ExcelJS.Workbook();
       const arrayBuffer = await file.arrayBuffer();
       await workbook.xlsx.load(arrayBuffer);
@@ -451,9 +512,9 @@ export default function Employees() {
           const header = headers[colNumber];
           if (header) {
             let value = cell.value;
-            if (typeof value === 'object' && value !== null) {
-              if ('text' in value) value = (value as any).text;
-              else if ('result' in value) value = (value as any).result;
+            if (typeof value === "object" && value !== null) {
+              if ("text" in value) value = (value as any).text;
+              else if ("result" in value) value = (value as any).result;
             }
             rowData[header] = value;
           }
@@ -463,26 +524,26 @@ export default function Employees() {
 
       let count = 0;
       for (const row of jsonData) {
-        if (!row['Nome'] && !row['Nome Completo']) continue;
+        if (!row["Nome"] && !row["Nome Completo"]) continue;
 
         const formatDate = (val: any) => {
           if (val instanceof Date) return val.toISOString();
-          if (typeof val === 'string') return val;
+          if (typeof val === "string") return val;
           return new Date().toISOString();
         };
 
         await addEmployee({
-          name: row['Nome'] || row['Nome Completo'],
-          email: row['Email'] || '',
-          role: row['Cargo'] || 'Novo Colaborador',
-          department: row['Departamento'] || 'Geral',
-          status: 'active',
-          admission_date: formatDate(row['Data de Admissão']),
-          password: '1234',
-          pis_pasep: row['PIS/PASEP'] || '',
-          pix_key: row['Chave PIX'] || '',
-          vacation_due_date: formatDate(row['Vencimento Férias']),
-          vacation_limit_date: formatDate(row['Limite Férias']),
+          name: row["Nome"] || row["Nome Completo"],
+          email: row["Email"] || "",
+          role: row["Cargo"] || "Novo Colaborador",
+          department: row["Departamento"] || "Geral",
+          status: "active",
+          admission_date: formatDate(row["Data de Admissão"]),
+          password: "1234",
+          pis_pasep: row["PIS/PASEP"] || "",
+          pix_key: row["Chave PIX"] || "",
+          vacation_due_date: formatDate(row["Vencimento Férias"]),
+          vacation_limit_date: formatDate(row["Limite Férias"]),
         });
         count++;
       }
@@ -496,7 +557,7 @@ export default function Employees() {
         toast({
           title: "Erro na importação",
           description: "Nenhum dado válido encontrado. Verifique o modelo.",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } catch (error) {
@@ -504,25 +565,31 @@ export default function Employees() {
       toast({
         title: "Erro ao ler arquivo",
         description: "Certifique-se de que o arquivo é um Excel ou CSV válido.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const stats = {
     total: employeesWithStatus.length,
-    active: employeesWithStatus.filter(e => e.status === 'active' || e.status === 'Ativo').length,
-    vacation: employeesWithStatus.filter(e => e.status === 'vacation' || e.status === 'Férias').length,
-    leave: employeesWithStatus.filter(e => e.status === 'leave' || e.status === 'Afastado').length,
-    terminated: employeesWithStatus.filter(e => e.status === 'terminated' || e.status === 'Desligado').length,
+    active: employeesWithStatus.filter((e) => e.status === "active" || e.status === "Ativo").length,
+    vacation: employeesWithStatus.filter((e) => e.status === "vacation" || e.status === "Férias")
+      .length,
+    leave: employeesWithStatus.filter((e) => e.status === "leave" || e.status === "Afastado")
+      .length,
+    terminated: employeesWithStatus.filter(
+      (e) => e.status === "terminated" || e.status === "Desligado"
+    ).length,
   };
 
-  const badgeEmployee = employees.find(e => e.id === selectedBadgeEmployeeId);
+  const badgeEmployee = employees.find((e) => e.id === selectedBadgeEmployeeId);
 
   return (
     <AppLayout title="Colaboradores" subtitle="Gerencie todos os colaboradores da empresa">
       <div className="space-y-6">
-        {loading && <div className="text-sm text-muted-foreground">Carregando dados do servidor...</div>}
+        {loading && (
+          <div className="text-sm text-muted-foreground">Carregando dados do servidor...</div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -616,6 +683,31 @@ export default function Employees() {
           onChangePassword={handlePasswordClick}
         />
 
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between px-2 py-4">
+          <div className="text-sm text-muted-foreground">
+            Mostrando {filteredEmployees.length} de {totalCount} colaboradores (Página {page})
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page * pageSize >= totalCount || loading}
+            >
+              Próxima
+            </Button>
+          </div>
+        </div>
+
         {/* Dialogs */}
         <EmployeeFormDialog
           open={isFormOpen}
@@ -642,7 +734,8 @@ export default function Employees() {
             <DialogHeader>
               <DialogTitle>Gerenciar Senha de Ponto</DialogTitle>
               <DialogDescription>
-                Visualize ou altere a senha (PIN) usada para o registro de ponto de {selectedEmployee?.name}.
+                Visualize ou altere a senha (PIN) usada para o registro de ponto de{" "}
+                {selectedEmployee?.name}.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -663,7 +756,9 @@ export default function Employees() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                Cancelar
+              </Button>
               <Button onClick={handleSavePassword}>Salvar Senha</Button>
             </DialogFooter>
           </DialogContent>
@@ -693,8 +788,10 @@ export default function Employees() {
                     <SelectValue placeholder="Selecione um colaborador..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map(e => (
-                      <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                    {employees.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -713,21 +810,31 @@ export default function Employees() {
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={!!employeeToTerminate} onOpenChange={(open) => {
-          if (!open) {
-            setEmployeeToTerminate(null);
-            setTerminationDate(format(new Date(), 'yyyy-MM-dd'));
-          }
-        }}>
+        <AlertDialog
+          open={!!employeeToTerminate}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEmployeeToTerminate(null);
+              setTerminationDate(format(new Date(), "yyyy-MM-dd"));
+            }
+          }}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar Desligamento</AlertDialogTitle>
               <AlertDialogDescription>
-                Você tem certeza que deseja desligar o colaborador <strong>{employeeToTerminate?.name}</strong>? Esta ação alterará o status para "Desligado", mantendo o histórico no sistema.
+                Você tem certeza que deseja desligar o colaborador{" "}
+                <strong>{employeeToTerminate?.name}</strong>? Esta ação alterará o status para
+                "Desligado", mantendo o histórico no sistema.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="py-4">
-              <Label htmlFor="quickTerminationDate" className="text-red-600 font-semibold mb-2 block">Data de Desligamento</Label>
+              <Label
+                htmlFor="quickTerminationDate"
+                className="text-red-600 font-semibold mb-2 block"
+              >
+                Data de Desligamento
+              </Label>
               <Input
                 id="quickTerminationDate"
                 type="date"
@@ -737,11 +844,20 @@ export default function Employees() {
               />
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => {
-                setEmployeeToTerminate(null);
-                setTerminationDate(format(new Date(), 'yyyy-MM-dd'));
-              }}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmTerminate} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Confirmar</AlertDialogAction>
+              <AlertDialogCancel
+                onClick={() => {
+                  setEmployeeToTerminate(null);
+                  setTerminationDate(format(new Date(), "yyyy-MM-dd"));
+                }}
+              >
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmTerminate}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Confirmar
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

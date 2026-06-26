@@ -1,35 +1,48 @@
-import { useState, useEffect } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { useEmployees } from '@/hooks/useEmployees';
-import { Download, Calculator, ChevronDown, Eye } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { format, subMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { PayslipButton } from '@/components/PayslipButton';
-import { supabase } from '@/lib/supabase';
-import { payrollExportService } from '@/services/payrollExportService';
-import { calculatePayroll as calculatePayrollService } from '@/services/payrollService';
-import { PayslipViewerModal } from '@/components/PayslipViewerModal';
+import { useState, useEffect } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { useEmployees } from "@/hooks/useEmployees";
+import { Download, Calculator, ChevronDown, Eye } from "lucide-react";
+// dynamic imports for jspdf
+import { format, subMonths } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { PayslipButton } from "@/components/PayslipButton";
+import { supabase } from "@/lib/supabase";
+import { payrollExportService } from "@/services/payrollExportService";
+import { calculatePayroll as calculatePayrollService } from "@/services/payrollService";
+import { PayslipViewerModal } from "@/components/PayslipViewerModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { DEFAULT_APP_NAME } from '@/lib/branding';
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { DEFAULT_APP_NAME } from "@/lib/branding";
 
 export default function Payroll() {
   const { employees: dbEmployees, loading } = useEmployees();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [selectedEmployeeForView, setSelectedEmployeeForView] = useState<any>(null);
@@ -39,10 +52,24 @@ export default function Payroll() {
   const employees = dbEmployees.map((emp: any) => {
     // Garante que os campos JSON sejam arrays, mesmo se vierem como string do banco
     let varDiscounts = [];
-    try { varDiscounts = typeof emp.variable_discounts === 'string' ? JSON.parse(emp.variable_discounts) : (emp.variable_discounts || []); } catch { varDiscounts = []; }
+    try {
+      varDiscounts =
+        typeof emp.variable_discounts === "string"
+          ? JSON.parse(emp.variable_discounts)
+          : emp.variable_discounts || [];
+    } catch {
+      varDiscounts = [];
+    }
 
     let varAdditions = [];
-    try { varAdditions = typeof emp.variable_additions === 'string' ? JSON.parse(emp.variable_additions) : (emp.variable_additions || []); } catch { varAdditions = []; }
+    try {
+      varAdditions =
+        typeof emp.variable_additions === "string"
+          ? JSON.parse(emp.variable_additions)
+          : emp.variable_additions || [];
+    } catch {
+      varAdditions = [];
+    }
 
     return {
       ...emp,
@@ -52,7 +79,7 @@ export default function Payroll() {
       hasNightShift: emp.has_night_shift || false,
       fixedDiscounts: emp.fixed_discounts || 0,
       variable_discounts: varDiscounts,
-      variable_additions: varAdditions
+      variable_additions: varAdditions,
     };
   });
 
@@ -60,29 +87,29 @@ export default function Payroll() {
   const [overtimeData, setOvertimeData] = useState<Record<string, number>>({});
 
   const handleOvertimeChange = (id: string, hours: string) => {
-    setOvertimeData(prev => ({ ...prev, [id]: Number(hours) || 0 }));
+    setOvertimeData((prev) => ({ ...prev, [id]: Number(hours) || 0 }));
   };
 
   // Constantes de Cálculo (Exemplos)
-  const MINIMUM_WAGE = 1412.00; // Salário Mínimo 2024
-  const INSALUBRITY_RATE = 0.20; // 20% (Grau Médio)
-  const NIGHT_SHIFT_RATE = 0.20; // 20%
+  const MINIMUM_WAGE = 1412.0; // Salário Mínimo 2024
+  const INSALUBRITY_RATE = 0.2; // 20% (Grau Médio)
+  const NIGHT_SHIFT_RATE = 0.2; // 20%
 
   // Estado para armazenar a tabela do INSS (pode vir do banco)
   const [inssTable, setInssTable] = useState([
-    { limit: 1621.00, rate: 0.075 },
+    { limit: 1621.0, rate: 0.075 },
     { limit: 2902.84, rate: 0.09 },
     { limit: 4354.27, rate: 0.12 },
-    { limit: 8475.55, rate: 0.14 }
+    { limit: 8475.55, rate: 0.14 },
   ]);
 
   // Buscar tabela atualizada do banco ao carregar
   useEffect(() => {
     const fetchTaxTable = async () => {
       const { data } = await supabase
-        .from('payroll_configurations')
-        .select('value')
-        .eq('key', 'inss_table')
+        .from("payroll_configurations")
+        .select("value")
+        .eq("key", "inss_table")
         .single();
 
       if (data && Array.isArray(data.value)) {
@@ -91,8 +118,8 @@ export default function Payroll() {
 
       // Busca configurações da empresa
       const { data: settings } = await supabase
-        .from('settings')
-        .select('company_name, cnpj')
+        .from("settings")
+        .select("company_name, cnpj")
         .maybeSingle();
 
       if (settings) setCompanySettings(settings);
@@ -105,13 +132,15 @@ export default function Payroll() {
     return calculatePayrollService(employee, overtimeHours, inssTable);
   };
 
-
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.role.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEmployees = employees.filter(
+    (emp) =>
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
     const doc = new jsPDF();
 
     doc.setFontSize(14);
@@ -123,26 +152,45 @@ export default function Payroll() {
 
     const referenceMonth = subMonths(new Date(), 1);
     doc.setFontSize(18);
-    doc.text(`Folha de Pagamento - Ref: ${format(referenceMonth, 'MMMM/yyyy', { locale: ptBR }).toUpperCase()}`, 14, 30);
+    doc.text(
+      `Folha de Pagamento - Ref: ${format(referenceMonth, "MMMM/yyyy", { locale: ptBR }).toUpperCase()}`,
+      14,
+      30
+    );
     doc.setFontSize(11);
-    doc.text(`Gerado em: ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`, 14, 38);
+    doc.text(
+      `Gerado em: ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`,
+      14,
+      38
+    );
 
-    const tableData = filteredEmployees.map(emp => {
+    const tableData = filteredEmployees.map((emp) => {
       const calc = calculatePayroll(emp);
       return [
         emp.name,
         emp.role,
-        emp.pix_key || '-',
-        calc.baseSalary.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-        calc.insalubrity.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-        calc.overtimeValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-        calc.totalDiscounts.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-        calc.netSalary.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        emp.pix_key || "-",
+        calc.baseSalary.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+        calc.insalubrity.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+        calc.overtimeValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+        calc.totalDiscounts.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+        calc.netSalary.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
       ];
     });
 
     autoTable(doc, {
-      head: [['Colaborador', 'Cargo', 'Chave PIX', 'Salário Base', 'Insalub.', 'H. Extra', 'Descontos', 'Líquido']],
+      head: [
+        [
+          "Colaborador",
+          "Cargo",
+          "Chave PIX",
+          "Salário Base",
+          "Insalub.",
+          "H. Extra",
+          "Descontos",
+          "Líquido",
+        ],
+      ],
       body: tableData,
       startY: 45,
       styles: { fontSize: 7 },
@@ -172,72 +220,77 @@ export default function Payroll() {
     doc.setTextColor(41, 128, 185);
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    doc.text((companySettings?.company_name || DEFAULT_APP_NAME).substring(0, 25), stampX + stampWidth / 2, stampY + 6, { align: 'center' });
+    doc.text(
+      (companySettings?.company_name || DEFAULT_APP_NAME).substring(0, 25),
+      stampX + stampWidth / 2,
+      stampY + 6,
+      { align: "center" }
+    );
 
     doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
     if (companySettings?.cnpj) {
-      doc.text(companySettings.cnpj, stampX + stampWidth / 2, stampY + 10, { align: 'center' });
+      doc.text(companySettings.cnpj, stampX + stampWidth / 2, stampY + 10, { align: "center" });
     }
 
-    doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy')}`, stampX + 2, stampY + 15);
+    doc.text(`Data: ${format(new Date(), "dd/MM/yyyy")}`, stampX + 2, stampY + 15);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(5);
     doc.text(companySettings?.company_name || DEFAULT_APP_NAME, stampX + 22, stampY + 15);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(5);
-    doc.text('ASSINATURA DO EMPREGADOR', stampX + stampWidth / 2, stampY + 20, { align: 'center' });
+    doc.text("ASSINATURA DO EMPREGADOR", stampX + stampWidth / 2, stampY + 20, { align: "center" });
 
-    doc.save('folha_pagamento.pdf');
+    doc.save("folha_pagamento.pdf");
   };
 
   const handleExportCNAB = () => {
-    const dataToExport = filteredEmployees.map(emp => {
+    const dataToExport = filteredEmployees.map((emp) => {
       const calc = calculatePayroll(emp);
       return {
         name: emp.name,
-        cpf: emp.pis_pasep || '000.000.000-00', // Fallback caso não tenha CPF cadastrado
+        cpf: emp.pis_pasep || "000.000.000-00", // Fallback caso não tenha CPF cadastrado
         netSalary: calc.netSalary,
         pixKey: emp.pix_key,
         // Dados bancários simulados (idealmente viriam do cadastro do colaborador)
-        bankCode: '341',
-        bankAgency: '0000',
-        bankAccount: '00000-0'
+        bankCode: "341",
+        bankAgency: "0000",
+        bankAccount: "00000-0",
       };
     });
 
     const fileContent = payrollExportService.generateCNAB240(dataToExport, {
       name: companySettings?.company_name || DEFAULT_APP_NAME,
-      cnpj: companySettings?.cnpj || '',
-      bankCode: '341'
+      cnpj: companySettings?.cnpj || "",
+      bankCode: "341",
     });
 
-    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const blob = new Blob([fileContent], { type: "text/plain" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `remessa_salarios_${format(new Date(), 'yyyyMMdd')}.rem`;
+    a.download = `remessa_salarios_${format(new Date(), "yyyyMMdd")}.rem`;
     a.click();
   };
 
   const handleExportCSV = () => {
-    const dataToExport = filteredEmployees.map(emp => {
+    const dataToExport = filteredEmployees.map((emp) => {
       const calc = calculatePayroll(emp);
       return {
         name: emp.name,
-        cpf: emp.pis_pasep || '',
+        cpf: emp.pis_pasep || "",
         netSalary: calc.netSalary,
-        pixKey: emp.pix_key
+        pixKey: emp.pix_key,
       };
     });
 
     const fileContent = payrollExportService.generateCSV(dataToExport);
-    const blob = new Blob([fileContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([fileContent], { type: "text/csv;charset=utf-8;" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `folha_pagamento_${format(new Date(), 'yyyyMMdd')}.csv`;
+    a.download = `folha_pagamento_${format(new Date(), "yyyyMMdd")}.csv`;
     a.click();
   };
 
@@ -250,35 +303,45 @@ export default function Payroll() {
       variable_additions: emp.variable_additions || [],
       variable_discounts: [
         ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
-        { description: `INSS (${format(subMonths(new Date(), 1), 'yyyy')})`, value: calc.estimatedTax }
-      ]
+        {
+          description: `INSS (${format(subMonths(new Date(), 1), "yyyy")})`,
+          value: calc.estimatedTax,
+        },
+      ],
     };
     setSelectedEmployeeForView(employeeData);
     setIsViewerOpen(true);
   };
 
   const [isTerceirizadoOpen, setIsTerceirizadoOpen] = useState(false);
-  const [terceirizadoData, setTerceirizadoData] = useState({ name: '', role: 'Terceirizado', pix_key: '', base_salary: '' });
+  const [terceirizadoData, setTerceirizadoData] = useState({
+    name: "",
+    role: "Terceirizado",
+    pix_key: "",
+    base_salary: "",
+  });
 
   const handleAddTerceirizado = async () => {
     try {
-      const { error } = await supabase.from('employees').insert([{
-        name: terceirizadoData.name,
-        role: terceirizadoData.role,
-        department: 'Terceirizados',
-        contract_type: 'Terceirizado',
-        base_salary: Number(terceirizadoData.base_salary) || 0,
-        pix_key: terceirizadoData.pix_key,
-        status: 'active',
-        password: Math.floor(1000 + Math.random() * 9000).toString()
-      }]);
+      const { error } = await supabase.from("employees").insert([
+        {
+          name: terceirizadoData.name,
+          role: terceirizadoData.role,
+          department: "Terceirizados",
+          contract_type: "Terceirizado",
+          base_salary: Number(terceirizadoData.base_salary) || 0,
+          pix_key: terceirizadoData.pix_key,
+          status: "active",
+          password: Math.floor(1000 + Math.random() * 9000).toString(),
+        },
+      ]);
       if (error) throw error;
-      toast({ title: 'Terceirizado cadastrado com sucesso!' });
+      toast({ title: "Terceirizado cadastrado com sucesso!" });
       setIsTerceirizadoOpen(false);
-      setTerceirizadoData({ name: '', role: 'Terceirizado', pix_key: '', base_salary: '' });
+      setTerceirizadoData({ name: "", role: "Terceirizado", pix_key: "", base_salary: "" });
       setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
-      toast({ title: 'Erro ao cadastrar', variant: 'destructive' });
+      toast({ title: "Erro ao cadastrar", variant: "destructive" });
     }
   };
 
@@ -348,11 +411,15 @@ export default function Payroll() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">Carregando dados...</TableCell>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      Carregando dados...
+                    </TableCell>
                   </TableRow>
                 ) : filteredEmployees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">Nenhum colaborador encontrado.</TableCell>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      Nenhum colaborador encontrado.
+                    </TableCell>
                   </TableRow>
                 ) : (
                   filteredEmployees.map((emp) => {
@@ -364,14 +431,32 @@ export default function Payroll() {
                           <div className="text-xs text-muted-foreground">{emp.role}</div>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {emp.pix_key || '-'}
+                          {emp.pix_key || "-"}
                         </TableCell>
-                        <TableCell>R$ {calc.baseSalary.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell>
+                          R$ {calc.baseSalary.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            {emp.hasInsalubrity && <Badge variant="outline" className="w-fit text-[10px] border-orange-200 bg-orange-50 text-orange-700">Insalubridade</Badge>}
-                            {emp.hasNightShift && <Badge variant="outline" className="w-fit text-[10px] border-indigo-200 bg-indigo-50 text-indigo-700">Adc. Noturno</Badge>}
-                            {!emp.hasInsalubrity && !emp.hasNightShift && <span className="text-xs text-muted-foreground">-</span>}
+                            {emp.hasInsalubrity && (
+                              <Badge
+                                variant="outline"
+                                className="w-fit text-[10px] border-orange-200 bg-orange-50 text-orange-700"
+                              >
+                                Insalubridade
+                              </Badge>
+                            )}
+                            {emp.hasNightShift && (
+                              <Badge
+                                variant="outline"
+                                className="w-fit text-[10px] border-indigo-200 bg-indigo-50 text-indigo-700"
+                              >
+                                Adc. Noturno
+                              </Badge>
+                            )}
+                            {!emp.hasInsalubrity && !emp.hasNightShift && (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -383,12 +468,22 @@ export default function Payroll() {
                               min="0"
                               onChange={(e) => handleOvertimeChange(emp.id, e.target.value)}
                             />
-                            <span className="text-xs text-muted-foreground">{calc.overtimeValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {calc.overtimeValue.toLocaleString("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                              })}
+                            </span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-red-600">- R$ {calc.totalDiscounts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-red-600">
+                          - R${" "}
+                          {calc.totalDiscounts.toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </TableCell>
                         <TableCell className="text-right font-bold text-emerald-600">
-                          R$ {calc.netSalary.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          R$ {calc.netSalary.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-2">
@@ -408,9 +503,14 @@ export default function Payroll() {
                                 overtime_amount: calc.overtimeValue,
                                 variable_additions: emp.variable_additions || [],
                                 variable_discounts: [
-                                  ...(Array.isArray(emp.variable_discounts) ? emp.variable_discounts : []),
-                                  { description: `INSS (${format(subMonths(new Date(), 1), 'yyyy')})`, value: calc.estimatedTax }
-                                ]
+                                  ...(Array.isArray(emp.variable_discounts)
+                                    ? emp.variable_discounts
+                                    : []),
+                                  {
+                                    description: `INSS (${format(subMonths(new Date(), 1), "yyyy")})`,
+                                    value: calc.estimatedTax,
+                                  },
+                                ],
                               }}
                               referenceDate={subMonths(new Date(), 1)}
                             />
@@ -436,28 +536,57 @@ export default function Payroll() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Cadastrar Terceirizado</DialogTitle>
-              <DialogDescription>Adicione rapidamente um prestador de serviço (Terceirizado) à folha de pagamento.</DialogDescription>
+              <DialogDescription>
+                Adicione rapidamente um prestador de serviço (Terceirizado) à folha de pagamento.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Nome Completo</Label>
-                <Input value={terceirizadoData.name} onChange={e => setTerceirizadoData({ ...terceirizadoData, name: e.target.value })} placeholder="Nome do terceirizado" />
+                <Input
+                  value={terceirizadoData.name}
+                  onChange={(e) =>
+                    setTerceirizadoData({ ...terceirizadoData, name: e.target.value })
+                  }
+                  placeholder="Nome do terceirizado"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Serviço/Função</Label>
-                <Input value={terceirizadoData.role} onChange={e => setTerceirizadoData({ ...terceirizadoData, role: e.target.value })} placeholder="Ex: Segurança, Limpeza" />
+                <Input
+                  value={terceirizadoData.role}
+                  onChange={(e) =>
+                    setTerceirizadoData({ ...terceirizadoData, role: e.target.value })
+                  }
+                  placeholder="Ex: Segurança, Limpeza"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Valor Acordado (R$)</Label>
-                <Input type="number" value={terceirizadoData.base_salary} onChange={e => setTerceirizadoData({ ...terceirizadoData, base_salary: e.target.value })} placeholder="2000.00" />
+                <Input
+                  type="number"
+                  value={terceirizadoData.base_salary}
+                  onChange={(e) =>
+                    setTerceirizadoData({ ...terceirizadoData, base_salary: e.target.value })
+                  }
+                  placeholder="2000.00"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Chave PIX</Label>
-                <Input value={terceirizadoData.pix_key} onChange={e => setTerceirizadoData({ ...terceirizadoData, pix_key: e.target.value })} placeholder="CPF, Email ou Celular" />
+                <Input
+                  value={terceirizadoData.pix_key}
+                  onChange={(e) =>
+                    setTerceirizadoData({ ...terceirizadoData, pix_key: e.target.value })
+                  }
+                  placeholder="CPF, Email ou Celular"
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsTerceirizadoOpen(false)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => setIsTerceirizadoOpen(false)}>
+                Cancelar
+              </Button>
               <Button onClick={handleAddTerceirizado}>Salvar Terceirizado</Button>
             </DialogFooter>
           </DialogContent>

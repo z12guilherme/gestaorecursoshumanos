@@ -1,13 +1,26 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, LogOut, MapPin, IdCard, User } from "lucide-react";
 import { PayslipButton } from "@/components/PayslipButton";
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { EmployeeBadge } from "@/components/EmployeeBadge";
 import { useSettings } from "@/hooks/useSettings";
 import { subMonths } from "date-fns";
@@ -24,13 +37,22 @@ export default function ClockIn() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (cooldown > 0) {
+      timer = setInterval(() => setCooldown((c) => c - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   // Estado do funcionário autenticado (com dados completos para o holerite)
   const [authenticatedEmployee, setAuthenticatedEmployee] = useState<any | null>(null);
 
   // Estados para atualização de dados do funcionário
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
-  const [updateData, setUpdateData] = useState({ email: '', phone: '' });
+  const [updateData, setUpdateData] = useState({ email: "", phone: "" });
   const [updatePin, setUpdatePin] = useState("");
   const [updating, setUpdating] = useState(false);
 
@@ -51,16 +73,23 @@ export default function ClockIn() {
 
   const handleLogin = async () => {
     if (!selectedId || !pin) {
-      toast({ title: "Erro", description: "Selecione o seu nome e digite a senha.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Selecione o seu nome e digite a senha.",
+        variant: "destructive",
+      });
       return;
     }
 
     setLoading(true);
     try {
       // 1. Validação segura via Edge Function (Hash)
-      const { data: validation, error: validationError } = await supabase.functions.invoke('validate-pin', {
-        body: { employee_id: selectedId, pin: pin }
-      });
+      const { data: validation, error: validationError } = await supabase.functions.invoke(
+        "validate-pin",
+        {
+          body: { employee_id: selectedId, pin: pin },
+        }
+      );
 
       if (validationError || !validation || !validation.isValid) {
         throw new Error("Senha incorreta");
@@ -76,32 +105,40 @@ export default function ClockIn() {
       if (error || !employee) throw new Error("Funcionário não encontrado");
 
       setAuthenticatedEmployee(employee);
-      setUpdateData({ email: employee.email || '', phone: employee.phone || '' });
+      setUpdateData({ email: employee.email || "", phone: employee.phone || "" });
       setPin(""); // Limpa o PIN por segurança
     } catch (error) {
       console.error("Erro de autenticação:", error);
-      toast({ title: "Acesso Negado", description: "Senha incorreta ou erro de conexão.", variant: "destructive" });
+      toast({
+        title: "Acesso Negado",
+        description: "Senha incorreta ou erro de conexão.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClockIn = async (type: 'in' | 'out') => {
+  const handleClockIn = async (type: "in" | "out") => {
     if (!authenticatedEmployee) return;
     setLoading(true);
 
     try {
       // Validação de sequência de ponto
       const { data: lastEntry } = await supabase
-        .from('time_entries')
-        .select('type, timestamp')
-        .eq('employee_id', authenticatedEmployee.id)
-        .order('timestamp', { ascending: false })
+        .from("time_entries")
+        .select("type, timestamp")
+        .eq("employee_id", authenticatedEmployee.id)
+        .order("timestamp", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (!lastEntry && type !== 'in') {
-        toast({ title: "Ação Inválida", description: "Seu primeiro registro do dia deve ser uma entrada.", variant: "destructive" });
+      if (!lastEntry && type !== "in") {
+        toast({
+          title: "Ação Inválida",
+          description: "Seu primeiro registro do dia deve ser uma entrada.",
+          variant: "destructive",
+        });
         setLoading(false);
         return;
       }
@@ -109,28 +146,41 @@ export default function ClockIn() {
       if (lastEntry) {
         const lastEntryDate = new Date(lastEntry.timestamp);
         const today = new Date();
-        const isSameDay = lastEntryDate.getDate() === today.getDate() &&
+        const isSameDay =
+          lastEntryDate.getDate() === today.getDate() &&
           lastEntryDate.getMonth() === today.getMonth() &&
           lastEntryDate.getFullYear() === today.getFullYear();
 
         if (isSameDay) {
           const diffMinutes = (today.getTime() - lastEntryDate.getTime()) / (1000 * 60);
           if (diffMinutes < 1) {
-            toast({ title: "Aguarde um momento", description: "Ponto já registrado. Aguarde pelo menos 1 minuto.", variant: "destructive" });
+            toast({
+              title: "Aguarde um momento",
+              description: "Ponto já registrado. Aguarde pelo menos 1 minuto.",
+              variant: "destructive",
+            });
             setLoading(false);
             return;
           }
 
-          const isLastIn = lastEntry.type === 'in' || lastEntry.type === 'lunch_end';
-          const isLastOut = lastEntry.type === 'out' || lastEntry.type === 'lunch_start';
+          const isLastIn = lastEntry.type === "in" || lastEntry.type === "lunch_end";
+          const isLastOut = lastEntry.type === "out" || lastEntry.type === "lunch_start";
 
-          if ((type === 'in' && isLastIn) || (type === 'out' && isLastOut)) {
-            toast({ title: "Ação Inválida", description: `Você já possui um registro de ${isLastIn ? 'entrada' : 'saída'}.`, variant: "destructive" });
+          if ((type === "in" && isLastIn) || (type === "out" && isLastOut)) {
+            toast({
+              title: "Ação Inválida",
+              description: `Você já possui um registro de ${isLastIn ? "entrada" : "saída"}.`,
+              variant: "destructive",
+            });
             setLoading(false);
             return;
           }
-        } else if (type !== 'in') {
-          toast({ title: "Ação Inválida", description: "Seu primeiro registro do dia deve ser uma entrada.", variant: "destructive" });
+        } else if (type !== "in") {
+          toast({
+            title: "Ação Inválida",
+            description: "Seu primeiro registro do dia deve ser uma entrada.",
+            variant: "destructive",
+          });
           setLoading(false);
           return;
         }
@@ -145,7 +195,7 @@ export default function ClockIn() {
           });
           location = {
             lat: position.coords.latitude,
-            lng: position.coords.longitude
+            lng: position.coords.longitude,
           };
         } catch (e) {
           console.log("Localização não permitida ou indisponível");
@@ -157,22 +207,27 @@ export default function ClockIn() {
         type: type,
         timestamp: new Date().toISOString(),
         latitude: location?.lat,
-        longitude: location?.lng
+        longitude: location?.lng,
       });
 
       if (error) throw error;
 
       toast({
-        title: type === 'in' ? "Entrada Registrada!" : "Saída Registrada!",
+        title: type === "in" ? "Entrada Registrada!" : "Saída Registrada!",
         description: `Ponto registrado às ${new Date().toLocaleTimeString()}`,
-        className: "bg-green-600 text-white border-none"
+        className: "bg-green-600 text-white border-none",
       });
 
-      // Opcional: Deslogar automaticamente após registrar
-      // handleLogout(); 
+      setCooldown(15);
 
+      // Opcional: Deslogar automaticamente após registrar
+      // handleLogout();
     } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível registrar o ponto.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Não foi possível registrar o ponto.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -180,32 +235,47 @@ export default function ClockIn() {
 
   const handleUpdateData = async () => {
     if (!updatePin) {
-      toast({ title: "Erro", description: "Digite seu PIN para confirmar.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "Digite seu PIN para confirmar.",
+        variant: "destructive",
+      });
       return;
     }
     setUpdating(true);
     try {
-      const { data: validation, error: validationError } = await supabase.functions.invoke('validate-pin', {
-        body: { employee_id: authenticatedEmployee.id, pin: updatePin }
-      });
+      const { data: validation, error: validationError } = await supabase.functions.invoke(
+        "validate-pin",
+        {
+          body: { employee_id: authenticatedEmployee.id, pin: updatePin },
+        }
+      );
 
       if (validationError || !validation || !validation.isValid) {
         throw new Error("PIN incorreto");
       }
 
       const { error } = await supabase
-        .from('employees')
+        .from("employees")
         .update({ email: updateData.email, phone: updateData.phone })
-        .eq('id', authenticatedEmployee.id);
+        .eq("id", authenticatedEmployee.id);
 
       if (error) throw error;
 
       toast({ title: "Sucesso", description: "Dados atualizados com sucesso!" });
-      setAuthenticatedEmployee({ ...authenticatedEmployee, email: updateData.email, phone: updateData.phone });
+      setAuthenticatedEmployee({
+        ...authenticatedEmployee,
+        email: updateData.email,
+        phone: updateData.phone,
+      });
       setIsUpdateDialogOpen(false);
       setUpdatePin("");
     } catch (error) {
-      toast({ title: "Erro", description: "PIN incorreto ou erro ao atualizar.", variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: "PIN incorreto ou erro ao atualizar.",
+        variant: "destructive",
+      });
     } finally {
       setUpdating(false);
     }
@@ -238,7 +308,9 @@ export default function ClockIn() {
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -270,35 +342,41 @@ export default function ClockIn() {
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-xl">Olá, {authenticatedEmployee.name.split(' ')[0]}</CardTitle>
+              <CardTitle className="text-xl">
+                Olá, {authenticatedEmployee.name.split(" ")[0]}
+              </CardTitle>
               <CardDescription>{authenticatedEmployee.role}</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-muted-foreground"
+            >
               <LogOut className="h-4 w-4 mr-2" /> Sair
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
-
           {/* Área de Registro de Ponto */}
           <div className="grid grid-cols-2 gap-4">
             <Button
               size="lg"
               className="h-24 text-lg flex flex-col gap-2 bg-green-600 hover:bg-green-700"
-              onClick={() => handleClockIn('in')}
-              disabled={loading}
+              onClick={() => handleClockIn("in")}
+              disabled={loading || cooldown > 0}
             >
               <Clock className="h-6 w-6" />
-              Entrada
+              {cooldown > 0 ? `Aguarde ${cooldown}s` : "Entrada"}
             </Button>
             <Button
               size="lg"
               className="h-24 text-lg flex flex-col gap-2 bg-orange-600 hover:bg-orange-700"
-              onClick={() => handleClockIn('out')}
-              disabled={loading}
+              onClick={() => handleClockIn("out")}
+              disabled={loading || cooldown > 0}
             >
               <LogOut className="h-6 w-6" />
-              Saída
+              {cooldown > 0 ? `Aguarde ${cooldown}s` : "Saída"}
             </Button>
           </div>
 
@@ -317,7 +395,9 @@ export default function ClockIn() {
             <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg flex items-center justify-between border border-blue-100 dark:border-blue-900">
               <div className="flex flex-col">
                 <span className="font-medium text-blue-900 dark:text-blue-300">Contra Cheque</span>
-                <span className="text-xs text-blue-700 dark:text-blue-400">Baixar documento assinado</span>
+                <span className="text-xs text-blue-700 dark:text-blue-400">
+                  Baixar documento assinado
+                </span>
               </div>
 
               <PayslipButton
@@ -329,8 +409,12 @@ export default function ClockIn() {
             {/* Área do Crachá */}
             <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg flex items-center justify-between border border-slate-200 dark:border-slate-800">
               <div className="flex flex-col">
-                <span className="font-medium text-slate-900 dark:text-slate-300">Crachá Funcional</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">Visualizar versão digital</span>
+                <span className="font-medium text-slate-900 dark:text-slate-300">
+                  Crachá Funcional
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Visualizar versão digital
+                </span>
               </div>
 
               <Dialog>
@@ -353,8 +437,12 @@ export default function ClockIn() {
             {/* Área de Atualização de Dados */}
             <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg flex items-center justify-between border border-slate-200 dark:border-slate-800">
               <div className="flex flex-col">
-                <span className="font-medium text-slate-900 dark:text-slate-300">Atualizar Cadastro</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">Mantenha seus dados em dia</span>
+                <span className="font-medium text-slate-900 dark:text-slate-300">
+                  Atualizar Cadastro
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Mantenha seus dados em dia
+                </span>
               </div>
 
               <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
@@ -376,7 +464,7 @@ export default function ClockIn() {
                       <label className="text-sm font-medium">Email Pessoal</label>
                       <Input
                         value={updateData.email}
-                        onChange={e => setUpdateData({ ...updateData, email: e.target.value })}
+                        onChange={(e) => setUpdateData({ ...updateData, email: e.target.value })}
                         placeholder="seu.email@exemplo.com"
                       />
                     </div>
@@ -384,7 +472,7 @@ export default function ClockIn() {
                       <label className="text-sm font-medium">Telefone / WhatsApp</label>
                       <Input
                         value={updateData.phone}
-                        onChange={e => setUpdateData({ ...updateData, phone: e.target.value })}
+                        onChange={(e) => setUpdateData({ ...updateData, phone: e.target.value })}
                         placeholder="(00) 00000-0000"
                       />
                     </div>
@@ -396,14 +484,16 @@ export default function ClockIn() {
                         type="password"
                         maxLength={6}
                         value={updatePin}
-                        onChange={e => setUpdatePin(e.target.value)}
+                        onChange={(e) => setUpdatePin(e.target.value)}
                         placeholder="Digite seu PIN"
                         className="text-center tracking-widest text-lg"
                       />
                     </div>
                   </div>
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>Cancelar</Button>
+                    <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>
+                      Cancelar
+                    </Button>
                     <Button onClick={handleUpdateData} disabled={updating}>
                       {updating ? "Salvando..." : "Salvar Alterações"}
                     </Button>
@@ -417,7 +507,6 @@ export default function ClockIn() {
             <MapPin className="h-3 w-3" />
             Localização será registrada por segurança
           </div>
-
         </CardContent>
       </Card>
     </div>
