@@ -26,16 +26,16 @@ export default function LoginPage() {
     const checkMfaAndNavigate = async () => {
       if (session) {
         if (!USE_MOCK && !profile) return; // Wait for profile to load before routing
-        
+
         // 🔀 Mock: pula verificação MFA
         if (USE_MOCK) {
           navigate(isManager ? "/manager-portal" : "/");
           return;
         }
         const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (!error && data.nextLevel === 'aal2' && data.currentLevel === 'aal1') {
+        if (!error && data.nextLevel === "aal2" && data.currentLevel === "aal1") {
           const { data: factors } = await supabase.auth.mfa.listFactors();
-          const totpFactor = factors?.totp.find(f => f.status === 'verified');
+          const totpFactor = factors?.totp.find((f) => f.status === "verified");
           if (totpFactor) {
             setFactorId(totpFactor.id);
             setShowMfa(true);
@@ -74,7 +74,7 @@ export default function LoginPage() {
       toast({
         title: "Erro ao entrar",
         description: "Email ou senha incorretos ou erro de conexão.",
-        variant: "destructive"
+        variant: "destructive",
       });
       setIsLoading(false);
     }
@@ -101,7 +101,7 @@ export default function LoginPage() {
       toast({
         title: "Código inválido",
         description: "Verifique o aplicativo autenticador e tente novamente.",
-        variant: "destructive"
+        variant: "destructive",
       });
       setIsLoading(false);
     }
@@ -110,24 +110,37 @@ export default function LoginPage() {
   return (
     <section className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 flex items-center justify-center p-4">
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col-reverse lg:flex-row min-h-[600px]">
-
         {/* Left Column - Form */}
         <div className="w-full lg:w-1/2 p-8 md:p-12 flex flex-col relative animate-in fade-in slide-in-from-left-8 duration-700">
           <div className="flex-1 flex flex-col justify-center">
             <div className="text-center mb-6">
-              <div className="inline-flex p-4 rounded-3xl bg-blue-50/50 mb-6 shadow-sm ring-1 ring-blue-100" style={{ backgroundImage: settings?.avatar_url ? 'none' : undefined }}>
-                <img src={settings?.avatar_url || "/placeholder.svg"} className="w-12 h-12 object-contain bg-white rounded-2xl p-1" alt="logo da empresa" />
+              <div
+                className="inline-flex p-4 rounded-3xl bg-blue-50/50 mb-6 shadow-sm ring-1 ring-blue-100"
+                style={{ backgroundImage: settings?.avatar_url ? "none" : undefined }}
+              >
+                <img
+                  src={settings?.avatar_url || "/placeholder.svg"}
+                  className="w-12 h-12 object-contain bg-white rounded-2xl p-1"
+                  alt="logo da empresa"
+                />
               </div>
-              <h4 className="text-3xl font-bold text-slate-900 tracking-tight">Bem-vindo de volta</h4>
+              <h4 className="text-3xl font-bold text-slate-900 tracking-tight">
+                Bem-vindo de volta
+              </h4>
               <p className="text-slate-500 mt-3 text-sm">Acesse sua conta para gerenciar o RH</p>
             </div>
 
             {showMfa ? (
-              <form onSubmit={handleVerifyMfa} className="space-y-5 max-w-sm mx-auto w-full animate-in fade-in zoom-in-95 duration-300">
+              <form
+                onSubmit={handleVerifyMfa}
+                className="space-y-5 max-w-sm mx-auto w-full animate-in fade-in zoom-in-95 duration-300"
+              >
                 <div className="text-center mb-6">
                   <Shield className="h-12 w-12 mx-auto text-blue-600 mb-3" />
                   <h5 className="text-xl font-bold text-slate-900">Verificação em Duas Etapas</h5>
-                  <p className="text-sm text-slate-500 mt-2">Digite o código de 6 dígitos gerado pelo seu aplicativo autenticador.</p>
+                  <p className="text-sm text-slate-500 mt-2">
+                    Digite o código de 6 dígitos gerado pelo seu aplicativo autenticador.
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <div className="relative group">
@@ -135,32 +148,49 @@ export default function LoginPage() {
                     <input
                       type="text"
                       maxLength={6}
-                      className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50/30 focus:bg-white placeholder:text-slate-400 text-center tracking-widest text-2xl font-mono"
+                      className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50/30 focus:bg-white text-slate-900 placeholder:text-slate-400 text-center tracking-widest text-2xl font-mono"
                       placeholder="000000"
                       value={mfaCode}
-                      onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
                       required
                     />
                   </div>
                 </div>
                 <div className="pt-2">
-                  <button type="submit" disabled={isLoading || mfaCode.length !== 6} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none">
+                  <button
+                    type="submit"
+                    disabled={isLoading || mfaCode.length !== 6}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                  >
                     {isLoading ? "Verificando..." : "Validar Acesso"}
                   </button>
                 </div>
-                <button type="button" onClick={() => { setShowMfa(false); setIsLoading(false); supabase.auth.signOut(); }} className="w-full text-sm text-slate-500 hover:text-slate-700 mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMfa(false);
+                    setIsLoading(false);
+                    supabase.auth.signOut();
+                  }}
+                  className="w-full text-sm text-slate-500 hover:text-slate-700 mt-4 text-center"
+                >
                   Cancelar e voltar ao login
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleLogin} className="space-y-5 max-w-sm mx-auto w-full animate-in fade-in duration-300">
+              <form
+                onSubmit={handleLogin}
+                className="space-y-5 max-w-sm mx-auto w-full animate-in fade-in duration-300"
+              >
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-600 ml-1">E-mail Corporativo</label>
+                  <label className="text-xs font-medium text-slate-600 ml-1">
+                    E-mail Corporativo
+                  </label>
                   <div className="relative group">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                     <input
                       type="email"
-                      className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50/30 focus:bg-white placeholder:text-slate-400"
+                      className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50/30 focus:bg-white text-slate-900 placeholder:text-slate-400"
                       placeholder="exemplo@rededmi.com.br"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -177,7 +207,7 @@ export default function LoginPage() {
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                     <input
                       type="password"
-                      className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50/30 focus:bg-white placeholder:text-slate-400"
+                      className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50/30 focus:bg-white text-slate-900 placeholder:text-slate-400"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -208,13 +238,15 @@ export default function LoginPage() {
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-slate-200"></span>
               </div>
-              <span className="relative bg-white px-4 text-xs text-slate-400 uppercase tracking-wider font-medium">Acesso Rápido</span>
+              <span className="relative bg-white px-4 text-xs text-slate-400 uppercase tracking-wider font-medium">
+                Acesso Rápido
+              </span>
             </div>
 
             <div className="mt-6 space-y-4 max-w-sm mx-auto w-full">
               <button
                 type="submit"
-                onClick={() => navigate('/clock-in')}
+                onClick={() => navigate("/clock-in")}
                 className="w-full py-3 px-4 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 font-medium flex items-center justify-center gap-2 transition-all group"
               >
                 <div className="p-1.5 bg-white rounded-lg border border-slate-200 group-hover:border-blue-200 transition-colors">
@@ -232,9 +264,12 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center flex flex-col items-center gap-1.5">
             <p className="text-[10px] text-slate-400">
-              © {new Date().getFullYear()} {settings?.company_name || DEFAULT_EMPLOYEE_PORTAL_NAME}. Todos os direitos reservados.
+              © {new Date().getFullYear()} {settings?.company_name || DEFAULT_EMPLOYEE_PORTAL_NAME}.
+              Todos os direitos reservados.
             </p>
-            <p className="text-[10px] text-slate-500 font-medium tracking-wide">Desenvolvido e Auditado por Marcos Guilherme</p>
+            <p className="text-[10px] text-slate-500 font-medium tracking-wide">
+              Desenvolvido e Auditado por Marcos Guilherme
+            </p>
           </div>
         </div>
 
@@ -256,13 +291,15 @@ export default function LoginPage() {
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
               <span>Sistema Operacional</span>
             </div>
-            <h2 className="text-4xl font-bold mb-4 leading-tight">{settings?.login_title || 'Excelência em Gestão de Pessoas'}</h2>
+            <h2 className="text-4xl font-bold mb-4 leading-tight">
+              {settings?.login_title || "Excelência em Gestão de Pessoas"}
+            </h2>
             <p className="text-slate-200 text-lg leading-relaxed max-w-md">
-              {settings?.login_subtitle || 'Plataforma integrada para otimizar os processos de RH da sua empresa, garantindo eficiência e cuidado com seus colaboradores.'}
+              {settings?.login_subtitle ||
+                "Plataforma integrada para otimizar os processos de RH da sua empresa, garantindo eficiência e cuidado com seus colaboradores."}
             </p>
           </div>
         </div>
-
       </div>
     </section>
   );
