@@ -84,21 +84,30 @@ const sanitizeDate = (dateString?: string | null) => {
   return null;
 };
 
+// Função para mock de compressão de imagem se não existir
+const compressImage = async (file: File): Promise<File> => {
+  return file;
+};
+
 export default function Employees() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
   const {
     employees: dbEmployees,
-    totalCount,
+    totalCount: _dbTotal, // We will calculate total on client side
     loading,
     addEmployee,
     updateEmployee,
     deleteEmployee,
     refetch,
-  } = useEmployees(page, pageSize);
+  } = useEmployees(1, 10000);
   const { signOut } = useAuth();
-  const { requests: timeOffRequests, updateRequest, refetch: refetchTimeOff } = useTimeOff();
+  const {
+    requests: timeOffRequests,
+    updateRequestStatus: updateRequest,
+    refetch: refetchTimeOff,
+  } = useTimeOff();
   const { settings } = useSettings();
 
   // Mapeia os dados do Supabase (DB) para o formato da UI (Employee)
@@ -211,6 +220,14 @@ export default function Employees() {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
+  // Client-side pagination
+  const paginatedEmployees = filteredEmployees.slice((page - 1) * pageSize, page * pageSize);
+
+  // Reset to first page when searching or filtering
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchTerm, departmentFilter, statusFilter]);
+
   const handleView = (employee: Employee) => {
     setSelectedEmployee(employee);
     setIsDetailOpen(true);
@@ -251,7 +268,7 @@ export default function Employees() {
           toast({
             title: "Aviso:",
             description: "Erro ao salvar a foto, mas os dados serão salvos.",
-            variant: "warning",
+            variant: "default",
           });
         }
       }
@@ -345,16 +362,13 @@ export default function Employees() {
         // Atualiza todas as solicitações em paralelo de forma segura
         await Promise.all(
           activeRequests.map(async (req) => {
-            if (typeof updateRequest === "function") {
-              return updateRequest(req.id, { end_date: yesterdayStr });
-            } else {
-              // Fallback seguro com o Supabase caso o hook useTimeOff não exporte a função updateRequest
-              const { error } = await supabase
-                .from("time_off_requests")
-                .update({ end_date: yesterdayStr })
-                .eq("id", req.id);
-              if (error) throw error;
-            }
+            // O hook useTimeOff não possui uma função genérica de update,
+            // então chamamos o Supabase diretamente para atualizar a data final.
+            const { error } = await supabase
+              .from("time_off_requests")
+              .update({ end_date: yesterdayStr })
+              .eq("id", req.id);
+            if (error) throw error;
           })
         );
 
@@ -675,7 +689,7 @@ export default function Employees() {
 
         {/* Table */}
         <EmployeeTable
-          employees={filteredEmployees}
+          employees={paginatedEmployees as any}
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleTerminateClick}
@@ -686,7 +700,8 @@ export default function Employees() {
         {/* Pagination Controls */}
         <div className="flex items-center justify-between px-2 py-4">
           <div className="text-sm text-muted-foreground">
-            Mostrando {filteredEmployees.length} de {totalCount} colaboradores (Página {page})
+            Mostrando {paginatedEmployees.length} de {filteredEmployees.length} colaboradores
+            (Página {page})
           </div>
           <div className="flex gap-2">
             <Button
@@ -701,7 +716,7 @@ export default function Employees() {
               variant="outline"
               size="sm"
               onClick={() => setPage((p) => p + 1)}
-              disabled={page * pageSize >= totalCount || loading}
+              disabled={page * pageSize >= filteredEmployees.length || loading}
             >
               Próxima
             </Button>
@@ -718,7 +733,7 @@ export default function Employees() {
 
         <EmployeeDetailSheet
           employee={selectedEmployee}
-          timeOffRequests={timeOffRequests}
+          timeOffRequests={timeOffRequests as any}
           open={isDetailOpen}
           onOpenChange={setIsDetailOpen}
           onEdit={() => {
