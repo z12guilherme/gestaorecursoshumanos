@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { auditService, AuditLog } from "@/services/auditService";
 import { archiveService } from "@/services/archiveService";
 import { supabase } from "@/lib/supabase";
@@ -17,6 +17,14 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ShieldAlert, ChevronLeft, ChevronRight, Archive, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type AuditValue =
   | string
@@ -35,12 +43,7 @@ export default function AuditLogs() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchLogs();
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const { data } = await supabase.from("profiles").select("id, full_name");
       if (data) {
@@ -53,10 +56,11 @@ export default function AuditLogs() {
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);
     }
-  };
+  }, []);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
+      setLoading(true);
       const data = await auditService.getLogs();
       setLogs(data);
     } catch (error) {
@@ -64,7 +68,12 @@ export default function AuditLogs() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchLogs();
+    fetchUsers();
+  }, [fetchLogs, fetchUsers]);
 
   const handleArchiveLogs = async () => {
     if (
@@ -292,12 +301,22 @@ export default function AuditLogs() {
                       {log.changed_by ? userMap[log.changed_by] || log.changed_by : "Sistema"}
                     </TableCell>
                     <TableCell>
-                      <details className="cursor-pointer text-sm text-muted-foreground group">
-                        <summary className="hover:text-primary transition-colors">
-                          Ver Dados
-                        </summary>
-                        {renderAuditDetails(log)}
-                      </details>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            Ver Dados
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-3xl">
+                          <DialogHeader>
+                            <DialogTitle>Detalhes da Auditoria</DialogTitle>
+                            <DialogDescription>
+                              Visualização completa dos dados antes e depois da alteração.
+                            </DialogDescription>
+                          </DialogHeader>
+                          {renderAuditDetails(log)}
+                        </DialogContent>
+                      </Dialog>
                     </TableCell>
                   </TableRow>
                 ))}
