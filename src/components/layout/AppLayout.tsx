@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Bell, Search, UserPlus, CalendarOff, UserCheck, Star, Cake, Loader2 } from "lucide-react";
@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { useNotifications, AppNotification, NotificationType } from "@/hooks/useNotifications";
+import { useSettings } from "@/hooks/useSettings";
+import { DEFAULT_APP_NAME } from "@/lib/branding";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -34,12 +36,18 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { notifications, unreadCount, isLoading, formatRelativeTime } = useNotifications();
+  const { settings } = useSettings();
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {
       navigate(`/employees?search=${encodeURIComponent(searchQuery)}`);
     }
   };
+
+  useEffect(() => {
+    const baseTitle = settings?.company_name || DEFAULT_APP_NAME;
+    document.title = `${title} | ${baseTitle}`;
+  }, [settings, title]);
 
   const handleNotificationClick = (notification: AppNotification) => {
     if (notification.link) {
