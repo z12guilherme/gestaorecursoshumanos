@@ -61,7 +61,7 @@ export default function AuditLogs() {
   const fetchLogs = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await auditService.getLogs();
+      const { data } = await auditService.getLogs();
       setLogs(data);
     } catch (error) {
       console.error("Erro ao buscar logs:", error);
@@ -123,6 +123,22 @@ export default function AuditLogs() {
     return JSON.stringify(value, null, 2);
   };
 
+  const tryParseJson = (value: unknown) => {
+    if (typeof value !== "string") return value;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  };
+
+  const formatPrettyJson = (value: unknown) => {
+    const parsed = tryParseJson(value);
+    if (parsed === null || parsed === undefined) return "Nenhum dado detalhado disponível.";
+    if (typeof parsed === "string") return parsed;
+    return JSON.stringify(parsed, null, 2);
+  };
+
   const getChangedFields = (
     oldData: Record<string, AuditValue> | null,
     newData: Record<string, AuditValue> | null
@@ -143,32 +159,39 @@ export default function AuditLogs() {
     const hasStructuredDiff = changedFields.length > 0;
 
     return (
-      <div className="mt-2 rounded-xl border bg-muted/60 p-3 font-mono text-xs max-w-[680px] shadow-sm">
-        <ScrollArea className="max-h-[320px] w-full pr-4">
+      <div className="mt-2 rounded-xl border bg-muted/60 p-3 font-mono text-xs shadow-sm">
+        <ScrollArea className="max-h-[420px] w-full pr-4">
           <div className="space-y-4">
-            <div className="rounded-lg border bg-background/80 p-3">
-              <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-xl border bg-background/90 p-4 shadow-sm">
+              <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                 Resumo do registro
               </div>
-              <div className="grid gap-2 md:grid-cols-2">
-                <div>
-                  <span className="text-muted-foreground">Ação:</span> {log.action}
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-lg bg-muted/40 p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Ação
+                  </div>
+                  <div className="mt-1 font-semibold">{log.action}</div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Tabela:</span> {log.table_name}
+                <div className="rounded-lg bg-muted/40 p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Tabela
+                  </div>
+                  <div className="mt-1 font-semibold">{log.table_name}</div>
                 </div>
-                <div className="md:col-span-2">
-                  <span className="text-muted-foreground">Registro:</span> {log.record_id}
+                <div className="md:col-span-2 rounded-lg bg-muted/40 p-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Registro
+                  </div>
+                  <div className="mt-1 break-all font-mono text-[11px]">{log.record_id}</div>
                 </div>
               </div>
             </div>
 
             {hasStructuredDiff && (
               <div className="space-y-4">
-                <div className="rounded-lg border bg-background/80 p-3">
-                  <span className="font-bold text-primary block mb-2 underline">
-                    Campos alterados
-                  </span>
+                <div className="rounded-xl border bg-background/90 p-4">
+                  <span className="mb-3 block font-bold text-primary">Campos alterados</span>
                   <div className="space-y-3">
                     {changedFields.map((field) => {
                       const before = oldData?.[field];
@@ -214,27 +237,32 @@ export default function AuditLogs() {
             )}
 
             <div className="grid gap-4">
-              {log.old_data && (
-                <div className="rounded-lg border bg-background/80 p-3">
-                  <span className="font-bold text-red-500 block mb-2 underline">
-                    Antes - JSON completo:
-                  </span>
-                  <pre className="whitespace-pre-wrap break-words">
-                    {JSON.stringify(log.old_data, null, 2)}
-                  </pre>
+              {log.old_data !== null && log.old_data !== undefined && (
+                <div className="rounded-xl border bg-background/90 p-4">
+                  <span className="mb-2 block font-bold text-red-500">ANTES - JSON completo:</span>
+                  <ScrollArea className="max-h-[240px] rounded-md border bg-muted/30">
+                    <pre className="whitespace-pre-wrap break-words p-3 text-[11px] leading-relaxed">
+                      {formatPrettyJson(log.old_data)}
+                    </pre>
+                  </ScrollArea>
                 </div>
               )}
-              {log.new_data && (
-                <div className="rounded-lg border bg-background/80 p-3">
-                  <span className="font-bold text-green-500 block mb-2 underline">
-                    Depois - JSON completo:
+              {log.new_data !== null && log.new_data !== undefined && (
+                <div className="rounded-xl border bg-background/90 p-4">
+                  <span className="mb-2 block font-bold text-green-500">
+                    DEPOIS - JSON completo:
                   </span>
-                  <pre className="whitespace-pre-wrap break-words">
-                    {JSON.stringify(log.new_data, null, 2)}
-                  </pre>
+                  <ScrollArea className="max-h-[240px] rounded-md border bg-muted/30">
+                    <pre className="whitespace-pre-wrap break-words p-3 text-[11px] leading-relaxed">
+                      {formatPrettyJson(log.new_data)}
+                    </pre>
+                  </ScrollArea>
                 </div>
               )}
-              {!log.old_data && !log.new_data && <span>Nenhum dado detalhado disponível.</span>}
+              {log.old_data === null &&
+                log.old_data === undefined &&
+                log.new_data === null &&
+                log.new_data === undefined && <span>Nenhum dado detalhado disponível.</span>}
             </div>
           </div>
         </ScrollArea>
@@ -242,7 +270,6 @@ export default function AuditLogs() {
     );
   };
 
-  // Lógica de Paginação
   const totalPages = Math.ceil(logs.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentLogs = logs.slice(startIndex, startIndex + itemsPerPage);
@@ -251,7 +278,7 @@ export default function AuditLogs() {
 
   return (
     <div className="space-y-6 p-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
           <ShieldAlert className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold tracking-tight">Logs de Auditoria</h1>
@@ -322,7 +349,7 @@ export default function AuditLogs() {
                 ))}
                 {logs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                       Nenhum registro de auditoria encontrado.
                     </TableCell>
                   </TableRow>
@@ -331,10 +358,9 @@ export default function AuditLogs() {
             </Table>
           </ScrollArea>
 
-          {/* Controles de Paginação */}
           {logs.length > 0 && (
             <div className="flex items-center justify-end space-x-2 py-4">
-              <div className="text-sm text-muted-foreground mr-4">
+              <div className="mr-4 text-sm text-muted-foreground">
                 Página {currentPage} de {totalPages}
               </div>
               <Button
