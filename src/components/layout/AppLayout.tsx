@@ -46,59 +46,9 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
 
   useEffect(() => {
     const companyName = settings?.company_name || DEFAULT_APP_NAME;
-    const companyLogo = settings?.avatar_url;
 
     // 1. Atualiza o título da página
     document.title = `${title} | ${companyName}`;
-
-    // 2. Atualiza o favicon e o ícone de toque da Apple
-    if (companyLogo) {
-      const updateIcon = (rel: string, href: string) => {
-        let link: HTMLLinkElement | null = document.querySelector(`link[rel='${rel}']`);
-        if (!link) {
-          link = document.createElement("link");
-          link.rel = rel;
-          document.head.appendChild(link);
-        }
-        link.href = href;
-      };
-      updateIcon("icon", companyLogo);
-      updateIcon("apple-touch-icon", companyLogo);
-    }
-
-    // 3. Atualiza dinamicamente o manifesto do PWA
-    const manifest = {
-      name: companyName,
-      short_name: companyName,
-      description: "Sistema de Gestão de Recursos Humanos",
-      start_url: "/",
-      display: "standalone",
-      background_color: "#ffffff",
-      theme_color: "#007bff",
-      icons: [
-        {
-          src: companyLogo || "/icon-192.png",
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "any maskable",
-        },
-        {
-          src: companyLogo || "/icon-512.png",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "any maskable",
-        },
-      ],
-    };
-
-    const manifestJSON = JSON.stringify(manifest);
-    const blob = new Blob([manifestJSON], { type: "application/json" });
-    const manifestURL = URL.createObjectURL(blob);
-
-    const manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-    if (manifestLink) {
-      manifestLink.href = manifestURL;
-    }
   }, [settings, title]);
 
   const handleNotificationClick = (notification: AppNotification) => {
