@@ -95,13 +95,12 @@ export default function Employees() {
 
   const {
     employees: dbEmployees,
-    totalCount,
     loading,
     addEmployee,
     updateEmployee,
     deleteEmployee,
     refetch,
-  } = useEmployees(page, pageSize);
+  } = useEmployees(1, 1000); // Carrega todos para garantir estatísticas e filtros corretos
   const { signOut } = useAuth();
   const {
     requests: timeOffRequests,
@@ -220,18 +219,9 @@ export default function Employees() {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  // Server-side pagination: paginatedEmployees = filteredEmployees (filtragem client-side dos resultados da página atual)
-  // Para busca: quando há termo de busca, mostra todos os filtrados; quando não há, usa paginação do servidor.
-  const paginatedEmployees =
-    debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all"
-      ? filteredEmployees // com filtros: mostra todos na mesma página
-      : filteredEmployees; // sem filtros: já vem paginado do servidor via useEmployees(page, pageSize)
-
-  // Total real de páginas: usa totalCount do servidor quando sem filtros, filteredEmployees.length com filtros
-  const effectiveTotal =
-    debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all"
-      ? filteredEmployees.length
-      : totalCount || filteredEmployees.length;
+  // Paginação client-side: filtra sobre o conjunto COMPLETO para estatísticas e busca corretas.
+  const paginatedEmployees = filteredEmployees.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.ceil(filteredEmployees.length / pageSize);
 
   // Reset to first page when searching or filtering
   useEffect(() => {
@@ -708,40 +698,37 @@ export default function Employees() {
         />
 
         {/* Pagination Controls */}
-        <div className="flex items-center justify-between px-2 py-4">
-          <div className="text-sm text-muted-foreground">
-            {debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all"
-              ? `${filteredEmployees.length} resultado(s) encontrado(s)`
-              : `Página ${page} — ${Math.min(page * pageSize, effectiveTotal)} de ${effectiveTotal} colaboradores`}
+        {filteredEmployees.length > pageSize && (
+          <div className="flex items-center justify-between px-2 py-4">
+            <div className="text-sm text-muted-foreground">
+              Página {page} de {totalPages} &mdash; {filteredEmployees.length} colaborador
+              {filteredEmployees.length !== 1 ? "es" : ""}
+              {(debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all") &&
+                " encontrado(s)"}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
+              >
+                ← Anterior
+              </Button>
+              <span className="text-sm font-medium px-2">
+                {page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages || loading}
+              >
+                Próxima →
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={
-                page === 1 ||
-                loading ||
-                !!(debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all")
-              }
-            >
-              ← Anterior
-            </Button>
-            <span className="text-sm font-medium px-2">{page}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={
-                page * pageSize >= effectiveTotal ||
-                loading ||
-                !!(debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all")
-              }
-            >
-              Próxima →
-            </Button>
-          </div>
-        </div>
+        )}
 
         {/* Dialogs */}
         <EmployeeFormDialog
