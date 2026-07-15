@@ -43,10 +43,11 @@ export class BaseRepository<T extends { id: string }> {
 
       let query = supabase.from(this.tableName).select("*", { count: "exact" });
 
-      // Opcional: Soft Delete logic (se a tabela tiver deleted_at)
+      // Soft Delete: filtra registros deletados logicamente (deleted_at IS NULL).
+      // Passa silenciosamente em tabelas que não têm a coluna (Supabase ignora filtros inválidos
+      // apenas quando a coluna não existe — o erro ocorreria em query, não aqui).
       if (!options?.includeDeleted) {
-        // Comentado para não quebrar tabelas que ainda não têm deleted_at no DB real
-        // query = query.is('deleted_at', null);
+        query = query.is("deleted_at", null);
       }
 
       if (options?.orderBy) {
@@ -138,20 +139,28 @@ export class BaseRepository<T extends { id: string }> {
       }
 
       if (hardDelete) {
+        // Hard delete: remove físico do banco (use com cautela)
         const { error } = await supabase.from(this.tableName).delete().eq("id", id);
         if (error) throw error;
       } else {
-        // Soft Delete simulation (precisa de uma coluna deleted_at na base, usaremos apenas status por padrão para evitar erros,
-        // mas pode ser modificado quando o SQL for rodado)
-        // Para compatibilidade, tentamos alterar o status primeiro se não forçar hard
+        // Soft Delete: marca deleted_at com timestamp atual em vez de remover.
+        // Registros com deleted_at preenchido são automaticamente filtrados pelo find().
         const { error } = await supabase
           .from(this.tableName)
-          .update({ status: "terminated" } as any) // Fallback temporário
+          .update({ deleted_at: new Date().toISOString() } as any)
           .eq("id", id);
 
         if (error) {
-          // Se falhar o update de status, tenta hard delete
-          await supabase.from(this.tableName).delete().eq("id", id);
+          // Fallback: se a tabela não tiver deleted_at (ex: tabelas antigas),
+          // tenta marcar status como terminado para compatibilidade.
+          console.warn(
+            `[BaseRepository] Soft delete falhou para ${this.tableName}, tentando fallback de status.`
+          );
+          const { error: fallbackError } = await supabase
+            .from(this.tableName)
+            .update({ status: "terminated" } as any)
+            .eq("id", id);
+          if (fallbackError) throw fallbackError;
         }
       }
 

@@ -235,14 +235,14 @@ export default function AuditLogs() {
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, count } = await auditService.getLogs({
+      const { data, count } = await auditService.getLogs(
         page,
         pageSize,
         startDate,
         endDate,
-        action: actionFilter !== "all" ? actionFilter : undefined,
-        tableName: tableFilter !== "all" ? tableFilter : undefined,
-      });
+        actionFilter !== "all" ? actionFilter : undefined,
+        tableFilter !== "all" ? tableFilter : undefined
+      );
       setLogs(data);
       setTotalCount(count);
     } catch (error) {

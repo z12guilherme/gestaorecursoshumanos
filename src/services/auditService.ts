@@ -29,9 +29,24 @@ export interface AuditLogFilters {
 }
 
 export const auditService = {
-  async getLogs(filters: AuditLogFilters = {}) {
-    const { page = 1, pageSize = 50, startDate, endDate, action, tableName } = filters;
-
+  /**
+   * Busca os logs de auditoria com paginação e filtros.
+   *
+   * @param page       Página atual (1-indexada). Default: 1
+   * @param pageSize   Registros por página. Default: 50
+   * @param startDate  Filtro de data início (YYYY-MM-DD)
+   * @param endDate    Filtro de data fim (YYYY-MM-DD)
+   * @param action     Filtro por tipo de ação (INSERT | UPDATE | DELETE)
+   * @param tableName  Filtro por nome da tabela
+   */
+  async getLogs(
+    page: number = 1,
+    pageSize: number = 50,
+    startDate?: string,
+    endDate?: string,
+    action?: string,
+    tableName?: string
+  ) {
     // 🔀 Desvio Offline (Mock)
     if (USE_MOCK) {
       let data = mockDatabase.get("audit_logs") as AuditLog[];

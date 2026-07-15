@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useEmployees } from "@/hooks/useEmployees";
-import { Download, Calculator, ChevronDown, Eye } from "lucide-react";
+import { Download, Calculator, ChevronDown, Eye, Loader2, Webhook } from "lucide-react";
 // dynamic imports for jspdf
 import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -41,11 +41,12 @@ import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_APP_NAME } from "@/lib/branding";
 
 export default function Payroll() {
-  const { employees: dbEmployees, loading } = useEmployees();
+  const { employees: dbEmployees, loading } = useEmployees(1, 1000);
   const [searchTerm, setSearchTerm] = useState("");
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [selectedEmployeeForView, setSelectedEmployeeForView] = useState<any>(null);
+  const [isClosingPayroll, setIsClosingPayroll] = useState(false);
   const { toast } = useToast();
 
   // Mapeia os dados do banco (snake_case) para o formato esperado (camelCase)
@@ -321,6 +322,68 @@ export default function Payroll() {
     base_salary: "",
   });
 
+  /**
+   * Fecha a folha do mês e dispara o webhook para integração contábil via ERP.
+   * Chama a Edge Function `payroll-webhook` com os dados calculados.
+   */
+  const handleClosePayroll = async () => {
+    setIsClosingPayroll(true);
+    try {
+      const referenceMonth = subMonths(new Date(), 1);
+      const competencia = format(referenceMonth, "yyyy-MM");
+
+      const employeesPayload = filteredEmployees.map((emp) => {
+        const calc = calculatePayroll(emp);
+        return {
+          ...emp,
+          baseSalary: calc.baseSalary,
+          totalAdicionais: calc.insalubrity + calc.nightShift + calc.overtimeValue,
+          totalDescontos: calc.totalDiscounts,
+          estimatedTax: calc.estimatedTax,
+          netSalary: calc.netSalary,
+        };
+      });
+
+      const totals = employeesPayload.reduce(
+        (acc, emp) => ({
+          totalBruto: acc.totalBruto + emp.baseSalary,
+          totalDescontos: acc.totalDescontos + emp.totalDescontos,
+          totalLiquido: acc.totalLiquido + emp.netSalary,
+          totalInss: acc.totalInss + emp.estimatedTax,
+        }),
+        { totalBruto: 0, totalDescontos: 0, totalLiquido: 0, totalInss: 0 }
+      );
+
+      const { data, error } = await supabase.functions.invoke("payroll-webhook", {
+        body: {
+          competencia,
+          employees: employeesPayload,
+          totals,
+          companyInfo: companySettings,
+        },
+      });
+
+      if (error) throw error;
+
+      const webhookConfigured = data?.webhook_url === "configured";
+      toast({
+        title: `✅ Folha de ${format(referenceMonth, "MMMM/yyyy", { locale: ptBR })} Fechada!`,
+        description: webhookConfigured
+          ? `Notificação enviada ao ERP (${data?.webhook_status}).`
+          : "Folha fechada. Nenhuma URL de webhook configurada nas Configurações.",
+        className: "bg-emerald-600 text-white border-none",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao fechar folha",
+        description: err?.message || "Erro desconhecido. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsClosingPayroll(false);
+    }
+  };
+
   const handleAddTerceirizado = async () => {
     try {
       const { error } = await supabase.from("employees").insert([
@@ -360,6 +423,22 @@ export default function Payroll() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setIsTerceirizadoOpen(true)}>
               + Terceirizado
+            </Button>
+            <Button
+              onClick={handleClosePayroll}
+              disabled={isClosingPayroll || loading}
+              className="bg-violet-600 hover:bg-violet-700 gap-2"
+              title="Fecha a folha do mês e envia notificação ao ERP/Contabilidade"
+            >
+              {isClosingPayroll ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Fechando...
+                </>
+              ) : (
+                <>
+                  <Webhook className="h-4 w-4" /> Fechar Folha &amp; Notificar ERP
+                </>
+              )}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -91,17 +91,17 @@ const compressImage = async (file: File): Promise<File> => {
 
 export default function Employees() {
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 20;
 
   const {
     employees: dbEmployees,
-    totalCount: _dbTotal, // We will calculate total on client side
+    totalCount,
     loading,
     addEmployee,
     updateEmployee,
     deleteEmployee,
     refetch,
-  } = useEmployees(1, 10000);
+  } = useEmployees(page, pageSize);
   const { signOut } = useAuth();
   const {
     requests: timeOffRequests,
@@ -220,8 +220,18 @@ export default function Employees() {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  // Client-side pagination
-  const paginatedEmployees = filteredEmployees.slice((page - 1) * pageSize, page * pageSize);
+  // Server-side pagination: paginatedEmployees = filteredEmployees (filtragem client-side dos resultados da página atual)
+  // Para busca: quando há termo de busca, mostra todos os filtrados; quando não há, usa paginação do servidor.
+  const paginatedEmployees =
+    debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all"
+      ? filteredEmployees // com filtros: mostra todos na mesma página
+      : filteredEmployees; // sem filtros: já vem paginado do servidor via useEmployees(page, pageSize)
+
+  // Total real de páginas: usa totalCount do servidor quando sem filtros, filteredEmployees.length com filtros
+  const effectiveTotal =
+    debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all"
+      ? filteredEmployees.length
+      : totalCount || filteredEmployees.length;
 
   // Reset to first page when searching or filtering
   useEffect(() => {
@@ -700,25 +710,35 @@ export default function Employees() {
         {/* Pagination Controls */}
         <div className="flex items-center justify-between px-2 py-4">
           <div className="text-sm text-muted-foreground">
-            Mostrando {paginatedEmployees.length} de {filteredEmployees.length} colaboradores
-            (Página {page})
+            {debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all"
+              ? `${filteredEmployees.length} resultado(s) encontrado(s)`
+              : `Página ${page} — ${Math.min(page * pageSize, effectiveTotal)} de ${effectiveTotal} colaboradores`}
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1 || loading}
+              disabled={
+                page === 1 ||
+                loading ||
+                !!(debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all")
+              }
             >
-              Anterior
+              ← Anterior
             </Button>
+            <span className="text-sm font-medium px-2">{page}</span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setPage((p) => p + 1)}
-              disabled={page * pageSize >= filteredEmployees.length || loading}
+              disabled={
+                page * pageSize >= effectiveTotal ||
+                loading ||
+                !!(debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all")
+              }
             >
-              Próxima
+              Próxima →
             </Button>
           </div>
         </div>

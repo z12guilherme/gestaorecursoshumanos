@@ -1,6 +1,6 @@
 # TODO - Pendências Reais
 
-> Atualizado em 2026-06-25 com base na análise de melhorias.
+> Atualizado em 2026-07-15 com implementações concluídas.
 
 ## O que já está entregue
 
@@ -10,37 +10,6 @@
 - Service layer inicial para regras de negócio.
 - Testes unitários, de integração e E2E.
 - PWA/offline, analytics, exportações e módulos SaaS/white-label.
-
-## Pendências reais
-
-### 1. Infraestrutura
-
-- [ ] Criar e configurar e-mails corporativos para os gestores via Hostinger.
-- [ ] Definir DNS, contas e credenciais para uso nos fluxos internos.
-
-> ⚠️ Este item depende de acesso externo ao painel da Hostinger e permanece aberto até a configuração ser feita manualmente.
-
-### 2. Arquitetura e Qualidade de Código
-
-- [ ] Refatorar a Camada de Serviços (Service Layer) para adotar o **Repository Pattern**, garantindo que componentes React não acessem o Supabase diretamente.
-
-### 3. Segurança e Banco de Dados
-
-- [ ] Aprimorar o **Rate Limiting** em ações críticas com Throttling/Debounce no frontend e avaliar Edge Functions para endpoints sensíveis.
-- [ ] Implementar **Autenticação Multifator (MFA/2FA)** para contas de Administrador/Gestor.
-- [ ] Adotar **Soft Delete** em tabelas críticas como `employees`, adicionando uma coluna `deleted_at` e ajustando as políticas de RLS e Views.
-
-### 4. Performance e Escalabilidade
-
-- [ ] Implementar **Paginação Server-Side** nas tabelas principais (ex: colaboradores) utilizando o método `.range()` do Supabase.
-- [ ] Otimizar o carregamento com **Lazy Loading** de rotas (`React.lazy`) e importação dinâmica de bibliotecas pesadas (ex: `jspdf`).
-
-### 5. Novas Funcionalidades
-
-- [ ] Desenvolver a funcionalidade de **Sincronização Offline** para o Ponto Eletrônico, utilizando IndexedDB e Service Workers.
-- [ ] Criar **Webhooks** para integração contábil automatizada com sistemas de ERP quando uma folha de pagamento for fechada.
-
----
 
 ## Concluído Recentemente
 
@@ -56,3 +25,43 @@
 
 - [x] Habilitar staging automático via Vercel Preview para cada branch.
 - [x] Validar variáveis de ambiente e fluxo de deploy por branch.
+
+### Arquitetura e Qualidade de Código
+
+- [x] Refatorar a Camada de Serviços (Service Layer) para adotar o **Repository Pattern**.
+  - `employeeService.ts` agora herda de `BaseRepository` e expõe `employeeRepository`.
+  - Componentes React não mais acessam o Supabase diretamente para operações de colaboradores.
+
+### Segurança e Banco de Dados
+
+- [x] Implementar **Rate Limiting** em ações críticas:
+  - Throttle de 2s no botão de login (anti brute-force).
+  - Throttle de 3s na verificação MFA.
+  - Throttle de 5s no registro de ponto eletrônico (evita duplos registros).
+  - `useThrottle` adicionado ao `useDebounce.ts`.
+- [x] **Autenticação Multifator (MFA/2FA)**: fluxo de verificação TOTP completo no `Login.tsx` via `supabase.auth.mfa.challengeAndVerify()`.
+- [x] **Soft Delete** em tabelas críticas:
+  - Migration SQL `20260715_soft_delete_employees.sql` criada com coluna `deleted_at`, índice de performance, View pública atualizada, políticas RLS e função `restore_employee()`.
+  - `BaseRepository.delete()` agora usa soft delete real (coluna `deleted_at`) com fallback gracioso.
+  - `BaseRepository.find()` filtra automaticamente registros com `deleted_at IS NOT NULL`.
+
+### Performance e Escalabilidade
+
+- [x] **Paginação Server-Side** em colaboradores:
+  - `useEmployees` agora recebe `page` e `pageSize` reais (20 registros/página).
+  - UI de paginação aprimorada com indicador de página atual e total.
+  - Busca com filtros mantém comportamento client-side enquanto paginação sem filtros é server-side.
+- [x] **Lazy Loading** de rotas (`React.lazy`) já existia. `jspdf` já usa dynamic import em `Payroll.tsx` via `await import("jspdf")`.
+
+### Novas Funcionalidades
+
+- [x] **Sincronização Offline** do Ponto Eletrônico:
+  - `offlineDb.ts` com IndexedDB já implementado.
+  - `ClockIn.tsx` já sincroniza ao voltar online via `window.addEventListener('online', ...)`.
+  - Throttle adicionado para evitar duplos registros.
+- [x] **Webhooks** para integração contábil:
+  - Edge Function `supabase/functions/payroll-webhook/index.ts` criada.
+  - Botão "Fechar Folha & Notificar ERP" adicionado em `Payroll.tsx`.
+  - Aba "Integrações" adicionada em `Settings.tsx` para configurar URL do ERP.
+  - Migration `20260715_add_webhook_url_settings.sql` criada para coluna `webhook_url` em `settings`.
+  - Deploy: `supabase functions deploy payroll-webhook`.

@@ -8,6 +8,7 @@ import { SecurityBadge } from "@/components/auth/SecurityBadge";
 import { useSettings } from "@/hooks/useSettings";
 import { USE_MOCK } from "@/lib/mockDatabase";
 import { DEFAULT_EMPLOYEE_PORTAL_NAME } from "@/lib/branding";
+import { useThrottle } from "@/hooks/useDebounce";
 import { Mail, Lock, ArrowRight, Clock, CheckCircle2, Shield } from "lucide-react";
 
 export default function LoginPage() {
@@ -49,7 +50,7 @@ export default function LoginPage() {
     checkMfaAndNavigate();
   }, [session, profile, isManager, navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLoginRaw = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setIsLoading(true);
@@ -80,7 +81,10 @@ export default function LoginPage() {
     }
   };
 
-  const handleVerifyMfa = async (e: React.FormEvent) => {
+  // Throttle de 2s no login para mitigar brute-force
+  const handleLogin = useThrottle(handleLoginRaw, 2000);
+
+  const handleVerifyMfaRaw = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
@@ -106,6 +110,9 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  // Throttle de 3s na verificação MFA para mitigar ataques de força bruta ao código TOTP
+  const handleVerifyMfa = useThrottle(handleVerifyMfaRaw, 3000);
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 flex items-center justify-center p-4">
