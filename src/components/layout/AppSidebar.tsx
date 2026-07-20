@@ -1,4 +1,4 @@
-import { useEmployees } from '@/hooks/useEmployees';
+import { useEmployees } from "@/hooks/useEmployees";
 import {
   LayoutDashboard,
   Users,
@@ -21,8 +21,8 @@ import {
   ShieldAlert,
   Loader2,
   Shield,
-} from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+} from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -32,42 +32,42 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from '@/components/ui/sidebar';
+} from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useSettings } from '@/hooks/useSettings';
-import { useState, useEffect } from 'react';
-import { managerPortalService } from '@/services/managerPortalService';
-import { DEFAULT_APP_NAME } from '@/lib/branding';
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useSettings } from "@/hooks/useSettings";
+import { useState, useEffect } from "react";
+import { managerPortalService } from "@/services/managerPortalService";
+import { DEFAULT_APP_NAME } from "@/lib/branding";
 
 const mainNavItems = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-  { title: 'Colaboradores', url: '/employees', icon: Users },
-  { title: 'Salários e Pagamentos', url: '/payroll', icon: DollarSign },
-  { title: 'Recrutamento', url: '/recruitment', icon: Briefcase },
-  { title: 'Avaliações', url: '/performance', icon: Star },
-  { title: 'Férias & Ausências', url: '/absences', icon: Calendar },
-  { title: 'Controle de Ponto', url: '/timesheet', icon: Clock },
-  { title: 'Chamados', url: '/tickets', icon: LifeBuoy },
-  { title: 'Relatórios', url: '/reports', icon: FileText },
-  { title: 'Comunicação', url: '/communication', icon: MessageSquare },
-  { title: 'Ouvidoria', url: '/suggestions', icon: MessageCircle },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Colaboradores", url: "/employees", icon: Users },
+  { title: "Salários e Pagamentos", url: "/payroll", icon: DollarSign },
+  { title: "Recrutamento", url: "/recruitment", icon: Briefcase },
+  { title: "Avaliações", url: "/performance", icon: Star },
+  { title: "Férias & Ausências", url: "/absences", icon: Calendar },
+  { title: "Controle de Ponto", url: "/timesheet", icon: Clock },
+  { title: "Chamados", url: "/tickets", icon: LifeBuoy },
+  { title: "Relatórios", url: "/reports", icon: FileText },
+  { title: "Comunicação", url: "/communication", icon: MessageSquare },
+  { title: "Ouvidoria", url: "/suggestions", icon: MessageCircle },
 ];
 
 const toolsNavItems = [
-  { title: 'Assistente IA', url: '/ai-assistant', icon: Bot },
-  { title: 'Automações', url: '/automations', icon: Workflow },
-  { title: 'Auditoria', url: '/audit-logs', icon: ShieldAlert },
-  { title: 'Configurações', url: '/settings', icon: Settings },
+  { title: "Assistente IA", url: "/ai-assistant", icon: Bot },
+  { title: "Automações", url: "/automations", icon: Workflow },
+  { title: "Auditoria", url: "/audit-logs", icon: ShieldAlert },
+  { title: "Configurações", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -77,42 +77,49 @@ export function AppSidebar() {
   const { signOut, session, profile, loading: authLoading, isManager, user } = useAuth();
   const { employees } = useEmployees();
   const { settings } = useSettings();
-  const isCollapsed = state === 'collapsed';
+  const isCollapsed = state === "collapsed";
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const isAdmin = profile?.role === 'admin';
-  const isManagerLogged = profile?.role === 'manager' || isAdmin;
+  const isAdmin = profile?.role === "admin";
+  const isManagerLogged = profile?.role === "manager" || isAdmin;
 
-  const filteredMainNavItems = mainNavItems.filter(item => {
+  const filteredMainNavItems = mainNavItems.filter((item) => {
     if (isAdmin) return true;
     if (isManagerLogged) {
-      return ['Dashboard', 'Controle de Ponto', 'Chamados', 'Comunicação'].includes(item.title);
+      return ["Dashboard", "Controle de Ponto", "Chamados", "Comunicação"].includes(item.title);
     }
-    return ['Dashboard', 'Controle de Ponto', 'Chamados'].includes(item.title);
+    return ["Dashboard", "Controle de Ponto", "Chamados"].includes(item.title);
   });
 
-  const filteredToolsNavItems = toolsNavItems.filter(item => {
+  const filteredToolsNavItems = toolsNavItems.filter((item) => {
     if (isAdmin) return true;
     if (isManagerLogged) {
-      return ['Assistente IA'].includes(item.title);
+      return ["Assistente IA"].includes(item.title);
     }
     return [];
   });
 
   useEffect(() => {
     if (!user?.id) return;
-    managerPortalService.getUnreadCount(user.id).then(setUnreadCount).catch(() => {});
+    managerPortalService
+      .getUnreadCount(user.id)
+      .then(setUnreadCount)
+      .catch(() => {});
   }, [user?.id]);
 
   // Tenta encontrar o funcionário correspondente para definir o cargo (Role)
-  const currentEmployee = employees.find(e => e.email === session?.user?.email);
+  const currentEmployee = employees.find((e) => e.email === session?.user?.email);
 
   // Prioriza os dados do perfil (tabela profiles), depois funcionário, depois sessão
   const userProfile = {
-    name: profile?.full_name || currentEmployee?.name || session?.user?.user_metadata?.name || "Usuário",
+    name:
+      profile?.full_name ||
+      currentEmployee?.name ||
+      session?.user?.user_metadata?.name ||
+      "Usuário",
     email: profile?.email || session?.user?.email || "",
     avatar: profile?.avatar_url || currentEmployee?.avatar_url || "",
-    role: profile?.display_role || currentEmployee?.role || "Administrador"
+    role: profile?.display_role || currentEmployee?.role || "Administrador",
   };
 
   const handleLogout = async () => {
@@ -130,7 +137,10 @@ export function AppSidebar() {
           />
           {!isCollapsed && (
             <div className="flex flex-col">
-              <span className="font-semibold text-sidebar-foreground truncate max-w-[140px]" title={settings?.company_name || DEFAULT_APP_NAME}>
+              <span
+                className="font-semibold text-sidebar-foreground truncate max-w-[140px]"
+                title={settings?.company_name || DEFAULT_APP_NAME}
+              >
                 {settings?.company_name || DEFAULT_APP_NAME}
               </span>
               <span className="text-xs text-muted-foreground">Gestão de Pessoas</span>
@@ -139,7 +149,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent">
         <SidebarMenu className="p-2">
           {filteredMainNavItems.map((item) => (
             <SidebarMenuItem key={item.title}>
@@ -175,7 +185,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={location.pathname === '/manager-portal'}
+                isActive={location.pathname === "/manager-portal"}
                 tooltip="Área de Gestores"
               >
                 <NavLink to="/manager-portal" className="flex items-center gap-3">
@@ -183,7 +193,7 @@ export function AppSidebar() {
                   <span className="flex-1">Área de Gestores</span>
                   {unreadCount > 0 && (
                     <span className="bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center shrink-0 font-bold">
-                      {unreadCount > 9 ? '9+' : unreadCount}
+                      {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
                 </NavLink>
@@ -210,7 +220,10 @@ export function AppSidebar() {
               ) : (
                 <>
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={userProfile.avatar || "/placeholder.svg"} className="object-cover" />
+                    <AvatarImage
+                      src={userProfile.avatar || "/placeholder.svg"}
+                      className="object-cover"
+                    />
                     <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                       {userProfile.name ? userProfile.name.substring(0, 2).toUpperCase() : "US"}
                     </AvatarFallback>
@@ -234,7 +247,7 @@ export function AppSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 z-[110]">
             <DropdownMenuItem onClick={toggleTheme}>
-              {theme === 'light' ? (
+              {theme === "light" ? (
                 <>
                   <Moon className="mr-2 h-4 w-4" />
                   Modo Escuro
