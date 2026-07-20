@@ -568,7 +568,7 @@ export default function AuditLogs() {
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">Logs de Auditoria</h1>
                 <p className="text-sm text-muted-foreground">
-                  Acompanhe inserções, atualizações e exclusões em tempo real
+                  Acompanhe as inserções, atualizações e exclusões em tempo real
                 </p>
               </div>
             </div>
