@@ -1,16 +1,32 @@
-import { useState, useEffect } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar as CalendarIcon, Check, X, Clock, Plus, Palmtree, Thermometer, User, KeyRound, Search, Undo2, BarChart3, Paperclip, Download, Trash2 } from 'lucide-react';
-import { format, parseISO, differenceInDays, addDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { useToast } from '@/hooks/use-toast';
-import { useTimeOff } from '@/hooks/useTimeOff';
-import { useEmployees } from '@/hooks/useEmployees';
-import { whatsappService } from '@/services/whatsappService';
+import { useState, useEffect } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Calendar as CalendarIcon,
+  Check,
+  X,
+  Clock,
+  Plus,
+  Palmtree,
+  Thermometer,
+  User,
+  KeyRound,
+  Search,
+  Undo2,
+  BarChart3,
+  Paperclip,
+  Download,
+  Trash2,
+} from "lucide-react";
+import { format, parseISO, differenceInDays, addDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
+import { useTimeOff } from "@/hooks/useTimeOff";
+import { useEmployees } from "@/hooks/useEmployees";
+import { whatsappService } from "@/services/whatsappService";
 import {
   Dialog,
   DialogContent,
@@ -18,14 +34,21 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { DateRange } from 'react-day-picker';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { DateRange } from "react-day-picker";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -33,32 +56,81 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { supabase } from '@/lib/supabase';
+} from "@/components/ui/table";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { supabase } from "@/lib/supabase";
 
 const typeConfig = {
-  vacation: { label: 'Férias', icon: Palmtree, color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
-  sick: { label: 'Atestado', icon: Thermometer, color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  personal: { label: 'Pessoal', icon: User, color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-  maternity: { label: 'Licença Maternidade', icon: User, color: 'text-pink-600', bgColor: 'bg-pink-100 dark:bg-pink-900/30' },
-  paternity: { label: 'Licença Paternidade', icon: User, color: 'text-cyan-600', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
+  vacation: {
+    label: "Férias",
+    icon: Palmtree,
+    color: "text-blue-600",
+    bgColor: "bg-blue-100 dark:bg-blue-900/30",
+  },
+  sick: {
+    label: "Atestado",
+    icon: Thermometer,
+    color: "text-red-600",
+    bgColor: "bg-red-100 dark:bg-red-900/30",
+  },
+  personal: {
+    label: "Pessoal",
+    icon: User,
+    color: "text-purple-600",
+    bgColor: "bg-purple-100 dark:bg-purple-900/30",
+  },
+  maternity: {
+    label: "Licença Maternidade",
+    icon: User,
+    color: "text-pink-600",
+    bgColor: "bg-pink-100 dark:bg-pink-900/30",
+  },
+  paternity: {
+    label: "Licença Paternidade",
+    icon: User,
+    color: "text-cyan-600",
+    bgColor: "bg-cyan-100 dark:bg-cyan-900/30",
+  },
 };
 
 const statusConfig = {
-  pending: { label: 'Pendente', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-  approved: { label: 'Aprovado', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
-  rejected: { label: 'Rejeitado', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  pending: {
+    label: "Pendente",
+    className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  },
+  approved: {
+    label: "Aprovado",
+    className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  },
+  rejected: {
+    label: "Rejeitado",
+    className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  },
 };
 
 export default function TimeOff() {
-  const { requests, loading: loadingRequests, updateRequestStatus, addRequest, refetch } = useTimeOff();
+  const {
+    requests,
+    loading: loadingRequests,
+    updateRequestStatus,
+    addRequest,
+    refetch,
+  } = useTimeOff();
   const { employees, loading: loadingEmployees, updateEmployee } = useEmployees();
 
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   const { toast } = useToast();
   const [isSavingRequest, setIsSavingRequest] = useState(false);
   const [newRequestData, setNewRequestData] = useState<{
@@ -67,19 +139,19 @@ export default function TimeOff() {
     date_range: DateRange | undefined;
     reason: string;
   }>({
-    employee_id: '',
-    type: 'vacation',
+    employee_id: "",
+    type: "vacation",
     date_range: {
       from: undefined,
       to: undefined,
     },
-    reason: ''
+    reason: "",
   });
   const [attachment, setAttachment] = useState<File | null>(null);
   const [attachmentInputKey, setAttachmentInputKey] = useState(0);
 
   const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024; // 5MB
-  const ALLOWED_ATTACHMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+  const ALLOWED_ATTACHMENT_TYPES = ["application/pdf", "image/jpeg", "image/png"];
 
   const formatFileSize = (size: number) => {
     if (size < 1024) return `${size} B`;
@@ -93,36 +165,36 @@ export default function TimeOff() {
   };
 
   const handleApprove = async (id: string) => {
-    const request = requests.find(r => r.id === id);
-    await updateRequestStatus(id, 'approved');
+    const request = requests.find((r) => r.id === id);
+    await updateRequestStatus(id, "approved");
 
     if (request) {
       // Atualiza o status do funcionário para 'vacation' ou 'leave'
-      const newStatus = request.type === 'vacation' ? 'vacation' : 'leave';
+      const newStatus = request.type === "vacation" ? "vacation" : "leave";
       await updateEmployee(request.employee_id, { status: newStatus });
 
-      const employee = employees.find(e => e.id === request.employee_id);
+      const employee = employees.find((e) => e.id === request.employee_id);
       if (employee) {
-        const startDateFormated = format(new Date(request.start_date + 'T00:00:00'), 'dd/MM/yyyy');
-        const endDateFormated = format(new Date(request.end_date + 'T00:00:00'), 'dd/MM/yyyy');
+        const startDateFormated = format(new Date(request.start_date + "T00:00:00"), "dd/MM/yyyy");
+        const endDateFormated = format(new Date(request.end_date + "T00:00:00"), "dd/MM/yyyy");
 
         const message = `Olá ${employee.name}, suas férias para o período de ${startDateFormated} a ${endDateFormated} foram *APROVADAS*! 🎉`;
-        await whatsappService.sendMessage(employee.phone || '', message);
+        await whatsappService.sendMessage(employee.phone || "", message);
       }
     }
 
     toast({
-      title: 'Solicitação aprovada',
-      description: 'A solicitação foi aprovada com sucesso.',
+      title: "Solicitação aprovada",
+      description: "A solicitação foi aprovada com sucesso.",
     });
   };
 
   const handleReject = async (id: string) => {
-    await updateRequestStatus(id, 'rejected');
+    await updateRequestStatus(id, "rejected");
     toast({
-      title: 'Solicitação rejeitada',
-      description: 'A solicitação foi rejeitada.',
-      variant: 'destructive',
+      title: "Solicitação rejeitada",
+      description: "A solicitação foi rejeitada.",
+      variant: "destructive",
     });
   };
 
@@ -135,7 +207,7 @@ export default function TimeOff() {
   };
 
   const handleEndVacation = async (employeeId: string) => {
-    await updateEmployee(employeeId, { status: 'active' });
+    await updateEmployee(employeeId, { status: "active" });
     toast({
       title: "Férias encerradas",
       description: "O status do colaborador foi atualizado para 'Ativo'.",
@@ -152,7 +224,7 @@ export default function TimeOff() {
       return;
     }
 
-    if (newRequestData.type === 'sick' && !attachment) {
+    if (newRequestData.type === "sick" && !attachment) {
       toast({
         title: "Atestado obrigatório",
         description: "Para solicitações de atestado, anexe o comprovante.",
@@ -184,35 +256,42 @@ export default function TimeOff() {
     setIsSavingRequest(true);
     let attachmentUrl = null;
     if (attachment) {
-      const safeName = attachment.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const safeName = attachment.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const fileName = `${newRequestData.employee_id}/${Date.now()}_${safeName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('time-off-attachments')
+        .from("time-off-attachments")
         .upload(fileName, attachment, {
           contentType: attachment.type || undefined,
-          cacheControl: '3600',
+          cacheControl: "3600",
           upsert: false,
         });
 
       if (uploadError) {
         console.error(uploadError);
-        toast({ title: "Erro no upload", description: "Falha ao enviar o anexo.", variant: "destructive" });
+        toast({
+          title: "Erro no upload",
+          description: "Falha ao enviar o anexo.",
+          variant: "destructive",
+        });
         setIsSavingRequest(false);
         return;
       }
 
-      const { data } = supabase.storage.from('time-off-attachments').getPublicUrl(fileName);
+      const { data } = supabase.storage.from("time-off-attachments").getPublicUrl(fileName);
       attachmentUrl = data.publicUrl;
     }
 
     const { error } = await addRequest({
       employee_id: newRequestData.employee_id,
       type: newRequestData.type,
-      start_date: format(newRequestData.date_range.from, 'yyyy-MM-dd'),
-      end_date: format(newRequestData.date_range.to || newRequestData.date_range.from, 'yyyy-MM-dd'),
+      start_date: format(newRequestData.date_range.from, "yyyy-MM-dd"),
+      end_date: format(
+        newRequestData.date_range.to || newRequestData.date_range.from,
+        "yyyy-MM-dd"
+      ),
       reason: newRequestData.reason,
-      attachment_url: attachmentUrl
+      attachment_url: attachmentUrl,
     });
 
     if (error) {
@@ -224,56 +303,78 @@ export default function TimeOff() {
     toast({ title: "Solicitação criada", description: "A nova solicitação foi registrada." });
     setIsRequestDialogOpen(false);
     setNewRequestData({
-      employee_id: '',
-      type: 'vacation',
+      employee_id: "",
+      type: "vacation",
       date_range: undefined,
-      reason: ''
+      reason: "",
     });
     clearAttachment();
     setIsSavingRequest(false);
   };
 
   const handleDeleteRequest = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja apagar este registro permanentemente do histórico?')) return;
+    if (
+      !window.confirm("Tem certeza que deseja apagar este registro permanentemente do histórico?")
+    )
+      return;
 
-    const { error } = await supabase.from('time_off_requests').delete().eq('id', id);
+    const { error } = await supabase.from("time_off_requests").delete().eq("id", id);
     if (error) {
-      toast({ title: 'Erro', description: 'Não foi possível apagar o registro.', variant: 'destructive' });
+      toast({
+        title: "Erro",
+        description: "Não foi possível apagar o registro.",
+        variant: "destructive",
+      });
     } else {
-      toast({ title: 'Sucesso', description: 'Registro apagado com sucesso.' });
-      if (typeof refetch === 'function') refetch();
+      toast({ title: "Sucesso", description: "Registro apagado com sucesso." });
+      if (typeof refetch === "function") refetch();
     }
   };
 
   // Mapeia os campos do banco para o que a UI espera
-  const mappedRequests = requests.map(r => ({
+  const mappedRequests = requests.map((r) => ({
     ...r,
-    employeeName: r.employee_name || 'Desconhecido',
+    employeeName: r.employee_name || "Desconhecido",
     startDate: r.start_date,
-    endDate: r.end_date
+    endDate: r.end_date,
   }));
 
-  const pendingRequests = mappedRequests.filter(r => r.status === 'pending');
-  const processedRequests = mappedRequests.filter(r => r.status !== 'pending');
+  const pendingRequests = mappedRequests.filter((r) => r.status === "pending");
+  const processedRequests = mappedRequests.filter((r) => r.status !== "pending");
 
-  const absentEmployees = employees.filter(e => ['vacation', 'Férias', 'leave', 'Afastado'].includes(e.status));
-  const todayKey = format(new Date(), 'yyyy-MM-dd');
-  const sickTodayCount = mappedRequests.filter(r => r.type === 'sick' && r.status === 'approved' && r.startDate <= todayKey && r.endDate >= todayKey).length;
+  const absentEmployees = employees.filter((e) =>
+    ["vacation", "Férias", "leave", "Afastado"].includes(e.status)
+  );
+  const todayKey = format(new Date(), "yyyy-MM-dd");
+  const sickTodayCount = mappedRequests.filter(
+    (r) =>
+      r.type === "sick" &&
+      r.status === "approved" &&
+      r.startDate <= todayKey &&
+      r.endDate >= todayKey
+  ).length;
 
   const getRemainingInDept = (department: string) => {
-    return employees.filter(e => e.department === department && (e.status === 'active' || e.status === 'Ativo')).length;
+    return employees.filter(
+      (e) => e.department === department && (e.status === "active" || e.status === "Ativo")
+    ).length;
   };
 
-  const filteredRequests = departmentFilter === 'all'
-    ? mappedRequests
-    : mappedRequests.filter(r => r.employee_department === departmentFilter);
+  const filteredRequests =
+    departmentFilter === "all"
+      ? mappedRequests
+      : mappedRequests.filter((r) => r.employee_department === departmentFilter);
 
   // Cálculo de estatísticas por departamento para o gráfico
-  const uniqueDepartments = Array.from(new Set(employees.map(e => e.department))).filter(Boolean);
-  const departmentStats = uniqueDepartments.map(dept => {
-    const deptEmployees = employees.filter(e => e.department === dept && e.status !== 'terminated');
+  const uniqueDepartments = Array.from(new Set(employees.map((e) => e.department))).filter(Boolean);
+  const departmentStats = uniqueDepartments.map((dept) => {
+    const deptEmployees = employees.filter(
+      (e) => e.department === dept && e.status !== "terminated"
+    );
     const total = deptEmployees.length;
-    const absent = deptEmployees.filter(e => ['vacation', 'leave', 'Férias', 'Afastado'].includes(e.status)).length;
+    const absent = deptEmployees.filter((e) =>
+      ["vacation", "leave", "Férias", "Afastado"].includes(e.status)
+    ).length;
     const available = total - absent;
 
     return {
@@ -339,8 +440,10 @@ export default function TimeOff() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os Setores</SelectItem>
-                    {[...new Set(employees.map(e => e.department))].map(dept => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    {[...new Set(employees.map((e) => e.department))].map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -348,38 +451,53 @@ export default function TimeOff() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {filteredRequests.filter(r => r.status === 'approved').length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhuma ausência programada para este setor.
-                </p>
-              ) : (
-                filteredRequests
-                  .filter(r => r.status === 'approved')
-                  .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
-                  .map((request) => {
-                    const typeLabel = typeConfig[request.type as keyof typeof typeConfig]?.label.toLowerCase() || 'ausência';
-                    // Formata data manualmente para evitar problemas de fuso horário (YYYY-MM-DD -> DD/MM/YYYY)
-                    const startDate = request.start_date.split('-').reverse().join('/');
-                    const endDate = request.end_date.split('-').reverse().join('/');
+            <ScrollArea className="h-80 pr-4">
+              <div className="space-y-4">
+                {filteredRequests.filter((r) => r.status === "approved").length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Nenhuma ausência programada para este setor.
+                  </p>
+                ) : (
+                  filteredRequests
+                    .filter((r) => r.status === "approved")
+                    .sort(
+                      (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+                    )
+                    .map((request) => {
+                      const typeLabel =
+                        typeConfig[request.type as keyof typeof typeConfig]?.label.toLowerCase() ||
+                        "ausência";
+                      // Formata data manualmente para evitar problemas de fuso horário (YYYY-MM-DD -> DD/MM/YYYY)
+                      const startDate = request.start_date.split("-").reverse().join("/");
+                      const endDate = request.end_date.split("-").reverse().join("/");
 
-                    return (
-                      <div key={request.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                            {request.employeeName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm text-foreground">
-                            <span className="font-medium">{request.employeeName}</span> está de {typeLabel} do dia <strong>{startDate}</strong> até <strong>{endDate}</strong>.
-                          </p>
+                      return (
+                        <div
+                          key={request.id}
+                          className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors"
+                        >
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                              {request.employeeName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .substring(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm text-foreground">
+                              <span className="font-medium">{request.employeeName}</span> está de{" "}
+                              {typeLabel} do dia <strong>{startDate}</strong> até{" "}
+                              <strong>{endDate}</strong>.
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
-              )}
-            </div>
+                      );
+                    })
+                )}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
 
@@ -399,35 +517,59 @@ export default function TimeOff() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {absentEmployees.map((employee) => {
-                  const activeRequest = filteredRequests.find(r => r.employee_id === employee.id && r.status === 'approved');
-                  const returnDate = activeRequest ? addDays(new Date(activeRequest.end_date + 'T00:00:00'), 1) : null;
+                  const activeRequest = filteredRequests.find(
+                    (r) => r.employee_id === employee.id && r.status === "approved"
+                  );
+                  const returnDate = activeRequest
+                    ? addDays(new Date(activeRequest.end_date + "T00:00:00"), 1)
+                    : null;
                   return (
-                    <div key={employee.id} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                    <div
+                      key={employee.id}
+                      className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50"
+                    >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10 border border-border">
                           <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                            {employee.name.split(' ').map(n => n[0]).join('')}
+                            {employee.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <p className="font-medium text-sm text-foreground">{employee.name}</p>
                           <p className="text-xs text-muted-foreground">{employee.department}</p>
-                          <Badge variant="outline" className={`mt-1 text-[10px] ${employee.status === 'leave' || employee.status === 'Afastado'
-                            ? 'border-red-200 text-red-600 bg-red-50 dark:bg-red-900/10'
-                            : 'border-blue-200 text-blue-600 bg-blue-50 dark:bg-blue-900/10'
-                            }`}>
-                            {employee.status === 'leave' || employee.status === 'Afastado' ? 'Afastado' : 'Férias'}
+                          <Badge
+                            variant="outline"
+                            className={`mt-1 text-[10px] ${
+                              employee.status === "leave" || employee.status === "Afastado"
+                                ? "border-red-200 text-red-600 bg-red-50 dark:bg-red-900/10"
+                                : "border-blue-200 text-blue-600 bg-blue-50 dark:bg-blue-900/10"
+                            }`}
+                          >
+                            {employee.status === "leave" || employee.status === "Afastado"
+                              ? "Afastado"
+                              : "Férias"}
                           </Badge>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         {returnDate && (
                           <div className="text-right">
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Retorna em</p>
-                            <p className="font-bold text-sm text-foreground">{format(returnDate, 'dd/MM/yy')}</p>
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                              Retorna em
+                            </p>
+                            <p className="font-bold text-sm text-foreground">
+                              {format(returnDate, "dd/MM/yy")}
+                            </p>
                           </div>
                         )}
-                        <Button variant="outline" size="sm" onClick={() => handleEndVacation(employee.id)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEndVacation(employee.id)}
+                        >
                           <Undo2 className="h-4 w-4 mr-1" />
                           Encerrar
                         </Button>
@@ -457,20 +599,28 @@ export default function TimeOff() {
           </CardHeader>
           <CardContent className="space-y-4">
             {pendingRequests.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                Nenhuma solicitação pendente
-              </p>
+              <p className="text-center text-muted-foreground py-8">Nenhuma solicitação pendente</p>
             ) : (
               pendingRequests.map((request) => {
                 const type = typeConfig[request.type as keyof typeof typeConfig];
-                const days = differenceInDays(new Date(request.endDate + 'T00:00:00'), new Date(request.startDate + 'T00:00:00')) + 1;
+                const days =
+                  differenceInDays(
+                    new Date(request.endDate + "T00:00:00"),
+                    new Date(request.startDate + "T00:00:00")
+                  ) + 1;
 
                 return (
-                  <div key={request.id} className="flex items-center justify-between p-4 rounded-lg border border-border">
+                  <div
+                    key={request.id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-border"
+                  >
                     <div className="flex items-center gap-4">
                       <Avatar className="h-12 w-12">
                         <AvatarFallback className="bg-primary/10 text-primary">
-                          {request.employeeName.split(' ').map(n => n[0]).join('')}
+                          {request.employeeName
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -484,10 +634,21 @@ export default function TimeOff() {
                           <span className="text-sm text-muted-foreground">{days} dia(s)</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {format(new Date(request.startDate + 'T00:00:00'), "dd 'de' MMM", { locale: ptBR })} - {format(new Date(request.endDate + 'T00:00:00'), "dd 'de' MMM", { locale: ptBR })}
+                          {format(new Date(request.startDate + "T00:00:00"), "dd 'de' MMM", {
+                            locale: ptBR,
+                          })}{" "}
+                          -{" "}
+                          {format(new Date(request.endDate + "T00:00:00"), "dd 'de' MMM", {
+                            locale: ptBR,
+                          })}
                         </p>
                         {(request as any).attachment_url && (
-                          <a href={(request as any).attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1">
+                          <a
+                            href={(request as any).attachment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
+                          >
                             <Download className="h-3 w-3" /> Baixar anexo
                           </a>
                         )}
@@ -503,10 +664,7 @@ export default function TimeOff() {
                         <X className="h-4 w-4 mr-1" />
                         Rejeitar
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleApprove(request.id)}
-                      >
+                      <Button size="sm" onClick={() => handleApprove(request.id)}>
                         <Check className="h-4 w-4 mr-1" />
                         Aprovar
                       </Button>
@@ -523,46 +681,81 @@ export default function TimeOff() {
           <CardHeader>
             <CardTitle className="text-base">Histórico de Solicitações</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {processedRequests.map((request) => {
-              const type = typeConfig[request.type as keyof typeof typeConfig];
-              const status = statusConfig[request.status as keyof typeof statusConfig];
+          <CardContent>
+            <ScrollArea className="h-80 pr-4">
+              <div className="space-y-3">
+                {processedRequests.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Nenhum histórico de solicitações encontrado.
+                  </p>
+                ) : (
+                  processedRequests.map((request) => {
+                    const type = typeConfig[request.type as keyof typeof typeConfig];
+                    const status = statusConfig[request.status as keyof typeof statusConfig];
 
-              return (
-                <div key={request.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                        {request.employeeName.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{request.employeeName}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{type.label}</span>
-                        <span>•</span>
-                        <span>
-                          {format(new Date(request.startDate + 'T00:00:00'), "dd/MM", { locale: ptBR })} - {format(new Date(request.endDate + 'T00:00:00'), "dd/MM", { locale: ptBR })}
-                        </span>
-                        {(request as any).attachment_url && (
-                          <a href={(request as any).attachment_url} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs" title="Baixar anexo">
-                            <Download className="h-3 w-3" />
-                            Baixar
-                          </a>
-                        )}
+                    return (
+                      <div
+                        key={request.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                              {request.employeeName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              {request.employeeName}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{type.label}</span>
+                              <span>•</span>
+                              <span>
+                                {format(new Date(request.startDate + "T00:00:00"), "dd/MM", {
+                                  locale: ptBR,
+                                })}{" "}
+                                -{" "}
+                                {format(new Date(request.endDate + "T00:00:00"), "dd/MM", {
+                                  locale: ptBR,
+                                })}
+                              </span>
+                              {(request as any).attachment_url && (
+                                <a
+                                  href={(request as any).attachment_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="ml-2 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
+                                  title="Baixar anexo"
+                                >
+                                  <Download className="h-3 w-3" />
+                                  Baixar
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={status.className}>{status.label}</Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteRequest(request.id)}
+                            title="Apagar registro"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  <Badge className={status.className}>{status.label}</Badge>
-                  <div className="flex items-center gap-2">
-                    <Badge className={status.className}>{status.label}</Badge>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRequest(request.id)} title="Apagar registro">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
+                    );
+                  })
+                )}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>
@@ -581,14 +774,18 @@ export default function TimeOff() {
               <Label htmlFor="employee">Colaborador</Label>
               <Select
                 value={newRequestData.employee_id}
-                onValueChange={(value) => setNewRequestData(prev => ({ ...prev, employee_id: value }))}
+                onValueChange={(value) =>
+                  setNewRequestData((prev) => ({ ...prev, employee_id: value }))
+                }
               >
                 <SelectTrigger id="employee">
                   <SelectValue placeholder="Selecione um colaborador" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -598,14 +795,16 @@ export default function TimeOff() {
                 <Label htmlFor="type">Tipo</Label>
                 <Select
                   value={newRequestData.type}
-                  onValueChange={(value) => setNewRequestData(prev => ({ ...prev, type: value }))}
+                  onValueChange={(value) => setNewRequestData((prev) => ({ ...prev, type: value }))}
                 >
                   <SelectTrigger id="type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(typeConfig).map(([key, config]) => (
-                      <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                      <SelectItem key={key} value={key}>
+                        {config.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -623,7 +822,8 @@ export default function TimeOff() {
                       {newRequestData.date_range?.from ? (
                         newRequestData.date_range.to ? (
                           <>
-                            {format(newRequestData.date_range.from, "dd/MM/yy")} - {format(newRequestData.date_range.to, "dd/MM/yy")}
+                            {format(newRequestData.date_range.from, "dd/MM/yy")} -{" "}
+                            {format(newRequestData.date_range.to, "dd/MM/yy")}
                           </>
                         ) : (
                           format(newRequestData.date_range.from, "dd/MM/yy")
@@ -634,14 +834,25 @@ export default function TimeOff() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="range" selected={newRequestData.date_range} onSelect={(range) => setNewRequestData(prev => ({ ...prev, date_range: range }))} />
+                    <Calendar
+                      mode="range"
+                      selected={newRequestData.date_range}
+                      onSelect={(range) =>
+                        setNewRequestData((prev) => ({ ...prev, date_range: range }))
+                      }
+                    />
                   </PopoverContent>
                 </Popover>
               </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="reason">Motivo (Opcional)</Label>
-              <Textarea id="reason" placeholder="Descreva o motivo da solicitação..." value={newRequestData.reason} onChange={(e) => setNewRequestData(prev => ({ ...prev, reason: e.target.value }))} />
+              <Textarea
+                id="reason"
+                placeholder="Descreva o motivo da solicitação..."
+                value={newRequestData.reason}
+                onChange={(e) => setNewRequestData((prev) => ({ ...prev, reason: e.target.value }))}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="attachment">Anexo (Atestado/Comprovante)</Label>
@@ -653,17 +864,27 @@ export default function TimeOff() {
                 onChange={(e) => setAttachment(e.target.files?.[0] || null)}
                 disabled={isSavingRequest}
               />
-              {newRequestData.type === 'sick' && (
-                <p className="text-xs text-muted-foreground">Obrigatório anexar atestado para solicitações de afastamento médico.</p>
+              {newRequestData.type === "sick" && (
+                <p className="text-xs text-muted-foreground">
+                  Obrigatório anexar atestado para solicitações de afastamento médico.
+                </p>
               )}
               {attachment && (
                 <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Paperclip className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium text-foreground">{attachment.name}</span>
-                    <span className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatFileSize(attachment.size)}
+                    </span>
                   </div>
-                  <Button type="button" variant="ghost" size="sm" onClick={clearAttachment} disabled={isSavingRequest}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAttachment}
+                    disabled={isSavingRequest}
+                  >
                     Remover
                   </Button>
                 </div>
@@ -671,9 +892,11 @@ export default function TimeOff() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>
+              Cancelar
+            </Button>
             <Button onClick={handleSaveNewRequest} disabled={isSavingRequest}>
-              {isSavingRequest ? 'Salvando...' : 'Salvar Solicitação'}
+              {isSavingRequest ? "Salvando..." : "Salvar Solicitação"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -683,7 +906,9 @@ export default function TimeOff() {
         <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Gerenciar Senhas de Ponto</DialogTitle>
-            <DialogDescription>Defina as senhas (PIN) numéricas de 4 dígitos para os colaboradores.</DialogDescription>
+            <DialogDescription>
+              Defina as senhas (PIN) numéricas de 4 dígitos para os colaboradores.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
@@ -708,14 +933,18 @@ export default function TimeOff() {
                 </TableHeader>
                 <TableBody>
                   {employees
-                    .filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                    .map(employee => (
+                    .filter((e) => e.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map((employee) => (
                       <TableRow key={employee.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             <Avatar className="h-8 w-8">
                               <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {employee.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                {employee.name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")
+                                  .substring(0, 2)}
                               </AvatarFallback>
                             </Avatar>
                             {employee.name}
@@ -727,7 +956,7 @@ export default function TimeOff() {
                             className="w-24 font-mono text-center"
                             maxLength={4}
                             placeholder="----"
-                            value={employee.password || ''}
+                            value={employee.password || ""}
                             onChange={(e) => handlePinChange(employee.id, e.target.value)}
                           />
                         </TableCell>
