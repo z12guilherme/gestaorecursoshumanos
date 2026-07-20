@@ -32,10 +32,10 @@ interface EmployeeDetailSheetProps {
 }
 
 export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenChange, onEdit, onEndVacation, onChangePassword }: EmployeeDetailSheetProps) {
-  if (!employee) return null;
-
   const { settings } = useSettings();
   const { toast } = useToast();
+
+  if (!employee) return null;
 
   const statusConfig: Record<string, { label: string; className: string }> = {
     active: { label: 'Ativo', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },

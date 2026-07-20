@@ -343,7 +343,7 @@ export function useAIChat() {
              const bulkData = content.substring(content.indexOf('massa:') + 6).trim();
              const entries = bulkData.split(';').map(e => e.trim()).filter(e => e);
              let successCount = 0;
-             let errors: string[] = [];
+             const errors: string[] = [];
              
              if (entries.length === 0) {
                  reply = 'Formato: "massa: Nome, Cargo, Dept; Nome2, Cargo2, Dept2"';

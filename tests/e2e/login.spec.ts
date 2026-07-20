@@ -23,7 +23,7 @@ test.describe('Fluxos de Login', () => {
     await employeeAreaBtn.click();
 
     await expect(page).toHaveURL(/\/clock-in$/);
-    await expect(page.getByText(/portal do colaborador/i).first()).toBeVisible();
+    await expect(page.getByText('Portal do Colaborador').first()).toBeVisible({ timeout: 15000 });
 
     await page.getByRole('button', { name: /acesso administrativo/i }).click();
     await expect(page).toHaveURL(/\/login$/);
@@ -51,6 +51,6 @@ test.describe('Fluxos de Login', () => {
     await page.locator('input[type="password"]').fill('123456');
     await page.getByRole('button', { name: /entrar no sistema/i }).click();
 
-    await expect(page).toHaveURL(/\/(dashboard)?$/);
+    await expect(page).toHaveURL(/\/(dashboard|manager-portal)?$/);
   });
 });

@@ -56,13 +56,17 @@ export default function Dashboard() {
     try {
       const adds = Array.isArray(emp.variable_additions) ? emp.variable_additions : JSON.parse(emp.variable_additions || '[]');
       varAdditions = adds.reduce((s: number, a: any) => s + (Number(a.value) || 0), 0);
-    } catch (e) { }
+    } catch (e) {
+      // Ignorar erro de parsing
+    }
 
     let varDiscounts = 0;
     try {
       const discs = Array.isArray(emp.variable_discounts) ? emp.variable_discounts : JSON.parse(emp.variable_discounts || '[]');
       varDiscounts = discs.reduce((s: number, d: any) => s + (Number(d.amount || d.value) || 0), 0);
-    } catch (e) { }
+    } catch (e) {
+      // Ignorar erro de parsing
+    }
 
     const fixedDiscounts = Number(emp.fixed_discounts) || 0;
 

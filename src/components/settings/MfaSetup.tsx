@@ -4,6 +4,21 @@ import { USE_MOCK } from '@/lib/mockDatabase';
 import { ShieldCheck, ShieldAlert, Loader2, Smartphone } from 'lucide-react';
 
 export function MfaSetup() {
+  const [loading, setLoading] = useState(true);
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [factorId, setFactorId] = useState<string | null>(null);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [verifyCode, setVerifyCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!USE_MOCK) {
+      checkMfaStatus();
+    }
+  }, []);
+
   // 🔀 No modo demo, MFA não está disponível
   if (USE_MOCK) {
     return (
@@ -26,18 +41,6 @@ export function MfaSetup() {
       </div>
     );
   }
-  const [loading, setLoading] = useState(true);
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [isEnrolling, setIsEnrolling] = useState(false);
-  const [factorId, setFactorId] = useState<string | null>(null);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [verifyCode, setVerifyCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  useEffect(() => {
-    checkMfaStatus();
-  }, []);
 
   const checkMfaStatus = async () => {
     try {

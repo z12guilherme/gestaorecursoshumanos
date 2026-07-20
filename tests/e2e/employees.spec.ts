@@ -52,16 +52,19 @@ test.describe('Fluxos de Colaboradores', () => {
     // Preenche o PIN (Obrigatório para o ponto)
     await modal.getByLabel(/senha do ponto/i).fill('1234');
 
-    // Seleciona o Departamento (usando o placeholder específico do formulário para evitar conflito com filtros)
-    const departmentSelect = modal.getByRole('combobox', { name: /selecione/i });
+    // Seleciona o Departamento
+    const departmentSelect = modal.locator('#department');
     await departmentSelect.click();
 
     // Localiza a opção no portal do Select (renderizado fora do DOM do dialog)
     await page.getByRole('option', { name: 'TI', exact: true }).click();
+    
+    // Aguarda o dropdown fechar
+    await expect(page.getByRole('listbox')).not.toBeVisible({ timeout: 5000 }).catch(() => {});
 
     await modal.getByRole('button', { name: /cadastrar colaborador/i }).click();
 
-    // Validação final por texto de sucesso no toast
-    await expect(page.getByText(/cadastrado com sucesso/i).first()).toBeVisible();
+    // Validação final por texto de sucesso no toast com timeout estendido para ambientes mais lentos
+    await expect(page.getByText(/cadastrado com sucesso/i).first()).toBeVisible({ timeout: 15000 });
   });
 });

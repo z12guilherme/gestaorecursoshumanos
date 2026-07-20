@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { KeyRound, Loader2 } from 'lucide-react';
 import { AvatarUpload } from './AvatarUpload';
 import { supabase } from '@/lib/supabase';
+import { employeeRepository } from '@/services/employeeService';
 import FinancialDataForm from './FinancialDataForm';
 import { useSettings } from '@/hooks/useSettings';
 import { useForm, Controller } from 'react-hook-form';
@@ -189,16 +190,11 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
     let error;
 
     if (employee?.id) {
-      const { error: updateError } = await supabase
-        .from('employees')
-        .update(payload)
-        .eq('id', employee.id);
-      error = updateError;
+      const result = await employeeRepository.update(employee.id, payload);
+      error = result.error;
     } else {
-      const { error: insertError } = await supabase
-        .from('employees')
-        .insert([payload]);
-      error = insertError;
+      const result = await employeeRepository.create(payload);
+      error = result.error;
     }
 
     setIsSaving(false);
@@ -269,7 +265,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
                 name="department"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
+                    <SelectTrigger id="department">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
@@ -289,7 +285,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
                 name="contract_type"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
+                    <SelectTrigger id="contractType">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -310,7 +306,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
                 name="status"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
+                    <SelectTrigger id="status">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
