@@ -3,6 +3,7 @@
 Este guia contém o passo a passo exato para configurar um novo cliente (instância) na plataforma RH - Rede DMI em menos de 15 minutos.
 
 ## 📋 Pré-requisitos
+
 - Conta de e-mail do cliente (ex: `rh@empresa.com.br`).
 - Acesso ao GitHub (seu repositório base).
 - Conta no Vercel (pode ser a sua com um novo projeto ou a do cliente).
@@ -16,7 +17,7 @@ Este guia contém o passo a passo exato para configurar um novo cliente (instân
    - `Project URL`
    - `Project API Keys (anon, public)`
 3. Vá no **SQL Editor** e rode o script completo de setup (`20260423172634_remote_schema.sql`).
-   - *Este script já cria as tabelas, RLS, Storage Buckets, Triggers, Views Seguras, insere as configurações em branco na tabela `settings` e cria a função `setup_first_admin`.*
+   - _Este script já cria as tabelas, RLS, Storage Buckets, Triggers, Views Seguras, insere as configurações em branco na tabela `settings` e cria a função `setup_first_admin`._
 4. Vá no menu **Authentication -> Users** e crie o primeiro usuário (e-mail e senha) para o dono da empresa.
 5. Volte no **SQL Editor** e rode o comando abaixo para dar permissão de Admin:
    ```sql
@@ -41,6 +42,7 @@ Este guia contém o passo a passo exato para configurar um novo cliente (instân
    - `VITE_EMAILJS_SERVICE_ID`: (O `Service ID` copiado no Passo 2)
    - `VITE_EMAILJS_TEMPLATE_ID`: (O `Template ID` copiado no Passo 2)
    - `VITE_EMAILJS_PUBLIC_KEY`: (A `Public Key` copiada no Passo 2)
+   - `VITE_RECAPTCHA_SITE_KEY`: (A chave de site do Google reCAPTCHA v3)
 4. Clique em **Deploy**.
 
 ## 🎨 Passo 4: White-label e Primeiro Acesso

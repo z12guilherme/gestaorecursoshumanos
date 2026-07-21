@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { ManualModal } from "@/components/ManualModal";
 import { SecurityBadge } from "@/components/auth/SecurityBadge";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { useSettings } from "@/hooks/useSettings";
 import { USE_MOCK } from "@/lib/mockDatabase";
 import { DEFAULT_EMPLOYEE_PORTAL_NAME } from "@/lib/branding";
@@ -22,6 +23,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { session, signInMock, isManager, profile } = useAuth();
   const { settings } = useSettings();
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   useEffect(() => {
     const checkMfaAndNavigate = async () => {
@@ -61,6 +63,43 @@ export default function LoginPage() {
         if (signInMock) signInMock();
         return;
       }
+
+      // --- Início da Validação do reCAPTCHA ---
+      if (!executeRecaptcha) {
+        throw new Error("reCAPTCHA não está pronto.");
+      }
+
+      const recaptchaToken = await executeRecaptcha("login");
+
+      const { data: recaptchaResult, error: recaptchaError } = await supabase.functions.invoke(
+        "validate-recaptcha",
+        {
+          body: { token: recaptchaToken },
+        }
+      );
+
+      if (recaptchaError || !recaptchaResult?.success) {
+        console.error("Falha no reCAPTCHA:", recaptchaError || recaptchaResult);
+        toast({
+          title: "Acesso negado",
+          description: "Nossos sistemas detectaram tráfego suspeito (Bot).",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Se o score for menor que 0.5, pode ser um bot
+      if (recaptchaResult.score < 0.5) {
+        toast({
+          title: "Verificação de segurança",
+          description: "Tráfego suspeito detectado.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+      // --- Fim da Validação do reCAPTCHA ---
 
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -276,6 +315,27 @@ export default function LoginPage() {
             </p>
             <p className="text-[10px] text-slate-500 font-medium tracking-wide">
               Desenvolvido e Auditado por Marcos Guilherme
+            </p>
+            <p className="text-[10px] text-slate-400 max-w-xs mt-2">
+              Este site é protegido pelo reCAPTCHA e aplica-se a{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                className="text-blue-500 hover:underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Política de Privacidade
+              </a>{" "}
+              e os{" "}
+              <a
+                href="https://policies.google.com/terms"
+                className="text-blue-500 hover:underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Termos de Serviço
+              </a>{" "}
+              do Google.
             </p>
           </div>
         </div>

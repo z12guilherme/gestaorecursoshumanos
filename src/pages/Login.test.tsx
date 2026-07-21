@@ -66,6 +66,9 @@ vi.mock("@/lib/supabase", () => ({
         verify: verifyMock,
       },
     },
+    functions: {
+      invoke: vi.fn().mockResolvedValue({ data: { success: true, score: 0.9 }, error: null }),
+    },
     from: vi.fn((table: string) => {
       if (table === "settings") {
         return {
@@ -88,6 +91,11 @@ vi.mock("@/lib/supabase", () => ({
 vi.mock("@/lib/mockDatabase", () => ({ USE_MOCK: false }));
 vi.mock("@/components/ManualModal", () => ({ ManualModal: () => null }));
 vi.mock("@/components/auth/SecurityBadge", () => ({ SecurityBadge: () => null }));
+vi.mock("react-google-recaptcha-v3", () => ({
+  useGoogleReCaptcha: () => ({
+    executeRecaptcha: vi.fn().mockResolvedValue("mock-token"),
+  }),
+}));
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 beforeEach(() => {
