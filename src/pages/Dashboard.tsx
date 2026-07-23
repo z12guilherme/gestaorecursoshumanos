@@ -1,18 +1,41 @@
-import { useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, UserCheck, Calendar, Briefcase, Clock, UserPlus, Sparkles, TrendingUp, AlertTriangle, DollarSign, Thermometer, Moon, Star, Eye } from 'lucide-react';
-import { useEmployees } from '@/hooks/useEmployees';
-import { useRecruitment } from '@/hooks/useRecruitment';
-import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { usePerformance } from '@/hooks/usePerformance';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { BirthdaysList } from '@/components/dashboard/BirthdaysList';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Users,
+  UserCheck,
+  Calendar,
+  Briefcase,
+  Clock,
+  UserPlus,
+  Sparkles,
+  TrendingUp,
+  AlertTriangle,
+  DollarSign,
+  Thermometer,
+  Moon,
+  Star,
+  Eye,
+  Mail,
+} from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useRecruitment } from "@/hooks/useRecruitment";
+import { useTimeEntries } from "@/hooks/useTimeEntries";
+import { usePerformance } from "@/hooks/usePerformance";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { BirthdaysList } from "@/components/dashboard/BirthdaysList";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export default function Dashboard() {
   const { employees: dbEmployees, loading: loadingEmployees } = useEmployees();
@@ -35,118 +58,164 @@ export default function Dashboard() {
 
   const stats = {
     total: employees.length,
-    active: employees.filter(e => ['active', 'Ativo'].includes(e.status)).length,
-    vacation: employees.filter(e => ['vacation', 'Férias'].includes(e.status)).length,
-    openJobs: jobs.filter(j => ['open', 'Aberta'].includes(j.status)).length,
+    active: employees.filter((e) => ["active", "Ativo"].includes(e.status)).length,
+    vacation: employees.filter((e) => ["vacation", "Férias"].includes(e.status)).length,
+    openJobs: jobs.filter((j) => ["open", "Aberta"].includes(j.status)).length,
   };
 
   // Cálculos Financeiros e Operacionais
-  const financialStats = employees.reduce((acc, emp) => {
-    if (['terminated', 'Desligado'].includes(emp.status)) return acc;
+  const financialStats = employees.reduce(
+    (acc, emp) => {
+      if (["terminated", "Desligado"].includes(emp.status)) return acc;
 
-    const base = Number(emp.baseSalary) || 0;
-    const insalubrityValue = Number(emp.insalubrity_amount) || 0;
-    const nightShiftValue = Number(emp.night_shift_amount) || 0;
-    const familySalary = Number(emp.family_salary_amount) || 0;
-    const overtime = Number(emp.overtime_amount) || 0;
-    const vacation = Number(emp.vacation_amount) || 0;
-    const vacationThird = Number(emp.vacation_third_amount) || 0;
+      const base = Number(emp.baseSalary) || 0;
+      const insalubrityValue = Number(emp.insalubrity_amount) || 0;
+      const nightShiftValue = Number(emp.night_shift_amount) || 0;
+      const familySalary = Number(emp.family_salary_amount) || 0;
+      const overtime = Number(emp.overtime_amount) || 0;
+      const vacation = Number(emp.vacation_amount) || 0;
+      const vacationThird = Number(emp.vacation_third_amount) || 0;
 
-    let varAdditions = 0;
-    try {
-      const adds = Array.isArray(emp.variable_additions) ? emp.variable_additions : JSON.parse(emp.variable_additions || '[]');
-      varAdditions = adds.reduce((s: number, a: any) => s + (Number(a.value) || 0), 0);
-    } catch (e) {
-      // Ignorar erro de parsing
-    }
+      let varAdditions = 0;
+      try {
+        const adds = Array.isArray(emp.variable_additions)
+          ? emp.variable_additions
+          : JSON.parse(emp.variable_additions || "[]");
+        varAdditions = adds.reduce((s: number, a: any) => s + (Number(a.value) || 0), 0);
+      } catch (e) {
+        // Ignorar erro de parsing
+      }
 
-    let varDiscounts = 0;
-    try {
-      const discs = Array.isArray(emp.variable_discounts) ? emp.variable_discounts : JSON.parse(emp.variable_discounts || '[]');
-      varDiscounts = discs.reduce((s: number, d: any) => s + (Number(d.amount || d.value) || 0), 0);
-    } catch (e) {
-      // Ignorar erro de parsing
-    }
+      let varDiscounts = 0;
+      try {
+        const discs = Array.isArray(emp.variable_discounts)
+          ? emp.variable_discounts
+          : JSON.parse(emp.variable_discounts || "[]");
+        varDiscounts = discs.reduce(
+          (s: number, d: any) => s + (Number(d.amount || d.value) || 0),
+          0
+        );
+      } catch (e) {
+        // Ignorar erro de parsing
+      }
 
-    const fixedDiscounts = Number(emp.fixed_discounts) || 0;
+      const fixedDiscounts = Number(emp.fixed_discounts) || 0;
 
-    let inss = 0;
-    if (emp.inss_value !== undefined && emp.inss_value !== null) {
-      inss = Number(String(emp.inss_value).replace(',', '.')) || 0;
-    } else if (emp.contract_type !== 'Terceirizado' && emp.contract_type !== 'PJ' && emp.contractType !== 'Terceirizado' && emp.contractType !== 'PJ') {
-      inss = (base + insalubrityValue + nightShiftValue + overtime + varAdditions) * 0.09; // Estimativa 9%
-    }
+      let inss = 0;
+      if (emp.inss_value !== undefined && emp.inss_value !== null) {
+        inss = Number(String(emp.inss_value).replace(",", ".")) || 0;
+      } else if (
+        emp.contract_type !== "Terceirizado" &&
+        emp.contract_type !== "PJ" &&
+        emp.contractType !== "Terceirizado" &&
+        emp.contractType !== "PJ"
+      ) {
+        inss = (base + insalubrityValue + nightShiftValue + overtime + varAdditions) * 0.09; // Estimativa 9%
+      }
 
-    const netSalary = base + insalubrityValue + nightShiftValue + familySalary + overtime + vacation + vacationThird + varAdditions - (fixedDiscounts + varDiscounts + inss);
-    acc.payroll += netSalary > 0 ? netSalary : 0;
+      const netSalary =
+        base +
+        insalubrityValue +
+        nightShiftValue +
+        familySalary +
+        overtime +
+        vacation +
+        vacationThird +
+        varAdditions -
+        (fixedDiscounts + varDiscounts + inss);
+      acc.payroll += netSalary > 0 ? netSalary : 0;
 
-    if (emp.hasInsalubrity) acc.insalubrityCount++;
-    if (emp.hasNightShift) acc.nightShiftCount++;
+      if (emp.hasInsalubrity) acc.insalubrityCount++;
+      if (emp.hasNightShift) acc.nightShiftCount++;
 
-    if (emp.vacationDueDate) {
-      const due = new Date(emp.vacationDueDate);
-      const today = new Date();
-      const diffTime = due.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      if (diffDays <= 90) acc.vacationDueCount++;
-    }
+      if (emp.vacationDueDate) {
+        const due = new Date(emp.vacationDueDate);
+        const today = new Date();
+        const diffTime = due.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays <= 90) acc.vacationDueCount++;
+      }
 
-    return acc;
-  }, { payroll: 0, insalubrityCount: 0, nightShiftCount: 0, vacationDueCount: 0 });
+      return acc;
+    },
+    { payroll: 0, insalubrityCount: 0, nightShiftCount: 0, vacationDueCount: 0 }
+  );
 
   // Pega os 5 últimos registros de ponto
-  const recentActivity = timeEntries.slice(0, 5).map(entry => {
-    const emp = employees.find(e => e.id === entry.employee_id);
+  const recentActivity = timeEntries.slice(0, 5).map((entry) => {
+    const emp = employees.find((e) => e.id === entry.employee_id);
     return {
       ...entry,
-      employeeName: emp?.name || 'Colaborador',
-      employeeRole: emp?.role || '',
+      employeeName: emp?.name || "Colaborador",
+      employeeRole: emp?.role || "",
     };
   });
 
   // Mapeia e formata as 3 avaliações mais recentes do banco/mock
   const recentEvaluations = reviews.slice(0, 3).map((review: any) => {
-    const achievedGoals = Array.isArray(review.goals) ? review.goals.filter((g: any) => g.achieved).length : 0;
+    const achievedGoals = Array.isArray(review.goals)
+      ? review.goals.filter((g: any) => g.achieved).length
+      : 0;
     const totalGoals = Array.isArray(review.goals) ? review.goals.length : 0;
 
     return {
       id: review.id,
-      employeeName: review.employee_name || 'Colaborador',
-      evaluatorName: review.reviewer_name || 'Gestor',
-      date: review.period || (review.created_at ? format(parseISO(review.created_at), 'MM/yyyy') : '-'),
+      employeeName: review.employee_name || "Colaborador",
+      evaluatorName: review.reviewer_name || "Gestor",
+      date:
+        review.period || (review.created_at ? format(parseISO(review.created_at), "MM/yyyy") : "-"),
       score: review.overall_score || 0,
       goals: `${achievedGoals}/${totalGoals}`,
-      competencies: Array.isArray(review.competencies) ? review.competencies.map((c: any) => ({
-        name: c.name,
-        value: c.score !== undefined ? c.score : c.value
-      })) : [],
-      comment: review.feedback || ''
+      competencies: Array.isArray(review.competencies)
+        ? review.competencies.map((c: any) => ({
+            name: c.name,
+            value: c.score !== undefined ? c.score : c.value,
+          }))
+        : [],
+      comment: review.feedback || "",
     };
   });
 
   // Insights da IA (Cálculos em tempo real)
-  const longTenureEmployees = employees.filter(e => {
+  const longTenureEmployees = employees.filter((e) => {
     if (!e.admission_date) return false;
-    const years = (new Date().getTime() - new Date(e.admission_date).getTime()) / (1000 * 60 * 60 * 24 * 365);
-    return years > 2 && e.status === 'active';
+    const years =
+      (new Date().getTime() - new Date(e.admission_date).getTime()) / (1000 * 60 * 60 * 24 * 365);
+    return years > 2 && e.status === "active";
   }).length;
 
   const aiInsights = [
     {
       icon: AlertTriangle,
       color: "text-amber-500",
-      text: `${longTenureEmployees} colaboradores completaram 2+ anos de casa. Considere agendar conversas de carreira para reduzir risco de turnover.`
+      text: `${longTenureEmployees} colaboradores completaram 2+ anos de casa. Considere agendar conversas de carreira para reduzir risco de turnover.`,
     },
     {
       icon: TrendingUp,
       color: "text-emerald-500",
-      text: `A taxa de ocupação de vagas está em ${stats.openJobs > 0 ? Math.round((stats.total / (stats.total + stats.openJobs)) * 100) : 100}%. O setor de TI tem a maior demanda.`
-    }
+      text: `A taxa de ocupação de vagas está em ${stats.openJobs > 0 ? Math.round((stats.total / (stats.total + stats.openJobs)) * 100) : 100}%. O setor de TI tem a maior demanda.`,
+    },
   ];
 
   return (
     <AppLayout title="Dashboard" subtitle="Visão geral da empresa">
       <div className="space-y-6">
+        <Alert className="bg-primary/5 border-primary/20">
+          <Mail className="h-4 w-4 text-primary" />
+          <AlertTitle className="font-semibold">Sugestões e Feedback</AlertTitle>
+          <AlertDescription>
+            Para sugestões de melhorias, adicionar funcionalidades ou correções de bugs, enviar
+            email para{" "}
+            <a
+              href="mailto:ti.hospitaldmi@gmail.com"
+              className="font-semibold text-primary hover:underline"
+            >
+              ti.hospitaldmi@gmail.com
+            </a>
+            , com nome, cargo e sugestão.
+          </AlertDescription>
+        </Alert>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
@@ -156,7 +225,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total de Colaboradores</p>
-                <h3 className="text-2xl font-bold">{loading ? '-' : stats.total}</h3>
+                <h3 className="text-2xl font-bold">{loading ? "-" : stats.total}</h3>
               </div>
             </CardContent>
           </Card>
@@ -168,7 +237,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Ativos</p>
-                <h3 className="text-2xl font-bold">{loading ? '-' : stats.active}</h3>
+                <h3 className="text-2xl font-bold">{loading ? "-" : stats.active}</h3>
               </div>
             </CardContent>
           </Card>
@@ -180,7 +249,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Em Férias</p>
-                <h3 className="text-2xl font-bold">{loading ? '-' : stats.vacation}</h3>
+                <h3 className="text-2xl font-bold">{loading ? "-" : stats.vacation}</h3>
               </div>
             </CardContent>
           </Card>
@@ -192,14 +261,16 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Vagas Abertas</p>
-                <h3 className="text-2xl font-bold">{loading ? '-' : stats.openJobs}</h3>
+                <h3 className="text-2xl font-bold">{loading ? "-" : stats.openJobs}</h3>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Seção Financeira e Operacional */}
-        <h3 className="text-lg font-semibold text-foreground mt-8 mb-4">Financeiro & Operacional</h3>
+        <h3 className="text-lg font-semibold text-foreground mt-8 mb-4">
+          Financeiro & Operacional
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="flex items-center gap-4 p-6">
@@ -209,7 +280,9 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Folha Estimada (Mensal)</p>
                 <h3 className="text-2xl font-bold">
-                  {loading ? '-' : `R$ ${financialStats.payroll.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  {loading
+                    ? "-"
+                    : `R$ ${financialStats.payroll.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 </h3>
               </div>
             </CardContent>
@@ -221,8 +294,12 @@ export default function Dashboard() {
                 <AlertTriangle className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Férias a Vencer (90 dias)</p>
-                <h3 className="text-2xl font-bold">{loading ? '-' : financialStats.vacationDueCount}</h3>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Férias a Vencer (90 dias)
+                </p>
+                <h3 className="text-2xl font-bold">
+                  {loading ? "-" : financialStats.vacationDueCount}
+                </h3>
                 <p className="text-xs text-muted-foreground">Colaboradores em alerta</p>
               </div>
             </CardContent>
@@ -236,8 +313,12 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Adicionais Ativos</p>
                 <div className="flex gap-3 text-sm font-medium mt-1">
-                  <span className="flex items-center gap-1"><Thermometer className="h-3 w-3" /> {financialStats.insalubrityCount} Insalub.</span>
-                  <span className="flex items-center gap-1"><Moon className="h-3 w-3" /> {financialStats.nightShiftCount} Noturno</span>
+                  <span className="flex items-center gap-1">
+                    <Thermometer className="h-3 w-3" /> {financialStats.insalubrityCount} Insalub.
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Moon className="h-3 w-3" /> {financialStats.nightShiftCount} Noturno
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -257,7 +338,10 @@ export default function Dashboard() {
             <CardContent>
               <div className="space-y-4">
                 {aiInsights.map((insight, index) => (
-                  <div key={index} className="flex gap-3 items-start p-3 bg-background/60 rounded-lg border border-border/50">
+                  <div
+                    key={index}
+                    className="flex gap-3 items-start p-3 bg-background/60 rounded-lg border border-border/50"
+                  >
                     <insight.icon className={`h-5 w-5 shrink-0 ${insight.color} mt-0.5`} />
                     <p className="text-sm text-foreground">{insight.text}</p>
                   </div>
@@ -281,11 +365,18 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Carregando...</p>
                 ) : recentActivity.length > 0 ? (
                   recentActivity.map((activity) => (
-                    <div key={activity.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                    <div
+                      key={activity.id}
+                      className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                    >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
                           <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                            {activity.employeeName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                            {activity.employeeName
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .substring(0, 2)}
                           </AvatarFallback>
                         </Avatar>
                         <div>
@@ -294,8 +385,15 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <Badge variant={activity.type === 'in' ? 'outline' : 'secondary'} className={activity.type === 'in' ? 'text-emerald-600 border-emerald-200 bg-emerald-50' : ''}>
-                          {activity.type === 'in' ? 'Entrada' : 'Saída'}
+                        <Badge
+                          variant={activity.type === "in" ? "outline" : "secondary"}
+                          className={
+                            activity.type === "in"
+                              ? "text-emerald-600 border-emerald-200 bg-emerald-50"
+                              : ""
+                          }
+                        >
+                          {activity.type === "in" ? "Entrada" : "Saída"}
                         </Badge>
                         <p className="text-xs text-muted-foreground mt-1">
                           {format(parseISO(activity.timestamp), "HH:mm", { locale: ptBR })}
@@ -323,15 +421,22 @@ export default function Dashboard() {
               <div className="space-y-4">
                 {loadingJobs ? (
                   <p className="text-sm text-muted-foreground">Carregando...</p>
-                ) : jobs.slice(0, 5).map((job) => (
-                  <div key={job.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                    <div>
-                      <p className="text-sm font-medium">{job.title}</p>
-                      <p className="text-xs text-muted-foreground">{job.department} • {job.location}</p>
+                ) : (
+                  jobs.slice(0, 5).map((job) => (
+                    <div
+                      key={job.id}
+                      className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{job.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {job.department} • {job.location}
+                        </p>
+                      </div>
+                      <Badge variant="outline">{job.type}</Badge>
                     </div>
-                    <Badge variant="outline">{job.type}</Badge>
-                  </div>
-                ))}
+                  ))
+                )}
                 {!loadingJobs && jobs.length === 0 && (
                   <p className="text-sm text-muted-foreground">Nenhuma vaga aberta no momento.</p>
                 )}
@@ -363,21 +468,34 @@ export default function Dashboard() {
               ) : recentEvaluations.length > 0 ? (
                 <div className="max-h-[380px] overflow-y-auto pr-2 space-y-4 scrollbar-thin">
                   {recentEvaluations.map((evalItem) => (
-                    <div key={evalItem.id} className="space-y-4 p-4 border rounded-lg bg-slate-50/50 dark:bg-slate-900/50 transition-colors hover:bg-slate-50 dark:hover:bg-slate-900">
+                    <div
+                      key={evalItem.id}
+                      className="space-y-4 p-4 border rounded-lg bg-slate-50/50 dark:bg-slate-900/50 transition-colors hover:bg-slate-50 dark:hover:bg-slate-900"
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex gap-3">
                           <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
                             <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-                              {evalItem.employeeName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                              {evalItem.employeeName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .substring(0, 2)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-bold text-sm leading-none mb-1">{evalItem.employeeName}</p>
-                            <p className="text-[11px] text-muted-foreground">Avaliado por {evalItem.evaluatorName}</p>
+                            <p className="font-bold text-sm leading-none mb-1">
+                              {evalItem.employeeName}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Avaliado por {evalItem.evaluatorName}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[10px] font-bold">{evalItem.date}</Badge>
+                          <Badge variant="outline" className="text-[10px] font-bold">
+                            {evalItem.date}
+                          </Badge>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -391,22 +509,36 @@ export default function Dashboard() {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="text-center p-2 bg-background rounded-md border shadow-sm">
-                          <p className="text-[9px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Nota Geral</p>
+                          <p className="text-[9px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">
+                            Nota Geral
+                          </p>
                           <p className="text-xl font-black text-primary">{evalItem.score}</p>
                         </div>
                         <div className="text-center p-2 bg-background rounded-md border shadow-sm">
-                          <p className="text-[9px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">Metas</p>
+                          <p className="text-[9px] uppercase font-semibold text-muted-foreground tracking-wider mb-1">
+                            Metas
+                          </p>
                           <p className="text-xl font-black">{evalItem.goals}</p>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Competências</p>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
+                          Competências
+                        </p>
                         <div className="grid grid-cols-1 gap-2">
                           {evalItem.competencies.map((comp) => (
-                            <div key={comp.name} className="flex items-center justify-between text-xs bg-background/50 p-1.5 px-2 rounded border border-dashed">
+                            <div
+                              key={comp.name}
+                              className="flex items-center justify-between text-xs bg-background/50 p-1.5 px-2 rounded border border-dashed"
+                            >
                               <span className="font-medium">{comp.name}</span>
-                              <Badge variant="secondary" className="h-5 px-1.5 font-bold text-primary">{comp.value}</Badge>
+                              <Badge
+                                variant="secondary"
+                                className="h-5 px-1.5 font-bold text-primary"
+                              >
+                                {comp.value}
+                              </Badge>
                             </div>
                           ))}
                         </div>
@@ -424,7 +556,9 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-center py-8 text-muted-foreground">Nenhuma avaliação registrada recentemente.</p>
+                <p className="text-sm text-center py-8 text-muted-foreground">
+                  Nenhuma avaliação registrada recentemente.
+                </p>
               )}
             </CardContent>
           </Card>
@@ -432,7 +566,10 @@ export default function Dashboard() {
       </div>
 
       {/* Modal de Detalhes da Avaliação */}
-      <Dialog open={!!selectedEvaluation} onOpenChange={(open) => !open && setSelectedEvaluation(null)}>
+      <Dialog
+        open={!!selectedEvaluation}
+        onOpenChange={(open) => !open && setSelectedEvaluation(null)}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
@@ -449,34 +586,58 @@ export default function Dashboard() {
               <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
                 <Avatar className="h-16 w-16 border-2 border-primary/20">
                   <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
-                    {selectedEvaluation.employeeName.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
+                    {selectedEvaluation.employeeName
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")
+                      .substring(0, 2)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="text-xl font-bold">{selectedEvaluation.employeeName}</h3>
-                  <p className="text-sm text-muted-foreground">Avaliado por <span className="font-medium text-foreground">{selectedEvaluation.evaluatorName}</span> em <span className="font-medium text-foreground">{selectedEvaluation.date}</span></p>
+                  <p className="text-sm text-muted-foreground">
+                    Avaliado por{" "}
+                    <span className="font-medium text-foreground">
+                      {selectedEvaluation.evaluatorName}
+                    </span>{" "}
+                    em{" "}
+                    <span className="font-medium text-foreground">{selectedEvaluation.date}</span>
+                  </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border text-center">
-                  <p className="text-xs font-bold uppercase text-muted-foreground mb-1 tracking-wider">Nota Geral</p>
-                  <p className="text-4xl font-black text-primary">{Number(selectedEvaluation.score).toFixed(1)}</p>
+                  <p className="text-xs font-bold uppercase text-muted-foreground mb-1 tracking-wider">
+                    Nota Geral
+                  </p>
+                  <p className="text-4xl font-black text-primary">
+                    {Number(selectedEvaluation.score).toFixed(1)}
+                  </p>
                 </div>
                 <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border text-center">
-                  <p className="text-xs font-bold uppercase text-muted-foreground mb-1 tracking-wider">Metas Atingidas</p>
+                  <p className="text-xs font-bold uppercase text-muted-foreground mb-1 tracking-wider">
+                    Metas Atingidas
+                  </p>
                   <p className="text-4xl font-black">{selectedEvaluation.goals}</p>
                 </div>
               </div>
 
               {selectedEvaluation.competencies.length > 0 && (
                 <div className="space-y-3">
-                  <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Competências Avaliadas</h4>
+                  <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">
+                    Competências Avaliadas
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {selectedEvaluation.competencies.map((comp: any) => (
-                      <div key={comp.name} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-md border">
+                      <div
+                        key={comp.name}
+                        className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-md border"
+                      >
                         <span className="font-medium text-sm">{comp.name}</span>
-                        <Badge className="font-bold bg-primary/10 text-primary hover:bg-primary/20 border-none">{comp.value}</Badge>
+                        <Badge className="font-bold bg-primary/10 text-primary hover:bg-primary/20 border-none">
+                          {comp.value}
+                        </Badge>
                       </div>
                     ))}
                   </div>
@@ -485,7 +646,9 @@ export default function Dashboard() {
 
               {selectedEvaluation.comment && (
                 <div className="space-y-2">
-                  <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Feedback do Gestor</h4>
+                  <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">
+                    Feedback do Gestor
+                  </h4>
                   <div className="p-5 bg-amber-50/30 dark:bg-amber-900/10 rounded-lg border border-amber-200/50 dark:border-amber-900/50 italic text-foreground leading-relaxed whitespace-pre-wrap">
                     "{selectedEvaluation.comment}"
                   </div>
