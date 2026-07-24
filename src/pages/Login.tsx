@@ -65,33 +65,11 @@ export default function LoginPage() {
       }
 
       // --- Início da Validação do reCAPTCHA ---
-      let execute = executeRecaptcha;
-      if (!execute && typeof window !== "undefined" && (window as any).grecaptcha?.execute) {
-        execute = (window as any).grecaptcha.execute;
-      }
-
-      if (!execute) {
-        // Tenta esperar até 3 segundos se a biblioteca global estiver carregando
-        for (let i = 0; i < 30; i++) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          if (typeof window !== "undefined" && (window as any).grecaptcha?.execute) {
-            execute = (window as any).grecaptcha.execute;
-            break;
-          }
-        }
-      }
-
-      if (!execute) {
+      if (!executeRecaptcha) {
         throw new Error("reCAPTCHA não está pronto.");
       }
 
-      const recaptchaToken =
-        execute === executeRecaptcha
-          ? await executeRecaptcha("login")
-          : await (window as any).grecaptcha.execute(
-              (import.meta.env.VITE_RECAPTCHA_SITE_KEY || "").replace(/['"]/g, ""),
-              { action: "login" }
-            );
+      const recaptchaToken = await executeRecaptcha("login");
 
       const { data: recaptchaResult, error: recaptchaError } = await supabase.functions.invoke(
         "validate-recaptcha",
@@ -290,11 +268,13 @@ export default function LoginPage() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || (!USE_MOCK && !executeRecaptcha)}
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     {isLoading ? (
                       "Autenticando..."
+                    ) : !USE_MOCK && !executeRecaptcha ? (
+                      "Carregando segurança..."
                     ) : (
                       <>
                         Entrar no Sistema <ArrowRight className="h-5 w-5" />
