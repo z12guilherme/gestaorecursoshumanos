@@ -446,13 +446,14 @@ export function useAIChat() {
         const { data: performanceReviews } = await supabase
           .from("performance_reviews")
           .select("*, employee:employees(name)");
-        const { data: payrollList } = await supabase.from("payroll").select("*");
+        // Tabela 'payroll' não existe no schema — análise de turnover usa [] como fallback
+        const payrollList: any[] = [];
         const { data: timeOffList } = await supabase.from("time_off_requests").select("*");
 
         reply = analyzeTurnoverRiskData(
           employees || [],
           performanceReviews || [],
-          payrollList || [],
+          payrollList,
           timeOffList || []
         );
       }

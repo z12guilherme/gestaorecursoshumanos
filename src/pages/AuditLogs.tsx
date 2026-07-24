@@ -198,7 +198,8 @@ export default function AuditLogs() {
   const pageSize = 50;
 
   const today = format(new Date(), "yyyy-MM-dd");
-  const [startDate, setStartDate] = useState(today);
+  const thirtyDaysAgo = format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), "yyyy-MM-dd");
+  const [startDate, setStartDate] = useState(thirtyDaysAgo);
   const [endDate, setEndDate] = useState(today);
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [tableFilter, setTableFilter] = useState<string>("all");
@@ -298,7 +299,7 @@ export default function AuditLogs() {
     setActionFilter("all");
     setTableFilter("all");
     setSearchQuery("");
-    setStartDate(today);
+    setStartDate(thirtyDaysAgo);
     setEndDate(today);
     setPage(1);
   };
