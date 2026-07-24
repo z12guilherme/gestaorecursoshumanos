@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 stats.html
+
+# Environment variables — NUNCA commitar estes arquivos!
+.env
+.env.local
+.env.production

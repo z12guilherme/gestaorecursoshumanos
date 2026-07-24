@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { mockDatabase, USE_MOCK } from "@/lib/mockDatabase";
+import { askGroq, type GroqMessage } from "@/services/groqService";
 
 export interface Message {
   id: string;
@@ -475,7 +476,8 @@ export function useAIChat() {
         ) &&
         !msg.includes("turnover") &&
         !msg.includes("desempenho") &&
-        !msg.includes("risco")
+        !msg.includes("risco") &&
+        !/f[eé]rias|aus[eê]ncias|folgas|vacation|de\s+licen[cç]a/i.test(msg)
       ) {
         const deptMatch = msg.match(
           /(?:de|do|da|no|na)\s+(?:setor\s+|departamento\s+)?([a-z\u00C0-\u00FF\s]+)/i
@@ -541,25 +543,53 @@ export function useAIChat() {
         }
       }
 
-      // 4. Férias
-      else if (/f[eé]rias|aus[eê]ncias|folgas|op[cç][aã]o\s*4|^4$/i.test(msg)) {
-        const { data, error } = await supabase
+      // 4. Férias — lista colaboradores atualmente de férias + solicitações recentes
+      else if (/f[eé]rias|aus[eê]ncias|folgas|de\s+licen[cç]a|op[cç][aã]o\s*4|^4$/i.test(msg)) {
+        // 4a. Colaboradores com status 'vacation' na tabela employees
+        const { data: onVacation, error: vacErr } = await supabase
+          .from("employees")
+          .select("name, role, department")
+          .eq("status", "vacation");
+
+        // 4b. Solicitações de férias recentes (aprovadas e pendentes)
+        const { data: requests, error: reqErr } = await supabase
           .from("time_off_requests")
           .select("*, employees(name)")
-          .order("created_at", { ascending: false })
-          .limit(5);
-        if (error) throw error;
-        if (data && data.length > 0) {
-          reply =
-            `Últimas movimentações de férias/ausências:\n` +
-            data
-              .map(
-                (r: any) =>
-                  `- ${r.employees?.name}: ${r.status === "approved" ? "Aprovado" : r.status === "pending" ? "Pendente" : "Rejeitado"} (Início: ${new Date(r.start_date).toLocaleDateString()})`
-              )
-              .join("\n");
+          .in("status", ["approved", "pending"])
+          .order("start_date", { ascending: false })
+          .limit(10);
+
+        if (vacErr) throw vacErr;
+
+        // Colaboradores atualmente de férias
+        if (onVacation && onVacation.length > 0) {
+          reply += `🏖️ **Colaboradores atualmente de férias (${onVacation.length}):**\n`;
+          reply += onVacation
+            .map((e: any) => `- **${e.name}** (${e.role} — ${e.department})`)
+            .join("\n");
+          reply += "\n\n";
         } else {
-          reply = "Não há registros recentes de férias.";
+          reply += "🔵 Nenhum colaborador está de férias no momento.\n\n";
+        }
+
+        // Solicitações de férias recentes
+        if (!reqErr && requests && requests.length > 0) {
+          reply += `📅 **Últimas solicitações de férias/ausências:**\n`;
+          reply += requests
+            .map((r: any) => {
+              const statusLabel =
+                r.status === "approved"
+                  ? "✅ Aprovado"
+                  : r.status === "pending"
+                    ? "⏳ Pendente"
+                    : "❌ Rejeitado";
+              const start = new Date(r.start_date).toLocaleDateString("pt-BR");
+              const end = r.end_date ? new Date(r.end_date).toLocaleDateString("pt-BR") : "";
+              return `- **${r.employees?.name ?? "Colaborador"}**: ${statusLabel} | ${start}${end ? ` → ${end}` : ""}`;
+            })
+            .join("\n");
+        } else if (!onVacation || onVacation.length === 0) {
+          reply += "Não há registros recentes de férias ou ausências.";
         }
       }
 
@@ -972,12 +1002,48 @@ export function useAIChat() {
           }
         }
 
-        // 15. Help / Fallback
+        // 15. Help / Menu
         else if (/ajuda|menu|op[cç][oõ]es|o\s+que\s+voc[eê]\s+faz/i.test(msg)) {
           reply = menuText;
         } else {
-          reply =
-            "Desculpe, não entendi. Tente 'ajuda' para ver o que posso fazer ou use os botões de sugestão.";
+          // 16. 🤖 Fallback Inteligente — Groq AI (llama-3.3-70b-versatile)
+          // Para perguntas abertas que não foram reconhecidas pelos comandos locais,
+          // consultamos a IA Groq com contexto do sistema de RH.
+          try {
+            // Busca contexto atual do sistema para enriquecer as respostas da IA
+            const [{ count: totalEmployees }, { count: openJobs }, { count: pendingTimeOff }] =
+              await Promise.all([
+                supabase
+                  .from("employees")
+                  .select("*", { count: "exact", head: true })
+                  .eq("status", "active"),
+                supabase
+                  .from("jobs")
+                  .select("*", { count: "exact", head: true })
+                  .eq("status", "Aberta"),
+                supabase
+                  .from("time_off_requests")
+                  .select("*", { count: "exact", head: true })
+                  .eq("status", "pending"),
+              ]);
+
+            // Monta histórico recente para manter contexto da conversa com a IA
+            const currentMessages = messages;
+            const groqHistory: GroqMessage[] = currentMessages
+              .filter((m) => m.id !== "initial-menu")
+              .slice(-8)
+              .map((m) => ({ role: m.role, content: m.content }));
+
+            reply = await askGroq(content, groqHistory, {
+              totalEmployees: totalEmployees ?? undefined,
+              openJobs: openJobs ?? undefined,
+              pendingTimeOff: pendingTimeOff ?? undefined,
+            });
+          } catch (groqError) {
+            console.error("[useAIChat] Erro ao chamar Groq:", groqError);
+            reply =
+              "Desculpe, não consegui processar sua solicitação no momento. Tente 'ajuda' para ver os comandos disponíveis.";
+          }
         }
       }
 
