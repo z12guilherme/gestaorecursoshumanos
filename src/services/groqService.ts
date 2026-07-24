@@ -2,15 +2,11 @@
  * Serviço de IA Groq — Assistente de RH Inteligente
  * Usa o SDK oficial da OpenAI com baseURL apontando para api.groq.com
  * Modelo: llama-3.3-70b-versatile (~800 tokens/segundo, gratuito)
+ *
+ * IMPORTANTE: O cliente é criado de forma LAZY (apenas quando chamado)
+ * para evitar erros de "Missing credentials" quando a env var não está definida.
  */
 import OpenAI from "openai";
-
-// ─── Cliente Groq via SDK OpenAI ──────────────────────────────────────────────
-const groqClient = new OpenAI({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY || "",
-  baseURL: "https://api.groq.com/openai/v1",
-  dangerouslyAllowBrowser: true, // Necessário para uso no frontend/Vite
-});
 
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 
@@ -25,6 +21,27 @@ export interface HRContext {
   openJobs?: number;
   pendingTimeOff?: number;
   departments?: string[];
+}
+
+// ─── Inicialização LAZY do cliente ───────────────────────────────────────────
+// NÃO criamos o cliente na raiz do módulo para evitar erro ao importar
+// quando VITE_GROQ_API_KEY não está definida (ex: build de produção sem .env).
+let _groqClient: OpenAI | null = null;
+
+function getGroqClient(): OpenAI | null {
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+  if (!apiKey) return null;
+
+  // Reutiliza a instância já criada (singleton lazy)
+  if (!_groqClient) {
+    _groqClient = new OpenAI({
+      apiKey,
+      baseURL: "https://api.groq.com/openai/v1",
+      dangerouslyAllowBrowser: true, // Necessário para uso no frontend/Vite
+    });
+  }
+
+  return _groqClient;
 }
 
 // ─── System Prompt do Assistente de RH ───────────────────────────────────────
@@ -58,7 +75,7 @@ Diretrizes de comportamento:
 - Quando não souber algo com certeza, diga claramente e sugira consultar um especialista
 - Use emojis com moderação para deixar as respostas mais amigáveis
 - Formate respostas longas com bullets e seções para facilitar a leitura
-- Se receber uma pergunta sobre dados específicos do sistema (ex: "quantos funcionários?"), 
+- Se receber uma pergunta sobre dados específicos do sistema (ex: "quantos funcionários?"),
   use os dados do contexto fornecido acima
 
 Você NÃO deve:
@@ -81,10 +98,11 @@ export async function askGroq(
   history: GroqMessage[] = [],
   context?: HRContext
 ): Promise<string> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+  // Obtém (ou cria) o cliente lazy — retorna null se a chave não estiver configurada
+  const client = getGroqClient();
 
-  if (!apiKey) {
-    return "⚠️ A chave da API Groq não está configurada. Verifique a variável VITE_GROQ_API_KEY no arquivo .env.";
+  if (!client) {
+    return "⚠️ A IA não está configurada neste ambiente. Adicione a variável VITE_GROQ_API_KEY nas configurações do Vercel (Settings → Environment Variables).";
   }
 
   try {
@@ -100,7 +118,7 @@ export async function askGroq(
       { role: "user", content: userMessage },
     ];
 
-    const completion = await groqClient.chat.completions.create({
+    const completion = await client.chat.completions.create({
       model: GROQ_MODEL,
       messages,
       temperature: 0.7,
