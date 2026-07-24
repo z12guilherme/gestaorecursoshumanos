@@ -65,11 +65,33 @@ export default function LoginPage() {
       }
 
       // --- Início da Validação do reCAPTCHA ---
-      if (!executeRecaptcha) {
+      let execute = executeRecaptcha;
+      if (!execute && typeof window !== "undefined" && (window as any).grecaptcha?.execute) {
+        execute = (window as any).grecaptcha.execute;
+      }
+
+      if (!execute) {
+        // Tenta esperar até 3 segundos se a biblioteca global estiver carregando
+        for (let i = 0; i < 30; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          if (typeof window !== "undefined" && (window as any).grecaptcha?.execute) {
+            execute = (window as any).grecaptcha.execute;
+            break;
+          }
+        }
+      }
+
+      if (!execute) {
         throw new Error("reCAPTCHA não está pronto.");
       }
 
-      const recaptchaToken = await executeRecaptcha("login");
+      const recaptchaToken =
+        execute === executeRecaptcha
+          ? await executeRecaptcha("login")
+          : await (window as any).grecaptcha.execute(
+              (import.meta.env.VITE_RECAPTCHA_SITE_KEY || "").replace(/['"]/g, ""),
+              { action: "login" }
+            );
 
       const { data: recaptchaResult, error: recaptchaError } = await supabase.functions.invoke(
         "validate-recaptcha",
@@ -111,9 +133,12 @@ export default function LoginPage() {
       }
     } catch (error: any) {
       console.error("Erro detalhado do Supabase:", error); // Mostra o erro no Inspecionar do navegador
+      const isRecaptchaNotReady = error?.message === "reCAPTCHA não está pronto.";
       toast({
-        title: "Erro ao entrar",
-        description: "Email ou senha incorretos ou erro de conexão.",
+        title: isRecaptchaNotReady ? "Segurança carregando" : "Erro ao entrar",
+        description: isRecaptchaNotReady
+          ? "O serviço de verificação de segurança (reCAPTCHA) ainda está carregando. Por favor, aguarde alguns segundos e tente novamente."
+          : "Email ou senha incorretos ou erro de conexão.",
         variant: "destructive",
       });
       setIsLoading(false);

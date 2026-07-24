@@ -3,8 +3,10 @@ import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
 import App from "./App.tsx";
 import "./index.css";
 
+const reCaptchaKey = (import.meta.env.VITE_RECAPTCHA_SITE_KEY || "").replace(/['"]/g, "");
+
 createRoot(document.getElementById("root")!).render(
-  <GoogleReCaptchaProvider reCaptchaKey={import.meta.env.VITE_RECAPTCHA_SITE_KEY} language="pt-BR">
+  <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey} language="pt-BR">
     <App />
   </GoogleReCaptchaProvider>
 );
