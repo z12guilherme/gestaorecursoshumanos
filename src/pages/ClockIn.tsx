@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Employee } from "@/types/hr";
 import { Button } from "@/components/ui/button";
@@ -402,27 +402,72 @@ export default function ClockInPage() {
     }
   };
 
+  // PIN dot indicator helper
+  const pinDots = Array.from({ length: 4 }, (_, i) => i < pin.length);
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {/* Top Bar */}
-      <header className="bg-white border-b h-16 flex items-center justify-between px-6 shadow-sm z-10">
-        {/* Logo & Company Name */}
+    <div
+      className="min-h-screen flex flex-col font-sans"
+      style={{
+        background: "linear-gradient(160deg, #f0f4ff 0%, #e8effe 50%, #f5f3ff 100%)",
+      }}
+    >
+      {/* Decorative blobs – subtle on light bg */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+        <div
+          className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full opacity-30"
+          style={{
+            background: "radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)",
+          }}
+        />
+        <div
+          className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full opacity-20"
+          style={{
+            background: "radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%)",
+          }}
+        />
+      </div>
+
+      {/* ── TOP BAR ─────────────────────────────── */}
+      <header
+        className="relative z-20 flex items-center justify-between px-6"
+        style={{
+          background: "rgba(255,255,255,0.80)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(99,102,241,0.12)",
+          height: "72px",
+          boxShadow: "0 1px 20px rgba(99,102,241,0.08)",
+        }}
+      >
+        {/* Logo & Company */}
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
+          <div
+            className="h-11 w-11 rounded-xl flex items-center justify-center text-white font-extrabold text-sm shadow-md"
+            style={{ background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)" }}
+          >
             {companySettings?.company_name
               ? companySettings.company_name.substring(0, 3).toUpperCase()
-              : "RH"}
+              : "HOS"}
           </div>
           <div>
-            <h1 className="font-bold text-slate-800 leading-tight">
+            <h1 className="font-bold text-slate-800 text-base leading-tight">
               {companySettings?.company_name || DEFAULT_EMPLOYEE_PORTAL_NAME}
             </h1>
-            <p className="text-xs text-slate-500">Portal do Colaborador</p>
+            <p className="text-xs text-indigo-500">Portal do Colaborador</p>
           </div>
         </div>
-        {/* Time & Date (Desktop) */}
+
+        {/* Clock (desktop) */}
         <div className="hidden md:flex flex-col items-end">
-          <span className="text-xl font-bold text-slate-800 font-mono">
+          <span
+            className="text-2xl font-black font-mono tracking-tight"
+            style={{
+              background: "linear-gradient(90deg, #6366f1, #3b82f6)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
             {format(currentTime, "HH:mm")}
           </span>
           <span className="text-xs text-slate-500 capitalize">
@@ -431,188 +476,329 @@ export default function ClockInPage() {
         </div>
       </header>
 
-      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Actions (Terminal) - Spans 7 cols */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          {/* Welcome / Clock Card */}
-          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-none shadow-lg overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-8 opacity-10">
-              <Clock className="w-64 h-64" />
+      {/* ── MAIN CONTENT ────────────────────────── */}
+      <main className="relative z-10 flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* ── LEFT COLUMN (7 cols) ─────────────── */}
+        <div className="lg:col-span-7 flex flex-col gap-5">
+          {/* Hero / Clock Card */}
+          <div
+            className="rounded-2xl p-7 relative overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)",
+              boxShadow: "0 12px 40px rgba(99,102,241,0.30)",
+            }}
+          >
+            {/* Decorative ring */}
+            <div
+              className="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-10"
+              style={{ border: "60px solid white" }}
+            />
+            <div className="absolute top-6 right-6 opacity-10" aria-hidden="true">
+              <Clock className="w-28 h-28 text-white" />
             </div>
-            <CardContent className="p-8 relative z-10">
-              <p className="text-blue-100 font-medium mb-1">Bem-vindo ao seu portal</p>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">O que você deseja fazer hoje?</h2>
 
-              <div className="flex flex-wrap gap-4">
-                <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 flex items-center gap-3 border border-white/10">
-                  <Calendar className="w-8 h-8 text-blue-100" />
-                  <div>
-                    <p className="text-xs text-blue-200">Data de Hoje</p>
-                    <p className="font-bold">{format(currentTime, "dd/MM/yyyy")}</p>
-                  </div>
+            <p className="text-indigo-100 text-sm font-medium mb-1">Bem-vindo ao seu portal</p>
+            <h2 className="text-white text-3xl md:text-4xl font-black mb-7 leading-snug">
+              O que você deseja
+              <br />
+              fazer hoje?
+            </h2>
+
+            <div className="flex flex-wrap gap-3">
+              {/* Date chip */}
+              <div
+                className="flex items-center gap-3 rounded-xl px-4 py-3"
+                style={{
+                  background: "rgba(255,255,255,0.18)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                }}
+              >
+                <div className="p-2 rounded-lg" style={{ background: "rgba(255,255,255,0.20)" }}>
+                  <Calendar className="w-5 h-5 text-white" />
                 </div>
-                <div className="bg-white/20 backdrop-blur-md rounded-lg p-4 flex items-center gap-3 border border-white/10">
-                  <Clock className="w-8 h-8 text-blue-100" />
-                  <div>
-                    <p className="text-xs text-blue-200">Hora Atual</p>
-                    <p className="font-bold font-mono">{format(currentTime, "HH:mm:ss")}</p>
-                  </div>
+                <div>
+                  <p className="text-indigo-100 text-xs">Data de Hoje</p>
+                  <p className="text-white font-bold">{format(currentTime, "dd/MM/yyyy")}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* PIN & Actions */}
-          <Card className="border-none shadow-md flex-1">
-            <CardHeader>
-              <CardTitle>Acesso Rápido</CardTitle>
-              <CardDescription>Digite seu PIN para liberar as ações</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="max-w-sm mx-auto">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <KeyRound className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <Input
-                    type="password"
-                    placeholder="Digite seu PIN (4 dígitos)"
-                    className="pl-10 text-center text-2xl tracking-widest h-14 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-                    maxLength={4}
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                    disabled={loading}
+              {/* Time chip */}
+              <div
+                className="flex items-center gap-3 rounded-xl px-4 py-3"
+                style={{
+                  background: "rgba(255,255,255,0.18)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                }}
+              >
+                <div className="p-2 rounded-lg" style={{ background: "rgba(255,255,255,0.20)" }}>
+                  <Clock className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-blue-100 text-xs">Hora Atual</p>
+                  <p className="text-white font-bold font-mono">
+                    {format(currentTime, "HH:mm:ss")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* PIN & Actions Card */}
+          <div
+            className="rounded-2xl p-6 flex-1"
+            style={{
+              background: "rgba(255,255,255,0.90)",
+              border: "1px solid rgba(99,102,241,0.10)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              boxShadow: "0 4px 30px rgba(99,102,241,0.08)",
+            }}
+          >
+            {/* Section label */}
+            <div className="flex items-center gap-2 mb-5">
+              <div className="p-2 rounded-lg" style={{ background: "rgba(99,102,241,0.10)" }}>
+                <KeyRound className="w-4 h-4 text-indigo-500" />
+              </div>
+              <div>
+                <p className="text-slate-800 font-bold text-base">Acesso Rápido</p>
+                <p className="text-slate-500 text-xs">Digite seu PIN para liberar as ações</p>
+              </div>
+            </div>
+
+            {/* PIN input */}
+            <div className="max-w-xs mx-auto mb-6">
+              <input
+                type="password"
+                placeholder="Digite seu PIN (4 dígitos)"
+                className="w-full text-center text-2xl tracking-[0.5em] font-bold h-14 rounded-xl px-4 outline-none transition-all placeholder:text-sm placeholder:tracking-normal placeholder:font-normal placeholder:text-slate-400"
+                style={{
+                  background: "#f8faff",
+                  border: pin.length > 0 ? "2px solid #6366f1" : "2px solid #e2e8f0",
+                  color: "#1e293b",
+                  boxShadow: pin.length > 0 ? "0 0 0 4px rgba(99,102,241,0.12)" : "none",
+                }}
+                maxLength={4}
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                disabled={loading}
+              />
+              {/* Dot indicators */}
+              <div className="flex justify-center gap-3 mt-3">
+                {pinDots.map((filled, i) => (
+                  <div
+                    key={i}
+                    className="w-3 h-3 rounded-full transition-all duration-200"
+                    style={{
+                      background: filled ? "linear-gradient(135deg, #6366f1, #3b82f6)" : "#e2e8f0",
+                      boxShadow: filled ? "0 0 8px rgba(99,102,241,0.45)" : "none",
+                      transform: filled ? "scale(1.2)" : "scale(1)",
+                    }}
                   />
+                ))}
+              </div>
+            </div>
+
+            {/* Primary action buttons */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <button
+                className="h-24 flex flex-col items-center justify-center gap-2 rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50 group"
+                style={{
+                  background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+                  border: "2px solid #86efac",
+                  boxShadow: "0 4px 16px rgba(16,185,129,0.12)",
+                }}
+                onClick={() => handleClockAction("in")}
+                disabled={loading}
+              >
+                <div
+                  className="p-2 rounded-lg transition-all duration-200 group-hover:scale-110"
+                  style={{ background: "rgba(16,185,129,0.15)" }}
+                >
+                  <LogIn className="w-6 h-6 text-emerald-600" />
                 </div>
-              </div>
+                <span className="text-emerald-700 font-bold text-base">Registrar Entrada</span>
+              </button>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  className="h-24 flex flex-col gap-2 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-100 text-emerald-700 hover:text-emerald-800 shadow-sm"
-                  variant="outline"
-                  onClick={() => handleClockAction("in")}
-                  disabled={loading}
+              <button
+                className="h-24 flex flex-col items-center justify-center gap-2 rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50 group"
+                style={{
+                  background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                  border: "2px solid #fcd34d",
+                  boxShadow: "0 4px 16px rgba(245,158,11,0.12)",
+                }}
+                onClick={() => handleClockAction("out")}
+                disabled={loading}
+              >
+                <div
+                  className="p-2 rounded-lg transition-all duration-200 group-hover:scale-110"
+                  style={{ background: "rgba(245,158,11,0.15)" }}
                 >
-                  <LogIn className="w-8 h-8" />
-                  <span className="font-bold text-lg">Registrar Entrada</span>
-                </Button>
-                <Button
-                  className="h-24 flex flex-col gap-2 bg-amber-50 hover:bg-amber-100 border-2 border-amber-100 text-amber-700 hover:text-amber-800 shadow-sm"
-                  variant="outline"
-                  onClick={() => handleClockAction("out")}
-                  disabled={loading}
-                >
-                  <LogOut className="w-8 h-8" />
-                  <span className="font-bold text-lg">Registrar Saída</span>
-                </Button>
-              </div>
+                  <LogOut className="w-6 h-6 text-amber-600" />
+                </div>
+                <span className="text-amber-700 font-bold text-base">Registrar Saída</span>
+              </button>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Button
-                  className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
-                  variant="ghost"
-                  onClick={handleAccessDocuments}
+            {/* Secondary buttons */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                {
+                  icon: <FileText className="w-5 h-5" />,
+                  label: "Documentos",
+                  onClick: handleAccessDocuments,
+                },
+                {
+                  icon: <IdCard className="w-5 h-5" />,
+                  label: "Crachá",
+                  onClick: handleAccessBadge,
+                },
+                {
+                  icon: <LifeBuoy className="w-5 h-5" />,
+                  label: "Suporte",
+                  onClick: () => setIsSupportOpen(true),
+                },
+              ].map(({ icon, label, onClick }) => (
+                <button
+                  key={label}
+                  className="h-14 flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                  style={{
+                    background: "#f8faff",
+                    border: "1px solid #e2e8f0",
+                    color: "#475569",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "#eef2ff";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "#a5b4fc";
+                    (e.currentTarget as HTMLButtonElement).style.color = "#4f46e5";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "#f8faff";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0";
+                    (e.currentTarget as HTMLButtonElement).style.color = "#475569";
+                  }}
+                  onClick={onClick}
                 >
-                  <FileText className="w-5 h-5 shrink-0" />
-                  Documentos
-                </Button>
-                <Button
-                  className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
-                  variant="ghost"
-                  onClick={handleAccessBadge}
-                >
-                  <IdCard className="w-5 h-5 shrink-0" />
-                  Crachá
-                </Button>
-                <Button
-                  className="h-16 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
-                  variant="ghost"
-                  onClick={() => setIsSupportOpen(true)}
-                >
-                  <LifeBuoy className="w-5 h-5 shrink-0" />
-                  Suporte
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  {icon}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Right Column: Info & Announcements - Spans 5 cols */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
+        {/* ── RIGHT COLUMN (5 cols) ────────────── */}
+        <div className="lg:col-span-5 flex flex-col gap-5">
           {/* Announcements */}
-          <Card className="flex-1 border-none shadow-md flex flex-col">
-            <CardHeader className="bg-slate-50/50 border-b pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Megaphone className="w-5 h-5 text-blue-600" />
-                  Mural de Avisos
-                </CardTitle>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">
-                  {announcements.length} Novos
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0 flex-1 overflow-hidden">
-              <ScrollArea className="h-[500px] p-6">
-                <div className="space-y-4">
-                  {/* Fixed Notice */}
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-2">
-                      <Pin className="w-4 h-4 text-blue-400 fill-blue-400" />
-                    </div>
-                    <h4 className="font-bold text-blue-900 mb-2 pr-6">
-                      Como acessar seu Holerite?
-                    </h4>
-                    <p className="text-sm text-blue-800 leading-relaxed">
-                      Digite sua senha no painel ao lado e clique em "Meus Documentos". Você poderá
-                      visualizar, assinar e baixar seu contra cheque do mês anterior
-                      instantaneamente (Verifique com o RH se foram feitas as atualizações mensais).
-                    </p>
-                  </div>
-
-                  {announcements.map((announcement) => (
-                    <div
-                      key={announcement.id}
-                      className="group bg-white border border-slate-100 hover:border-blue-200 rounded-xl p-4 transition-all shadow-sm hover:shadow-md"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">
-                          {announcement.title}
-                        </h4>
-                        {announcement.priority === "high" && (
-                          <span
-                            className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-2"
-                            title="Alta Prioridade"
-                          />
-                        )}
-                      </div>
-                      <p className="text-sm text-slate-600 leading-relaxed mb-3">
-                        {announcement.content}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-slate-400">
-                        <span>
-                          {format(new Date(announcement.created_at), "d 'de' MMM", {
-                            locale: ptBR,
-                          })}
-                        </span>
-                        <span>{announcement.author || "RH"}</span>
-                      </div>
-                    </div>
-                  ))}
+          <div
+            className="flex-1 rounded-2xl flex flex-col overflow-hidden"
+            style={{
+              background: "rgba(255,255,255,0.90)",
+              border: "1px solid rgba(99,102,241,0.10)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              boxShadow: "0 4px 30px rgba(99,102,241,0.08)",
+            }}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: "1px solid #f1f5f9" }}
+            >
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg" style={{ background: "rgba(99,102,241,0.10)" }}>
+                  <Megaphone className="w-4 h-4 text-indigo-500" />
                 </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                <span className="text-slate-800 font-bold">Mural de Avisos</span>
+              </div>
+              <span
+                className="text-xs font-bold px-2.5 py-1 rounded-full"
+                style={{
+                  background: "#eef2ff",
+                  color: "#4f46e5",
+                  border: "1px solid #c7d2fe",
+                }}
+              >
+                {announcements.length} Novos
+              </span>
+            </div>
 
-          {/* Admin Link */}
+            {/* Scroll content */}
+            <ScrollArea className="flex-1 h-[460px]">
+              <div className="p-5 space-y-4">
+                {/* Pinned notice */}
+                <div
+                  className="rounded-xl p-4 relative overflow-hidden"
+                  style={{
+                    background: "linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%)",
+                    border: "1px solid #bfdbfe",
+                  }}
+                >
+                  <div className="absolute top-3 right-3">
+                    <Pin className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" />
+                  </div>
+                  <h4 className="font-bold text-blue-800 mb-2 pr-5 text-sm">
+                    Como acessar seu Holerite?
+                  </h4>
+                  <p className="text-xs text-blue-700/80 leading-relaxed">
+                    Digite sua senha no painel ao lado e clique em "Meus Documentos". Você poderá
+                    visualizar, assinar e baixar seu contra cheque do mês anterior instantaneamente
+                    (Verifique com o RH se foram feitas as atualizações mensais).
+                  </p>
+                </div>
+
+                {announcements.map((announcement) => (
+                  <div
+                    key={announcement.id}
+                    className="rounded-xl p-4 transition-all duration-200 cursor-default"
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #f1f5f9",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.borderColor = "#c7d2fe";
+                      (e.currentTarget as HTMLDivElement).style.boxShadow =
+                        "0 4px 16px rgba(99,102,241,0.10)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.borderColor = "#f1f5f9";
+                      (e.currentTarget as HTMLDivElement).style.boxShadow =
+                        "0 1px 4px rgba(0,0,0,0.04)";
+                    }}
+                  >
+                    <div className="flex justify-between items-start mb-1.5">
+                      <h4 className="font-semibold text-slate-800 text-sm">{announcement.title}</h4>
+                      {announcement.priority === "high" && (
+                        <span
+                          className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-1"
+                          title="Alta Prioridade"
+                        />
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                      {announcement.content}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>
+                        {format(new Date(announcement.created_at), "d 'de' MMM", { locale: ptBR })}
+                      </span>
+                      <span>{announcement.author || "RH"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+
+          {/* Admin link */}
           <div className="text-center">
-            <Button
-              variant="link"
-              className="text-slate-400 hover:text-slate-600 text-xs"
+            <button
+              className="text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 mx-auto transition-colors duration-200"
               onClick={() => navigate("/login")}
             >
-              <ArrowLeft className="mr-1 h-3 w-3" /> Acesso Administrativo
-            </Button>
+              <ArrowLeft className="h-3 w-3" />
+              Acesso Administrativo
+            </button>
           </div>
         </div>
       </main>
