@@ -207,10 +207,11 @@ export default function Employees() {
   });
 
   const filteredEmployees = employeesWithStatus.filter((employee) => {
+    const term = debouncedSearchTerm.toLowerCase();
     const matchesSearch =
-      employee.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      employee.position.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      (employee.name?.toLowerCase() ?? "").includes(term) ||
+      (employee.email?.toLowerCase() ?? "").includes(term) ||
+      (employee.position?.toLowerCase() ?? "").includes(term);
 
     const matchesDepartment =
       departmentFilter === "all" || employee.department === departmentFilter;
