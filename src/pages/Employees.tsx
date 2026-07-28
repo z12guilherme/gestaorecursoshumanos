@@ -49,7 +49,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useEmployees } from "@/hooks/useEmployees";
+import { useEmployees, useEmployeeStats } from "@/hooks/useEmployees";
 import { useAuth } from "@/lib/AuthContext";
 import { useTimeOff } from "@/hooks/useTimeOff";
 import { supabase } from "@/lib/supabase";
@@ -93,14 +93,27 @@ export default function Employees() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300); // 300ms de atraso
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const {
     employees: dbEmployees,
+    totalCount,
     loading,
     addEmployee,
     updateEmployee,
     deleteEmployee,
     refetch,
-  } = useEmployees(1, 1000); // Carrega todos para garantir estatísticas e filtros corretos
+  } = useEmployees(page, pageSize, {
+    search: debouncedSearchTerm,
+    department: departmentFilter,
+    status: statusFilter,
+  });
+
+  const { stats } = useEmployeeStats();
+
   const { signOut } = useAuth();
   const {
     requests: timeOffRequests,
@@ -169,10 +182,6 @@ export default function Employees() {
     } as unknown as Employee;
   });
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 300); // 300ms de atraso
-  const [departmentFilter, setDepartmentFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -206,23 +215,7 @@ export default function Employees() {
     return isOnVacation ? { ...emp, status: "vacation" } : emp;
   });
 
-  const filteredEmployees = employeesWithStatus.filter((employee) => {
-    const term = debouncedSearchTerm.toLowerCase();
-    const matchesSearch =
-      (employee.name?.toLowerCase() ?? "").includes(term) ||
-      (employee.email?.toLowerCase() ?? "").includes(term) ||
-      (employee.position?.toLowerCase() ?? "").includes(term);
-
-    const matchesDepartment =
-      departmentFilter === "all" || employee.department === departmentFilter;
-    const matchesStatus = statusFilter === "all" || employee.status === statusFilter;
-
-    return matchesSearch && matchesDepartment && matchesStatus;
-  });
-
-  // Paginação client-side: filtra sobre o conjunto COMPLETO para estatísticas e busca corretas.
-  const paginatedEmployees = filteredEmployees.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.ceil(filteredEmployees.length / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   // Reset to first page when searching or filtering
   useEffect(() => {
@@ -585,18 +578,6 @@ export default function Employees() {
     }
   };
 
-  const stats = {
-    total: employeesWithStatus.length,
-    active: employeesWithStatus.filter((e) => e.status === "active" || e.status === "Ativo").length,
-    vacation: employeesWithStatus.filter((e) => e.status === "vacation" || e.status === "Férias")
-      .length,
-    leave: employeesWithStatus.filter((e) => e.status === "leave" || e.status === "Afastado")
-      .length,
-    terminated: employeesWithStatus.filter(
-      (e) => e.status === "terminated" || e.status === "Desligado"
-    ).length,
-  };
-
   const badgeEmployee = employees.find((e) => e.id === selectedBadgeEmployeeId);
 
   return (
@@ -690,7 +671,7 @@ export default function Employees() {
 
         {/* Table */}
         <EmployeeTable
-          employees={paginatedEmployees as any}
+          employees={employeesWithStatus as any}
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleTerminateClick}
@@ -699,11 +680,11 @@ export default function Employees() {
         />
 
         {/* Pagination Controls */}
-        {filteredEmployees.length > pageSize && (
+        {totalCount > pageSize && (
           <div className="flex items-center justify-between px-2 py-4">
             <div className="text-sm text-muted-foreground">
-              Página {page} de {totalPages} &mdash; {filteredEmployees.length} colaborador
-              {filteredEmployees.length !== 1 ? "es" : ""}
+              Página {page} de {totalPages} &mdash; {totalCount} colaborador
+              {totalCount !== 1 ? "es" : ""}
               {(debouncedSearchTerm || departmentFilter !== "all" || statusFilter !== "all") &&
                 " encontrado(s)"}
             </div>

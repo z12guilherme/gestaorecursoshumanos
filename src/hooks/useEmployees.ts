@@ -28,10 +28,31 @@ export interface Employee {
   contracted_hours?: number;
 }
 
+export interface EmployeeFilters {
+  search?: string;
+  department?: string;
+  status?: string;
+}
+
 const employeeRepository = new BaseRepository<Employee>("employees");
 
-export function useEmployees(page: number = 1, pageSize: number = 1000) {
+export function useEmployees(page: number = 1, pageSize: number = 1000, filters?: EmployeeFilters) {
   const queryClient = useQueryClient();
+
+  const searchOption = filters?.search?.trim()
+    ? {
+        fields: ["name", "email", "role"],
+        term: filters.search.trim(),
+      }
+    : undefined;
+
+  const filterOptions: Record<string, any> = {};
+  if (filters?.department && filters.department !== "all") {
+    filterOptions.department = filters.department;
+  }
+  if (filters?.status && filters.status !== "all") {
+    filterOptions.status = filters.status;
+  }
 
   const {
     data: queryData,
@@ -39,12 +60,14 @@ export function useEmployees(page: number = 1, pageSize: number = 1000) {
     error: queryError,
     refetch,
   } = useQuery<{ data: Employee[]; count: number | null }>({
-    queryKey: ["employees", page, pageSize],
+    queryKey: ["employees", page, pageSize, filters],
     queryFn: async () => {
       const result = await employeeRepository.find({
         page,
         pageSize,
         orderBy: "name",
+        filters: Object.keys(filterOptions).length > 0 ? filterOptions : undefined,
+        search: searchOption,
       });
       if (result.error) throw result.error;
       return { data: result.data, count: result.count };
@@ -83,6 +106,7 @@ export function useEmployees(page: number = 1, pageSize: number = 1000) {
     const result = await employeeRepository.create(employee);
     if (!result.error) {
       await queryClient.invalidateQueries({ queryKey: ["employees"] });
+      await queryClient.invalidateQueries({ queryKey: ["employee-stats"] });
     }
     return result;
   };
@@ -91,6 +115,7 @@ export function useEmployees(page: number = 1, pageSize: number = 1000) {
     const result = await employeeRepository.update(id, updates);
     if (!result.error) {
       await queryClient.invalidateQueries({ queryKey: ["employees"] });
+      await queryClient.invalidateQueries({ queryKey: ["employee-stats"] });
     }
     return result;
   };
@@ -99,6 +124,7 @@ export function useEmployees(page: number = 1, pageSize: number = 1000) {
     const result = await employeeRepository.delete(id); // Use soft delete from BaseRepository
     if (!result.error) {
       await queryClient.invalidateQueries({ queryKey: ["employees"] });
+      await queryClient.invalidateQueries({ queryKey: ["employee-stats"] });
     }
     return result;
   };
@@ -142,5 +168,49 @@ export function useEmployees(page: number = 1, pageSize: number = 1000) {
     deleteEmployee,
     validateEmployeeLogin,
     getEmployeeDetails,
+  };
+}
+
+export function useEmployeeStats() {
+  const {
+    data: stats,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["employee-stats"],
+    queryFn: async () => {
+      if (USE_MOCK) {
+        const all = mockDatabase.get("employees").filter((e: any) => !e.deleted_at);
+        return {
+          total: all.length,
+          active: all.filter((e: any) => e.status === "active" || e.status === "Ativo").length,
+          vacation: all.filter((e: any) => e.status === "vacation" || e.status === "Férias").length,
+          leave: all.filter((e: any) => e.status === "leave" || e.status === "Afastado").length,
+          terminated: all.filter((e: any) => e.status === "terminated" || e.status === "Desligado")
+            .length,
+        };
+      }
+
+      const { data, error } = await supabase
+        .from("employees")
+        .select("status")
+        .is("deleted_at", null);
+      if (error) throw error;
+      const list = data || [];
+      return {
+        total: list.length,
+        active: list.filter((e: any) => e.status === "active" || e.status === "Ativo").length,
+        vacation: list.filter((e: any) => e.status === "vacation" || e.status === "Férias").length,
+        leave: list.filter((e: any) => e.status === "leave" || e.status === "Afastado").length,
+        terminated: list.filter((e: any) => e.status === "terminated" || e.status === "Desligado")
+          .length,
+      };
+    },
+  });
+
+  return {
+    stats: stats || { total: 0, active: 0, vacation: 0, leave: 0, terminated: 0 },
+    loading: isLoading,
+    refetch,
   };
 }

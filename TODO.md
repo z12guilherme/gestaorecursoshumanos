@@ -48,9 +48,10 @@
 ### Performance e Escalabilidade
 
 - [x] **Paginação Server-Side** em colaboradores:
-  - `useEmployees` agora recebe `page` e `pageSize` reais (20 registros/página).
-  - UI de paginação aprimorada com indicador de página atual e total.
-  - Busca com filtros mantém comportamento client-side enquanto paginação sem filtros é server-side.
+  - `BaseRepository.find()` agora suporta `filters` (departamento, status), `search` (busca textual) e paginação com `.range(from, to)`.
+  - `useEmployees` refatorado para usar a paginação e filtros do servidor, com re-fetch automático via React Query.
+  - UI de paginação e filtros conectada aos dados do servidor, removendo a busca massiva e o fatiamento client-side.
+  - `useEmployeeStats` criado para buscar estatísticas de forma otimizada.
 - [x] **Lazy Loading** de rotas (`React.lazy`) já existia. `jspdf` já usa dynamic import em `Payroll.tsx` via `await import("jspdf")`.
 
 ### Novas Funcionalidades

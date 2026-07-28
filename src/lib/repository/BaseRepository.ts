@@ -14,10 +14,43 @@ export class BaseRepository<T extends { id: string }> {
     orderBy?: string;
     ascending?: boolean;
     includeDeleted?: boolean;
+    filters?: Record<string, any>;
+    search?: {
+      fields: string[];
+      term: string;
+    };
   }): Promise<{ data: T[]; error: any; count: number | null }> {
     try {
       if (USE_MOCK) {
         let data = mockDatabase.get(this.tableName) as T[];
+
+        // Soft delete check para mock
+        if (!options?.includeDeleted) {
+          data = data.filter((item: any) => !item.deleted_at);
+        }
+
+        // Filtros exatos
+        if (options?.filters) {
+          Object.entries(options.filters).forEach(([key, val]) => {
+            if (val !== undefined && val !== null && val !== "" && val !== "all") {
+              data = data.filter((item: any) => item[key] === val);
+            }
+          });
+        }
+
+        // Busca textual multi-campo
+        if (options?.search && options.search.term) {
+          const term = options.search.term.toLowerCase().trim();
+          if (term) {
+            data = data.filter((item: any) =>
+              options.search!.fields.some((field) =>
+                String(item[field] || "")
+                  .toLowerCase()
+                  .includes(term)
+              )
+            );
+          }
+        }
 
         // Simular ordenação
         if (options?.orderBy) {
@@ -44,10 +77,26 @@ export class BaseRepository<T extends { id: string }> {
       let query = supabase.from(this.tableName).select("*", { count: "exact" });
 
       // Soft Delete: filtra registros deletados logicamente (deleted_at IS NULL).
-      // Passa silenciosamente em tabelas que não têm a coluna (Supabase ignora filtros inválidos
-      // apenas quando a coluna não existe — o erro ocorreria em query, não aqui).
       if (!options?.includeDeleted) {
         query = query.is("deleted_at", null);
+      }
+
+      if (options?.filters) {
+        Object.entries(options.filters).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && val !== "" && val !== "all") {
+            query = query.eq(key, val);
+          }
+        });
+      }
+
+      if (options?.search && options.search.term) {
+        const term = options.search.term.trim();
+        if (term && options.search.fields.length > 0) {
+          const orConditions = options.search.fields
+            .map((field) => `${field}.ilike.%${term}%`)
+            .join(",");
+          query = query.or(orConditions);
+        }
       }
 
       if (options?.orderBy) {
