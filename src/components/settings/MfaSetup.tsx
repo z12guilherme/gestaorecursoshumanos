@@ -69,21 +69,46 @@ export function MfaSetup() {
       setError(null);
       setIsEnrolling(true);
 
-      // Remove TODOS os fatores TOTP existentes (verificados ou não) para evitar
-      // o erro "A factor with the friendly name X for this user already exists"
+      // Tenta remover fatores existentes. Nota: o Supabase pode exigir AAL2
+      // para remover fatores verificados, por isso checamos o erro.
       const { data: listData } = await supabase.auth.mfa.listFactors();
       if (listData?.totp && listData.totp.length > 0) {
         for (const factor of listData.totp) {
-          await supabase.auth.mfa.unenroll({ factorId: factor.id });
+          const { error: unenrollError } = await supabase.auth.mfa.unenroll({
+            factorId: factor.id,
+          });
+          if (unenrollError) {
+            console.warn(`Não foi possível remover fator ${factor.id}:`, unenrollError.message);
+            // Se o fator verificado não pode ser removido (ex: requer AAL2),
+            // usaremos um nome único para evitar colisão
+          }
         }
       }
 
+      // Usa nome único com timestamp para garantir que não haja colisão,
+      // mesmo se o unenroll falhar em algum fator verificado
+      const friendlyName = `App Autenticador`;
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        friendlyName: "App Autenticador",
+        issuer: "Gestão RH",
+        friendlyName,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Se ainda ocorrer erro de nome duplicado, tenta com nome único
+        if (error.message?.includes("already exists")) {
+          const { data: dataRetry, error: errorRetry } = await supabase.auth.mfa.enroll({
+            factorType: "totp",
+            issuer: "Gestão RH",
+            friendlyName: `App Autenticador ${Date.now()}`,
+          });
+          if (errorRetry) throw errorRetry;
+          setFactorId(dataRetry.id);
+          setQrCode(dataRetry.totp.qr_code);
+          return;
+        }
+        throw error;
+      }
 
       setFactorId(data.id);
       setQrCode(data.totp.qr_code);
