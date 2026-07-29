@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import { USE_MOCK } from '@/lib/mockDatabase';
-import { ShieldCheck, ShieldAlert, Loader2, Smartphone } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { supabase } from "../../lib/supabase";
+import { USE_MOCK } from "@/lib/mockDatabase";
+import { ShieldCheck, ShieldAlert, Loader2, Smartphone } from "lucide-react";
 
 export function MfaSetup() {
   const [loading, setLoading] = useState(true);
@@ -9,7 +9,7 @@ export function MfaSetup() {
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [factorId, setFactorId] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
-  const [verifyCode, setVerifyCode] = useState('');
+  const [verifyCode, setVerifyCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -37,7 +37,9 @@ export function MfaSetup() {
             Modo Demo
           </span>
         </div>
-        <p className="text-sm text-muted-foreground">A configuração de MFA não está disponível no modo de demonstração offline.</p>
+        <p className="text-sm text-muted-foreground">
+          A configuração de MFA não está disponível no modo de demonstração offline.
+        </p>
       </div>
     );
   }
@@ -48,7 +50,7 @@ export function MfaSetup() {
       const { data, error } = await supabase.auth.mfa.listFactors();
       if (error) throw error;
 
-      const totpFactor = data.totp.find((factor) => factor.status === 'verified');
+      const totpFactor = data.totp.find((factor) => factor.status === "verified");
       if (totpFactor) {
         setIsEnabled(true);
         setFactorId(totpFactor.id);
@@ -56,7 +58,7 @@ export function MfaSetup() {
         setIsEnabled(false);
       }
     } catch (err: any) {
-      console.error('Erro ao buscar fatores MFA:', err.message);
+      console.error("Erro ao buscar fatores MFA:", err.message);
     } finally {
       setLoading(false);
     }
@@ -66,19 +68,19 @@ export function MfaSetup() {
     try {
       setError(null);
       setIsEnrolling(true);
-      
-      // Limpa qualquer tentativa anterior não finalizada para evitar o erro "factor already exists"
+
+      // Remove TODOS os fatores TOTP existentes (verificados ou não) para evitar
+      // o erro "A factor with the friendly name X for this user already exists"
       const { data: listData } = await supabase.auth.mfa.listFactors();
-      if (listData && listData.totp) {
-        const unverifiedFactors = listData.totp.filter(f => f.status === 'unverified');
-        for (const factor of unverifiedFactors) {
+      if (listData?.totp && listData.totp.length > 0) {
+        for (const factor of listData.totp) {
           await supabase.auth.mfa.unenroll({ factorId: factor.id });
         }
       }
 
       const { data, error } = await supabase.auth.mfa.enroll({
-        factorType: 'totp',
-        friendlyName: 'App Autenticador',
+        factorType: "totp",
+        friendlyName: "App Autenticador",
       });
 
       if (error) throw error;
@@ -86,14 +88,14 @@ export function MfaSetup() {
       setFactorId(data.id);
       setQrCode(data.totp.qr_code);
     } catch (err: any) {
-      setError(err.message || 'Erro ao iniciar configuração do MFA.');
+      setError(err.message || "Erro ao iniciar configuração do MFA.");
       setIsEnrolling(false);
     }
   };
 
   const verifyAndEnable = async () => {
     if (!factorId || verifyCode.length < 6) {
-      setError('Por favor, insira o código de 6 dígitos.');
+      setError("Por favor, insira o código de 6 dígitos.");
       return;
     }
 
@@ -114,10 +116,10 @@ export function MfaSetup() {
 
       setIsEnabled(true);
       setIsEnrolling(false);
-      setSuccess('Autenticação Multifator ativada com sucesso!');
-      setVerifyCode('');
+      setSuccess("Autenticação Multifator ativada com sucesso!");
+      setVerifyCode("");
     } catch (err: any) {
-      setError(err.message || 'Código inválido. Tente novamente.');
+      setError(err.message || "Código inválido. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -125,23 +127,27 @@ export function MfaSetup() {
 
   const disableMfa = async () => {
     if (!factorId) return;
-    
-    if (!window.confirm('Tem certeza que deseja desativar o MFA? Isso reduzirá a segurança da sua conta.')) {
+
+    if (
+      !window.confirm(
+        "Tem certeza que deseja desativar o MFA? Isso reduzirá a segurança da sua conta."
+      )
+    ) {
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      
+
       const { error } = await supabase.auth.mfa.unenroll({ factorId });
       if (error) throw error;
 
       setIsEnabled(false);
       setFactorId(null);
-      setSuccess('Autenticação Multifator desativada.');
+      setSuccess("Autenticação Multifator desativada.");
     } catch (err: any) {
-      setError(err.message || 'Erro ao desativar MFA.');
+      setError(err.message || "Erro ao desativar MFA.");
     } finally {
       setLoading(false);
     }
@@ -164,7 +170,8 @@ export function MfaSetup() {
             Autenticação Multifator (MFA)
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Adicione uma camada extra de segurança à sua conta exigindo um código de verificação no login.
+            Adicione uma camada extra de segurança à sua conta exigindo um código de verificação no
+            login.
           </p>
         </div>
         {isEnabled ? (
@@ -180,18 +187,33 @@ export function MfaSetup() {
         )}
       </div>
 
-      {error && <div className="mb-4 p-3 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-md text-sm">{error}</div>}
-      {success && <div className="mb-4 p-3 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md text-sm">{success}</div>}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-md text-sm">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="mb-4 p-3 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md text-sm">
+          {success}
+        </div>
+      )}
 
       {!isEnabled && !isEnrolling && (
-        <button onClick={startEnrollment} className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors">
+        <button
+          onClick={startEnrollment}
+          className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors"
+        >
           Configurar MFA
         </button>
       )}
 
       {isEnabled && (
-        <button onClick={disableMfa} disabled={loading} className="mt-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-md font-medium transition-colors disabled:opacity-50">
-          {loading ? 'Processando...' : 'Desativar MFA'}
+        <button
+          onClick={disableMfa}
+          disabled={loading}
+          className="mt-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-md font-medium transition-colors disabled:opacity-50"
+        >
+          {loading ? "Processando..." : "Desativar MFA"}
         </button>
       )}
 
@@ -200,13 +222,30 @@ export function MfaSetup() {
           <h4 className="font-medium text-gray-900 dark:text-white mb-4">Siga os passos abaixo:</h4>
           <div className="grid md:grid-cols-2 gap-8">
             <div className="space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-300">1. Baixe um aplicativo autenticador (Google/Microsoft Authenticator).</p>
-              <p className="text-sm text-gray-600 dark:text-gray-300">2. Escaneie o QR Code ao lado.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                1. Baixe um aplicativo autenticador (Google/Microsoft Authenticator).
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                2. Escaneie o QR Code ao lado.
+              </p>
               <div className="pt-2">
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">3. Digite o código de 6 dígitos gerado:</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  3. Digite o código de 6 dígitos gerado:
+                </p>
                 <div className="flex gap-2">
-                  <input type="text" maxLength={6} value={verifyCode} onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))} placeholder="000000" className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm" />
-                  <button onClick={verifyAndEnable} disabled={loading || verifyCode.length < 6} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={verifyCode}
+                    onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="000000"
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  />
+                  <button
+                    onClick={verifyAndEnable}
+                    disabled={loading || verifyCode.length < 6}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
                     {loading && <Loader2 className="w-4 h-4 animate-spin" />} Verificar
                   </button>
                 </div>
@@ -216,7 +255,15 @@ export function MfaSetup() {
               <img src={qrCode} alt="QR Code MFA" className="w-48 h-48" />
             </div>
           </div>
-          <button onClick={() => { setIsEnrolling(false); setQrCode(null); }} className="mt-6 text-sm text-gray-500 hover:text-gray-700">Cancelar configuração</button>
+          <button
+            onClick={() => {
+              setIsEnrolling(false);
+              setQrCode(null);
+            }}
+            className="mt-6 text-sm text-gray-500 hover:text-gray-700"
+          >
+            Cancelar configuração
+          </button>
         </div>
       )}
     </div>
