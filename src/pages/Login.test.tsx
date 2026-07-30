@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Login from "./Login";
@@ -123,8 +123,10 @@ beforeEach(() => {
 
 // ─── Testes ───────────────────────────────────────────────────────────────────
 describe("Página de Login", () => {
-  it("deve renderizar os campos principais do formulário", () => {
-    renderWithRouter(<Login />, { route: "/entrar", path: "/entrar" });
+  it("deve renderizar os campos principais do formulário", async () => {
+    await act(async () => {
+      renderWithRouter(<Login />, { route: "/entrar", path: "/entrar" });
+    });
 
     expect(screen.getByPlaceholderText("exemplo@rededmi.com.br")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("••••••••")).toBeInTheDocument();
