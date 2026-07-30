@@ -51,23 +51,23 @@ import { DEFAULT_APP_NAME } from "@/lib/branding";
 
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Colaboradores", url: "/employees", icon: Users },
-  { title: "Salários e Pagamentos", url: "/payroll", icon: DollarSign },
-  { title: "Recrutamento", url: "/recruitment", icon: Briefcase },
-  { title: "Avaliações", url: "/performance", icon: Star },
-  { title: "Férias & Ausências", url: "/absences", icon: Calendar },
-  { title: "Controle de Ponto", url: "/timesheet", icon: Clock },
-  { title: "Chamados", url: "/tickets", icon: LifeBuoy },
-  { title: "Relatórios", url: "/reports", icon: FileText },
-  { title: "Comunicação", url: "/communication", icon: MessageSquare },
-  { title: "Ouvidoria", url: "/suggestions", icon: MessageCircle },
+  { title: "Colaboradores", url: "/funcionarios", icon: Users },
+  { title: "Salários e Pagamentos", url: "/folha-de-pagamento", icon: DollarSign },
+  { title: "Recrutamento", url: "/recrutamento", icon: Briefcase },
+  { title: "Avaliações", url: "/desempenho", icon: Star },
+  { title: "Férias & Ausências", url: "/ausencias", icon: Calendar },
+  { title: "Controle de Ponto", url: "/ponto", icon: Clock },
+  { title: "Chamados", url: "/chamados", icon: LifeBuoy },
+  { title: "Relatórios", url: "/relatorios", icon: FileText },
+  { title: "Comunicação", url: "/comunicacao", icon: MessageSquare },
+  { title: "Ouvidoria", url: "/sugestoes", icon: MessageCircle },
 ];
 
 const toolsNavItems = [
-  { title: "Assistente IA", url: "/ai-assistant", icon: Bot },
-  { title: "Automações", url: "/automations", icon: Workflow },
-  { title: "Auditoria", url: "/audit-logs", icon: ShieldAlert },
-  { title: "Configurações", url: "/settings", icon: Settings },
+  { title: "Assistente IA", url: "/assistente-ia", icon: Bot },
+  { title: "Automações", url: "/automacoes", icon: Workflow },
+  { title: "Auditoria", url: "/logs-auditoria", icon: ShieldAlert },
+  { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -185,10 +185,10 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={location.pathname === "/manager-portal"}
+                isActive={location.pathname === "/portal-gestor"}
                 tooltip="Área de Gestores"
               >
-                <NavLink to="/manager-portal" className="flex items-center gap-3">
+                <NavLink to="/portal-gestor" className="flex items-center gap-3">
                   <Shield className="h-5 w-5" />
                   <span className="flex-1">Área de Gestores</span>
                   {unreadCount > 0 && (

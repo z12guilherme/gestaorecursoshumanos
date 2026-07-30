@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Employee } from "@/types/hr";
 import { Button } from "@/components/ui/button";
@@ -794,7 +794,7 @@ export default function ClockInPage() {
           <div className="text-center">
             <button
               className="text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 mx-auto transition-colors duration-200"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/entrar")}
             >
               <ArrowLeft className="h-3 w-3" />
               Acesso Administrativo

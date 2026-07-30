@@ -1,6 +1,6 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 export const ProtectedRoute = () => {
   const { session, loading } = useAuth();
@@ -14,7 +14,7 @@ export const ProtectedRoute = () => {
   }
 
   if (!session) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/entrar" replace />;
   }
 
   return <Outlet />;

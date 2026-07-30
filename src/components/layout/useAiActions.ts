@@ -1,32 +1,33 @@
-import { useNavigate } from 'react-router-dom';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const AI_TOOLS = [
   {
-    name: 'navigate',
-    description: 'Navegar para uma página específica do sistema',
+    name: "navigate",
+    description: "Navegar para uma página específica do sistema",
     parameters: {
-      type: 'object',
+      type: "object",
       properties: {
-        path: { 
-          type: 'string', 
-          description: 'O caminho da rota (ex: /employees, /recruitment, /settings, /reports)' 
-        }
+        path: {
+          type: "string",
+          description:
+            "O caminho da rota (ex: /funcionarios, /recrutamento, /configuracoes, /relatorios)",
+        },
       },
-      required: ['path']
-    }
+      required: ["path"],
+    },
   },
   {
-    name: 'toggle_theme',
-    description: 'Alternar o tema do sistema entre claro e escuro',
-    parameters: { type: 'object', properties: {} }
+    name: "toggle_theme",
+    description: "Alternar o tema do sistema entre claro e escuro",
+    parameters: { type: "object", properties: {} },
   },
   {
-    name: 'logout',
-    description: 'Sair do sistema / Fazer logout do usuário',
-    parameters: { type: 'object', properties: {} }
-  }
+    name: "logout",
+    description: "Sair do sistema / Fazer logout do usuário",
+    parameters: { type: "object", properties: {} },
+  },
 ];
 
 export function useAiActions() {
@@ -36,23 +37,23 @@ export function useAiActions() {
 
   const executeTool = async (toolName: string, args: any) => {
     console.log(`[AI Action] Executing: ${toolName}`, args);
-    
+
     switch (toolName) {
-      case 'navigate':
+      case "navigate":
         if (args.path) {
           navigate(args.path);
           return `Navegando para ${args.path}...`;
         }
-        return 'Erro: Caminho de navegação não fornecido.';
-        
-      case 'toggle_theme':
+        return "Erro: Caminho de navegação não fornecido.";
+
+      case "toggle_theme":
         toggleTheme();
-        return 'Tema alterado com sucesso.';
-        
-      case 'logout':
+        return "Tema alterado com sucesso.";
+
+      case "logout":
         await signOut();
-        return 'Iniciando processo de logout...';
-        
+        return "Iniciando processo de logout...";
+
       default:
         return `Erro: Ferramenta '${toolName}' não reconhecida.`;
     }
@@ -60,6 +61,6 @@ export function useAiActions() {
 
   return {
     executeTool,
-    availableTools: AI_TOOLS
+    availableTools: AI_TOOLS,
   };
 }

@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
-import { USE_MOCK } from '@/lib/mockDatabase';
+import { createContext, useContext, useEffect, useState } from "react";
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import { USE_MOCK } from "@/lib/mockDatabase";
 
 export interface Profile {
   id: string;
@@ -45,21 +45,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (USE_MOCK) {
         setProfile({
           id: userId,
-          full_name: 'Administrador Demo',
-          avatar_url: '',
-          email: 'admin@empresa.com',
-          display_role: 'Gerente de RH',
-          role: 'admin',
+          full_name: "Administrador Demo",
+          avatar_url: "",
+          email: "admin@empresa.com",
+          display_role: "Gerente de RH",
+          role: "admin",
         });
         return;
       }
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
+      const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+
       if (data) {
         setProfile(data);
       }
@@ -77,24 +73,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInMock = () => {
     if (!USE_MOCK) return;
     const mockUser = {
-      id: 'mock-admin-id',
-      email: 'admin@empresa.com',
+      id: "mock-admin-id",
+      email: "admin@empresa.com",
       app_metadata: {},
-      user_metadata: { full_name: 'Administrador Demo' },
-      aud: 'authenticated',
+      user_metadata: { full_name: "Administrador Demo" },
+      aud: "authenticated",
       created_at: new Date().toISOString(),
     } as unknown as User;
 
     const mockSession = {
-      access_token: 'mock-token',
-      refresh_token: 'mock-refresh',
+      access_token: "mock-token",
+      refresh_token: "mock-refresh",
       user: mockUser,
       expires_in: 999999,
       expires_at: Date.now() / 1000 + 999999,
-      token_type: 'bearer',
+      token_type: "bearer",
     } as unknown as Session;
 
-    localStorage.setItem('mock_logged_in', 'true');
+    localStorage.setItem("mock_logged_in", "true");
     setSession(mockSession);
     setUser(mockUser);
     fetchProfile(mockUser.id);
@@ -105,23 +101,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // 🔀 Bypass completo de autenticação no modo Mock (Demo Offline)
     if (USE_MOCK) {
-      if (localStorage.getItem('mock_logged_in') === 'true') {
+      if (localStorage.getItem("mock_logged_in") === "true") {
         const mockUser = {
-          id: 'mock-admin-id',
-          email: 'admin@empresa.com',
+          id: "mock-admin-id",
+          email: "admin@empresa.com",
           app_metadata: {},
-          user_metadata: { full_name: 'Administrador Demo' },
-          aud: 'authenticated',
+          user_metadata: { full_name: "Administrador Demo" },
+          aud: "authenticated",
           created_at: new Date().toISOString(),
         } as unknown as User;
 
         const mockSession = {
-          access_token: 'mock-token',
-          refresh_token: 'mock-refresh',
+          access_token: "mock-token",
+          refresh_token: "mock-refresh",
           user: mockUser,
           expires_in: 999999,
           expires_at: Date.now() / 1000 + 999999,
-          token_type: 'bearer',
+          token_type: "bearer",
         } as unknown as Session;
 
         setSession(mockSession);
@@ -132,7 +128,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         if (mounted) setLoading(false);
       }
-      return () => { mounted = false; };
+      return () => {
+        mounted = false;
+      };
     }
 
     // Busca sessão inicial
@@ -140,7 +138,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (mounted) {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
           fetchProfile(session.user.id).then(() => {
             if (mounted) setLoading(false);
@@ -152,11 +150,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     // Escuta mudanças na autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (mounted) {
         console.log("Auth event:", event);
-        
-        if (event === 'SIGNED_OUT') {
+
+        if (event === "SIGNED_OUT") {
           setSession(null);
           setUser(null);
           setProfile(null);
@@ -180,11 +180,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     // 🔀 Desvio Offline (Mock) — Remove apenas a flag de login para manter o BD mockado
     if (USE_MOCK) {
-      localStorage.removeItem('mock_logged_in');
+      localStorage.removeItem("mock_logged_in");
       setSession(null);
       setUser(null);
       setProfile(null);
-      window.location.replace('/login');
+      window.location.replace("/entrar");
       return;
     }
 
@@ -193,29 +193,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Adicionado timeout para evitar travamento em caso de erro de rede
       const { error } = await Promise.race([
         supabase.auth.signOut(),
-        new Promise<{ error: any }>(resolve => setTimeout(() => resolve({ error: 'timeout' }), 2000))
+        new Promise<{ error: any }>((resolve) =>
+          setTimeout(() => resolve({ error: "timeout" }), 2000)
+        ),
       ]);
-      
+
       if (error) console.error("Logout warning:", error);
     } catch (error) {
       console.error("Error signing out:", error);
     } finally {
       // 2. MATAR SERVICE WORKERS E CACHE (CRÍTICO)
-      if ('serviceWorker' in navigator) {
+      if ("serviceWorker" in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map(r => r.unregister()));
+        await Promise.all(registrations.map((r) => r.unregister()));
       }
 
-      if ('caches' in window) {
+      if ("caches" in window) {
         const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        await Promise.all(cacheNames.map((name) => caches.delete(name)));
       }
 
       // 3. LIMPEZA NUCLEAR DE STORAGE
       // Remove explicitamente todos os tokens do armazenamento
       localStorage.clear();
       sessionStorage.clear();
-      
+
       // Limpa cookies por garantia
       document.cookie.split(";").forEach((c) => {
         document.cookie = c
@@ -229,14 +231,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(null);
 
       // 5. Força recarregamento total para a tela de login
-      window.location.replace('/login');
+      window.location.replace("/entrar");
     }
   };
 
-  const isManager = profile?.role === 'admin' || profile?.role === 'manager' || USE_MOCK;
+  const isManager = profile?.role === "admin" || profile?.role === "manager" || USE_MOCK;
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, isManager, signOut, refreshProfile, signInMock }}>
+    <AuthContext.Provider
+      value={{ session, user, profile, loading, isManager, signOut, refreshProfile, signInMock }}
+    >
       {children}
     </AuthContext.Provider>
   );

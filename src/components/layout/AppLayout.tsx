@@ -40,7 +40,7 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {
-      navigate(`/employees?search=${encodeURIComponent(searchQuery)}`);
+      navigate(`/funcionarios?search=${encodeURIComponent(searchQuery)}`);
     }
   };
 
@@ -154,7 +154,7 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="w-full justify-center text-sm font-medium text-primary cursor-pointer"
-                        onClick={() => navigate("/employees")}
+                        onClick={() => navigate("/funcionarios")}
                       >
                         Ver todas as atividades
                       </DropdownMenuItem>

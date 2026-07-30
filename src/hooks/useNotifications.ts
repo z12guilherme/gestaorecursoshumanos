@@ -130,7 +130,7 @@ export function useNotifications() {
           description: `${emp.name} foi adicionado ao sistema${emp.department ? ` no departamento de ${emp.department}` : ""}.`,
           timestamp: emp.created_at || emp.admission_date,
           read: false,
-          link: "/employees",
+          link: "/funcionarios",
         });
       });
 
@@ -150,7 +150,7 @@ export function useNotifications() {
           description: `${cand.name} se candidatou para ${cand.position || "uma vaga"}.`,
           timestamp: cand.applied_at || cand.appliedAt,
           read: false,
-          link: "/recruitment",
+          link: "/recrutamento",
         });
       });
 
@@ -173,7 +173,7 @@ export function useNotifications() {
           description: `${empName} recebeu nota ${score?.toFixed(1) ?? "–"} na avaliação de desempenho.`,
           timestamp: review.created_at,
           read: false,
-          link: "/performance",
+          link: "/desempenho",
         });
       });
 
@@ -194,7 +194,7 @@ export function useNotifications() {
           description: `${emp.name} está fazendo aniversário hoje. Envie suas felicitações!`,
           timestamp: now.toISOString(),
           read: false,
-          link: "/employees",
+          link: "/funcionarios",
         });
       });
 

@@ -124,7 +124,7 @@ beforeEach(() => {
 // ─── Testes ───────────────────────────────────────────────────────────────────
 describe("Página de Login", () => {
   it("deve renderizar os campos principais do formulário", () => {
-    renderWithRouter(<Login />, { route: "/login", path: "/login" });
+    renderWithRouter(<Login />, { route: "/entrar", path: "/entrar" });
 
     expect(screen.getByPlaceholderText("exemplo@rededmi.com.br")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("••••••••")).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe("Página de Login", () => {
   it("deve chamar o login do Supabase ao submeter o formulário", async () => {
     const user = userEvent.setup();
 
-    renderWithRouter(<Login />, { route: "/login", path: "/login" });
+    renderWithRouter(<Login />, { route: "/entrar", path: "/entrar" });
 
     await user.type(screen.getByPlaceholderText("exemplo@rededmi.com.br"), "admin@rededmi.com.br");
     await user.type(screen.getByPlaceholderText("••••••••"), "senha123");
@@ -149,11 +149,11 @@ describe("Página de Login", () => {
   it("deve abrir a área do funcionário pelo atalho da tela de login", async () => {
     const user = userEvent.setup();
 
-    renderWithRouter(<Login />, { route: "/login", path: "/login" });
+    renderWithRouter(<Login />, { route: "/entrar", path: "/entrar" });
 
     await user.click(screen.getByText("Área do Funcionário"));
 
-    expect(mockNavigate).toHaveBeenCalledWith("/clock-in");
+    expect(mockNavigate).toHaveBeenCalledWith("/registro-ponto");
   });
 
   it("deve exibir o formulário MFA quando a sessão exige segundo fator", async () => {
@@ -173,7 +173,7 @@ describe("Página de Login", () => {
     authState.session = { user: { id: "user-123" } } as SessionMock;
     authState.profile = { id: "user-123", full_name: "Teste", avatar_url: "" };
 
-    renderWithRouter(<Login />, { route: "/login", path: "/login" });
+    renderWithRouter(<Login />, { route: "/entrar", path: "/entrar" });
 
     // Aguarda o useEffect executar e chamar getAuthenticatorAssuranceLevel
     await waitFor(() => {
@@ -212,7 +212,7 @@ describe("Página de Login", () => {
     authState.session = { user: { id: "user-123" } } as SessionMock;
     authState.profile = { id: "user-123", full_name: "Teste", avatar_url: "" };
 
-    renderWithRouter(<Login />, { route: "/login", path: "/login" });
+    renderWithRouter(<Login />, { route: "/entrar", path: "/entrar" });
 
     // Aguarda o formulário MFA aparecer
     await waitFor(() => {

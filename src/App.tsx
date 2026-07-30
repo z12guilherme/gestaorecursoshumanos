@@ -11,7 +11,6 @@ import { ReloadPrompt } from "@/components/ReloadPrompt";
 import { supabase } from "@/lib/supabase";
 import { buildAppTitle } from "@/lib/branding";
 
-
 // Lazy Loading das Páginas
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Employees = lazy(() => import("./pages/Employees"));
@@ -30,8 +29,8 @@ const ClockInPage = lazy(() => import("./pages/ClockIn"));
 const TimesheetPage = lazy(() => import("./pages/Timesheet"));
 const JobDetails = lazy(() => import("./pages/JobDetails"));
 const Support = lazy(() => import("./pages/Support"));
-const TermsOfService = lazy(() => import('./pages/TermsOfService'));
-const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Suggestions = lazy(() => import("@/pages/Suggestions"));
 const PublicSuggestion = lazy(() => import("@/pages/PublicSuggestion"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
@@ -50,21 +49,21 @@ const queryClient = new QueryClient();
 const App = () => {
   const [branding, setBranding] = useState<{ name: string; logo: string | null }>({
     name: "",
-    logo: null
+    logo: null,
   });
 
   useEffect(() => {
     async function fetchBranding() {
       try {
         const { data } = await supabase
-          .from('settings')
-          .select('company_name, avatar_url')
+          .from("settings")
+          .select("company_name, avatar_url")
           .maybeSingle();
 
         if (data) {
           setBranding({
             name: data.company_name || "",
-            logo: data.avatar_url || null
+            logo: data.avatar_url || null,
           });
         }
       } catch (error) {
@@ -78,11 +77,12 @@ const App = () => {
     document.title = buildAppTitle(branding.name);
 
     if (branding.logo) {
-      const link = (document.querySelector("link[rel*='icon']") || document.createElement('link')) as HTMLLinkElement;
-      link.type = 'image/x-icon';
-      link.rel = 'shortcut icon';
+      const link = (document.querySelector("link[rel*='icon']") ||
+        document.createElement("link")) as HTMLLinkElement;
+      link.type = "image/x-icon";
+      link.rel = "shortcut icon";
       link.href = branding.logo;
-      document.getElementsByTagName('head')[0].appendChild(link);
+      document.getElementsByTagName("head")[0].appendChild(link);
     }
   }, [branding]);
 
@@ -102,31 +102,31 @@ const App = () => {
             >
               <Suspense fallback={<LoadingSpinner />}>
                 <Routes>
-                  <Route path="/clock-in" element={<ClockInPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/jobs/:jobId" element={<JobDetails />} />
-                  <Route path="/terms" element={<TermsOfService />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/registro-ponto" element={<ClockInPage />} />
+                  <Route path="/entrar" element={<LoginPage />} />
+                  <Route path="/vagas/:jobId" element={<JobDetails />} />
+                  <Route path="/termos" element={<TermsOfService />} />
+                  <Route path="/privacidade" element={<PrivacyPolicy />} />
                   <Route path="/sugestoes-publico" element={<PublicSuggestion />} />
                   <Route path="/avaliacao/:token" element={<PublicEvaluation />} />
                   <Route element={<ProtectedRoute />}>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/employees" element={<Employees />} />
-                    <Route path="/recruitment" element={<Recruitment />} />
-                    <Route path="/performance" element={<Performance />} />
-                    <Route path="/absences" element={<TimeOff />} />
-                    <Route path="/payroll" element={<Payroll />} />
-                    <Route path="/timesheet" element={<TimesheetPage />} />
-                    <Route path="/reports" element={<Reports />} />
-                    <Route path="/communication" element={<Communication />} />
-                    <Route path="/suggestions" element={<Suggestions />} />
-                    <Route path="/ai-assistant" element={<AIAssistant />} />
-                    <Route path="/automations" element={<Automations />} />
-                    <Route path="/tickets" element={<Support />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/audit-logs" element={<AuditLogs />} />
+                    <Route path="/funcionarios" element={<Employees />} />
+                    <Route path="/recrutamento" element={<Recruitment />} />
+                    <Route path="/desempenho" element={<Performance />} />
+                    <Route path="/ausencias" element={<TimeOff />} />
+                    <Route path="/folha-de-pagamento" element={<Payroll />} />
+                    <Route path="/ponto" element={<TimesheetPage />} />
+                    <Route path="/relatorios" element={<Reports />} />
+                    <Route path="/comunicacao" element={<Communication />} />
+                    <Route path="/sugestoes" element={<Suggestions />} />
+                    <Route path="/assistente-ia" element={<AIAssistant />} />
+                    <Route path="/automacoes" element={<Automations />} />
+                    <Route path="/chamados" element={<Support />} />
+                    <Route path="/configuracoes" element={<Settings />} />
+                    <Route path="/logs-auditoria" element={<AuditLogs />} />
                     <Route
-                      path="/manager-portal"
+                      path="/portal-gestor"
                       element={
                         <ManagerRoute>
                           <ManagerPortal />

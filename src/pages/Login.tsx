@@ -32,7 +32,7 @@ export default function LoginPage() {
 
         // 🔀 Mock: pula verificação MFA
         if (USE_MOCK) {
-          navigate(isManager ? "/manager-portal" : "/");
+          navigate(isManager ? "/portal-gestor" : "/");
           return;
         }
         const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -46,7 +46,7 @@ export default function LoginPage() {
             return;
           }
         }
-        navigate(isManager ? "/manager-portal" : "/");
+        navigate(isManager ? "/portal-gestor" : "/");
       }
     };
     checkMfaAndNavigate();
@@ -297,7 +297,7 @@ export default function LoginPage() {
             <div className="mt-6 space-y-4 max-w-sm mx-auto w-full">
               <button
                 type="submit"
-                onClick={() => navigate("/clock-in")}
+                onClick={() => navigate("/registro-ponto")}
                 className="w-full py-3 px-4 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 font-medium flex items-center justify-center gap-2 transition-all group"
               >
                 <div className="p-1.5 bg-white rounded-lg border border-slate-200 group-hover:border-blue-200 transition-colors">
