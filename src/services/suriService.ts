@@ -54,11 +54,19 @@ export const suriService = {
    * Formata número de telefone para padrão E.164 / BR (55...)
    */
   formatPhoneNumber(phone: string): string {
-    const clean = phone.replace(/\D/g, "");
+    let clean = phone.replace(/\D/g, "");
     if (!clean) return "";
-    if (clean.startsWith("55")) return clean;
-    if (clean.length === 10 || clean.length === 11) return `55${clean}`;
-    return clean;
+    if (clean.startsWith("55")) {
+      clean = clean.slice(2);
+    }
+    if (clean.length === 10) {
+      const ddd = clean.slice(0, 2);
+      const number = clean.slice(2);
+      if (["6", "7", "8", "9"].includes(number[0])) {
+        clean = `${ddd}9${number}`;
+      }
+    }
+    return `55${clean}`;
   },
 
   /**

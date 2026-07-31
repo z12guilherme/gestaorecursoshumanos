@@ -53,23 +53,48 @@ serve(async (req: Request) => {
     const templateParams: any[] = body.templateParams || body.params || [];
     const candidateName = body.candidateName || body.name || "Candidato";
 
-    const phone = rawPhone.replace(/\D/g, "");
+    const rawCleanPhone = rawPhone.replace(/\D/g, "");
 
-    if (!phone) {
+    if (!rawCleanPhone) {
       return new Response(
         JSON.stringify({ success: false, error: "Número de telefone inválido ou ausente." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
 
+    // Normalização inteligente para padrão E.164 (Brasil 55 + DDD + 9 dígitos)
+    let cleanNumber = rawCleanPhone.startsWith("55") ? rawCleanPhone.slice(2) : rawCleanPhone;
+    if (cleanNumber.length === 10 && ["6", "7", "8", "9"].includes(cleanNumber[2])) {
+      cleanNumber = `${cleanNumber.slice(0, 2)}9${cleanNumber.slice(2)}`;
+    }
+    const phone = `55${cleanNumber}`;
+
+    // Número alternativo (com/sem 9) para garantir compatibilidade com o roteamento da Meta
+    const altPhone =
+      phone.length === 13 && phone.startsWith("55")
+        ? `55${phone.slice(2, 4)}${phone.slice(5)}`
+        : phone.length === 12 && phone.startsWith("55")
+          ? `55${phone.slice(2, 4)}9${phone.slice(4)}`
+          : phone;
+
     const templateId = templateName
       ? TEMPLATE_ID_MAP[templateName] || templateName
       : "1582241203536964";
 
-    const safeBodyParameters = templateParams.map((p) => {
-      if (p === null || p === undefined) return "-";
-      const str = String(p).trim();
-      return str === "" ? "-" : str;
+    // Garantir exatamente 4 parâmetros padrão no template Meta HSM para não falhar a renderização
+    const defaultParams = [
+      candidateName || "Candidato",
+      "Processo Seletivo",
+      "Clínica DMI | Belo Jardim",
+      textMessage || "Atualização de status do RH",
+    ];
+
+    const safeBodyParameters = defaultParams.map((def, idx) => {
+      const userVal = templateParams[idx];
+      if (userVal !== null && userVal !== undefined && String(userVal).trim() !== "") {
+        return String(userVal).trim();
+      }
+      return def;
     });
 
     const headers = {
@@ -78,7 +103,7 @@ serve(async (req: Request) => {
     };
 
     console.log(
-      `[SURI Dispatch Start] Tel: ${phone} | TemplateId: ${templateId} | Params: ${JSON.stringify(safeBodyParameters)}`
+      `[SURI Dispatch Start] Tel: ${phone} (Alt: ${altPhone}) | TemplateId: ${templateId} | Params: ${JSON.stringify(safeBodyParameters)}`
     );
 
     const attemptsLog: any[] = [];
@@ -162,7 +187,7 @@ serve(async (req: Request) => {
             },
           ]
         : []),
-      // 2. Import inline com o channelId descoberto
+      // 2. Import inline com o canal descoberto e telefone principal com 9º dígito
       {
         user: {
           name: candidateName,
@@ -176,7 +201,25 @@ serve(async (req: Request) => {
           bodyParameters: safeBodyParameters,
         },
       },
-      // 3. Fallback com userId = telefone
+      // 3. Import inline com variante alternativa do número (caso a conta no WhatsApp Meta seja 12 dígitos)
+      ...(altPhone !== phone
+        ? [
+            {
+              user: {
+                name: candidateName,
+                phone: altPhone,
+                gender: 0,
+                channelId: activeChannelId,
+                channelType: 1,
+              },
+              message: {
+                templateId: templateId,
+                bodyParameters: safeBodyParameters,
+              },
+            },
+          ]
+        : []),
+      // 4. Fallback com userId = telefone principal
       {
         userId: phone,
         message: {
