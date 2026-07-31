@@ -20,6 +20,23 @@ import {
   Zap,
 } from "lucide-react";
 
+function formatPhoneMask(value: string): string {
+  if (!value) return "";
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("55") && digits.length >= 12) {
+    digits = digits.slice(2);
+  }
+  if (digits.length === 10 && ["6", "7", "8", "9"].includes(digits[2])) {
+    digits = `${digits.slice(0, 2)}9${digits.slice(2)}`;
+  }
+  digits = digits.slice(0, 11);
+  if (digits.length <= 2) return digits ? `(${digits}` : "";
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10)
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 export function SuriIntegrationCard() {
   const { toast } = useToast();
   const [config, setConfig] = useState<SuriConfig>(suriService.getConfig());
@@ -311,9 +328,10 @@ export function SuriIntegrationCard() {
             <div className="space-y-1.5 sm:col-span-1">
               <Label className="text-xs font-semibold">Número do Celular (com DDD)</Label>
               <Input
-                placeholder="Ex: 81999998888"
+                placeholder="Ex: (81) 99999-8888"
                 value={testPhone}
-                onChange={(e) => setTestPhone(e.target.value)}
+                onChange={(e) => setTestPhone(formatPhoneMask(e.target.value))}
+                className="font-mono"
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">

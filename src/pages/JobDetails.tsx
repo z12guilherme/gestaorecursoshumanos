@@ -38,6 +38,30 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+function formatPhoneMask(value: string): string {
+  if (!value) return "";
+  let digits = value.replace(/\D/g, "");
+
+  if (digits.startsWith("55") && digits.length >= 12) {
+    digits = digits.slice(2);
+  }
+  if (digits.length === 10 && ["6", "7", "8", "9"].includes(digits[2])) {
+    digits = `${digits.slice(0, 2)}9${digits.slice(2)}`;
+  }
+  digits = digits.slice(0, 11);
+
+  if (digits.length <= 2) {
+    return digits ? `(${digits}` : "";
+  }
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 interface Job {
   id: string;
   title: string;
@@ -552,9 +576,11 @@ export default function JobDetails() {
                     id="phone"
                     required
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: formatPhoneMask(e.target.value) })
+                    }
                     placeholder="(81) 99999-8888"
-                    className="h-9 text-sm"
+                    className="h-9 text-sm font-mono"
                   />
                 </div>
               </div>
