@@ -175,7 +175,7 @@ serve(async (req: Request) => {
     // ESTRATÉGIA 3: Disparo de Template via POST /api/messages/send
     const targetUrl = `${baseUrl}/messages/send`;
     const officialPayloads = [
-      // 1. Prioridade Máxima: Envios explícitos com o telefone principal normalizado (13 dígitos com 9º dígito)
+      // 1. Formato Padrão Suri: user + message.templateId + message.bodyParameters + message.parameters (13 dígitos com 9)
       {
         user: {
           name: candidateName,
@@ -186,30 +186,64 @@ serve(async (req: Request) => {
         },
         message: {
           templateId: templateId,
+          templateName: templateName || "atualizacao_candidato",
           bodyParameters: safeBodyParameters,
+          parameters: safeBodyParameters,
         },
       },
-      // 2. Se o userId importado na Suri contiver exatamente o número de 13 dígitos atualizado
-      ...(importedUserId && String(importedUserId).includes(phone)
-        ? [
-            {
-              userId: importedUserId,
-              message: {
-                templateId: templateId,
-                bodyParameters: safeBodyParameters,
-              },
-            },
-          ]
-        : []),
-      // 3. Fallback com userId = telefone de 13 dígitos
+      // 2. Formato Suri com objeto de template aninhado
       {
-        userId: phone,
+        user: {
+          name: candidateName,
+          phone: phone,
+          gender: 0,
+          channelId: activeChannelId,
+          channelType: 1,
+        },
         message: {
-          templateId: templateId,
-          bodyParameters: safeBodyParameters,
+          template: {
+            id: templateId,
+            name: templateName || "atualizacao_candidato",
+            bodyParameters: safeBodyParameters,
+            parameters: safeBodyParameters,
+          },
         },
       },
-      // 4. Se falhar, tenta a variante alternativa sem o 9º dígito (caso o WhatsApp Meta tenha registrado a conta sem o 9)
+      // 3. Formato Meta Cloud API (components: body parameters)
+      {
+        user: {
+          name: candidateName,
+          phone: phone,
+          gender: 0,
+          channelId: activeChannelId,
+          channelType: 1,
+        },
+        message: {
+          templateName: templateName || "atualizacao_candidato",
+          templateId: templateId,
+          language: { code: "pt_BR" },
+          components: [
+            {
+              type: "body",
+              parameters: safeBodyParameters.map((val) => ({ type: "text", text: String(val) })),
+            },
+          ],
+        },
+      },
+      // 4. Formato plano (root level)
+      {
+        phone: phone,
+        user: {
+          name: candidateName,
+          phone: phone,
+          channelId: activeChannelId,
+        },
+        templateId: templateId,
+        templateName: templateName || "atualizacao_candidato",
+        bodyParameters: safeBodyParameters,
+        parameters: safeBodyParameters,
+      },
+      // 5. Fallback com variante alternativa do telefone sem o 9º dígito (se for diferente)
       ...(altPhone !== phone
         ? [
             {
@@ -222,7 +256,9 @@ serve(async (req: Request) => {
               },
               message: {
                 templateId: templateId,
+                templateName: templateName || "atualizacao_candidato",
                 bodyParameters: safeBodyParameters,
+                parameters: safeBodyParameters,
               },
             },
           ]
