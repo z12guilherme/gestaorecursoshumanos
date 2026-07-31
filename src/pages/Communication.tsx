@@ -1,51 +1,79 @@
-import { useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Megaphone, Plus, Trash2, Edit, Pin, AlertCircle } from 'lucide-react';
-import { useCommunication, Announcement } from '@/hooks/useCommunication';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Megaphone, Plus, Trash2, Edit, Pin, AlertCircle, MessageSquare } from "lucide-react";
+import { useCommunication, Announcement } from "@/hooks/useCommunication";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
+import { suriService } from "@/services/suriService";
+import { employeeService } from "@/services/employeeService";
 
 export default function Communication() {
-  const { announcements, loading, addAnnouncement, updateAnnouncement, deleteAnnouncement } = useCommunication();
+  const { announcements, loading, addAnnouncement, updateAnnouncement, deleteAnnouncement } =
+    useCommunication();
   const { toast } = useToast();
-  
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [sendWhatsAppBroadcast, setSendWhatsAppBroadcast] = useState(false);
 
   const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-    priority: 'medium' as 'low' | 'medium' | 'high',
-    author: 'RH'
+    title: "",
+    content: "",
+    priority: "medium" as "low" | "medium" | "high",
+    author: "RH",
   });
 
   const handleOpenDialog = (announcement?: Announcement) => {
+    setSendWhatsAppBroadcast(false);
     if (announcement) {
       setEditingAnnouncement(announcement);
       setFormData({
         title: announcement.title,
         content: announcement.content,
         priority: announcement.priority,
-        author: announcement.author
+        author: announcement.author,
       });
     } else {
       setEditingAnnouncement(null);
       setFormData({
-        title: '',
-        content: '',
-        priority: 'medium',
-        author: 'RH'
+        title: "",
+        content: "",
+        priority: "medium",
+        author: "RH",
       });
     }
     setIsDialogOpen(true);
@@ -71,6 +99,29 @@ export default function Communication() {
         toast({ title: "Erro", description: "Falha ao criar aviso.", variant: "destructive" });
       } else {
         toast({ title: "Sucesso", description: "Aviso publicado." });
+
+        if (sendWhatsAppBroadcast) {
+          try {
+            const employeesList = await employeeService.getAllEmployees();
+            let sentCount = 0;
+            for (const emp of employeesList) {
+              if (emp.phone) {
+                await suriService.sendMessage(
+                  emp.phone,
+                  `📢 *COMUNICADO DMI: ${formData.title}*\n\n${formData.content}`
+                );
+                sentCount++;
+              }
+            }
+            toast({
+              title: "Transmissão WhatsApp Concluída",
+              description: `Comunicado enviado para ${sentCount} colaboradores via SURI.`,
+            });
+          } catch (err) {
+            console.error("Erro na transmissão SURI:", err);
+          }
+        }
+
         setIsDialogOpen(false);
       }
     }
@@ -88,17 +139,17 @@ export default function Communication() {
   };
 
   const priorityConfig = {
-    low: { label: 'Baixa', color: 'bg-blue-100 text-blue-800' },
-    medium: { label: 'Média', color: 'bg-amber-100 text-amber-800' },
-    high: { label: 'Alta', color: 'bg-red-100 text-red-800' },
+    low: { label: "Baixa", color: "bg-blue-100 text-blue-800" },
+    medium: { label: "Média", color: "bg-amber-100 text-amber-800" },
+    high: { label: "Alta", color: "bg-red-100 text-red-800" },
   };
 
   // Stats calculation based on REAL data
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
   const stats = {
     total: announcements.length,
-    today: announcements.filter(a => a.created_at.startsWith(today)).length,
-    highPriority: announcements.filter(a => a.priority === 'high').length
+    today: announcements.filter((a) => a.created_at.startsWith(today)).length,
+    highPriority: announcements.filter((a) => a.priority === "high").length,
   };
 
   return (
@@ -154,38 +205,54 @@ export default function Communication() {
           {loading ? (
             <p className="text-center text-muted-foreground py-8">Carregando avisos...</p>
           ) : announcements.length === 0 ? (
-            <Card className="p-8 text-center text-muted-foreground">
-              Nenhum aviso publicado.
-            </Card>
+            <Card className="p-8 text-center text-muted-foreground">Nenhum aviso publicado.</Card>
           ) : (
             announcements.map((announcement) => (
               <Card key={announcement.id} className="overflow-hidden">
-                <div className={`h-1 w-full ${announcement.priority === 'high' ? 'bg-red-500' : announcement.priority === 'medium' ? 'bg-amber-500' : 'bg-blue-500'}`} />
+                <div
+                  className={`h-1 w-full ${announcement.priority === "high" ? "bg-red-500" : announcement.priority === "medium" ? "bg-amber-500" : "bg-blue-500"}`}
+                />
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <CardTitle className="text-lg">{announcement.title}</CardTitle>
-                        <Badge variant="secondary" className={priorityConfig[announcement.priority].color}>
+                        <Badge
+                          variant="secondary"
+                          className={priorityConfig[announcement.priority].color}
+                        >
                           {priorityConfig[announcement.priority].label}
                         </Badge>
                       </div>
                       <CardDescription>
-                        Por {announcement.author} • {format(new Date(announcement.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                        Por {announcement.author} •{" "}
+                        {format(new Date(announcement.created_at), "dd 'de' MMMM 'às' HH:mm", {
+                          locale: ptBR,
+                        })}
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(announcement)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenDialog(announcement)}
+                      >
                         <Edit className="h-4 w-4 text-muted-foreground" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(announcement.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteId(announcement.id)}
+                      >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="whitespace-pre-wrap text-sm text-foreground/80">{announcement.content}</p>
+                  <p className="whitespace-pre-wrap text-sm text-foreground/80">
+                    {announcement.content}
+                  </p>
                 </CardContent>
               </Card>
             ))
@@ -196,23 +263,23 @@ export default function Communication() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingAnnouncement ? 'Editar Aviso' : 'Novo Aviso'}</DialogTitle>
+              <DialogTitle>{editingAnnouncement ? "Editar Aviso" : "Novo Aviso"}</DialogTitle>
               <DialogDescription>Preencha as informações do comunicado.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Título</Label>
-                <Input 
-                  value={formData.title} 
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                <Input
+                  value={formData.title}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                   placeholder="Ex: Manutenção no Servidor"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Prioridade</Label>
-                <Select 
-                  value={formData.priority} 
-                  onValueChange={(v: any) => setFormData(prev => ({ ...prev, priority: v }))}
+                <Select
+                  value={formData.priority}
+                  onValueChange={(v: any) => setFormData((prev) => ({ ...prev, priority: v }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -226,16 +293,35 @@ export default function Communication() {
               </div>
               <div className="space-y-2">
                 <Label>Conteúdo</Label>
-                <Textarea 
-                  value={formData.content} 
-                  onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                <Textarea
+                  value={formData.content}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))}
                   placeholder="Digite a mensagem..."
                   className="min-h-[100px]"
                 />
               </div>
+
+              {!editingAnnouncement && (
+                <div className="flex items-center justify-between rounded-xl border p-3 bg-emerald-500/10 border-emerald-500/20">
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                      <MessageSquare className="h-3.5 w-3.5" /> Transmitir via WhatsApp (SURI)
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Envia esta mensagem para todos os colaboradores com telefone cadastrado.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={sendWhatsAppBroadcast}
+                    onCheckedChange={setSendWhatsAppBroadcast}
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
               <Button onClick={handleSave}>Salvar</Button>
             </DialogFooter>
           </DialogContent>
@@ -252,7 +338,10 @@ export default function Communication() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
                 Excluir
               </AlertDialogAction>
             </AlertDialogFooter>

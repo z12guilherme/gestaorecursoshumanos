@@ -1,27 +1,46 @@
-import { supabase } from '@/lib/supabase';
+import { suriService } from "./suriService";
 
 export const whatsappService = {
   /**
-   * Envia uma mensagem de texto via Edge Function (Proxy)
+   * Envia uma mensagem de texto via SURI WhatsApp API
    */
   async sendMessage(number: string, message: string) {
-    try {
-      // Limpa o número (remove caracteres não numéricos)
-      const cleanNumber = number.replace(/\D/g, '');
-      
-      const { data, error } = await supabase.functions.invoke('evolution-proxy', {
-        body: { 
-          action: 'sendText',
-          number: cleanNumber,
-          text: message 
-        },
-      });
+    return suriService.sendMessage(number, message);
+  },
 
-      if (error) throw error;
-      return { success: true, data };
-    } catch (error) {
-      console.error('Erro ao enviar WhatsApp:', error);
-      return { success: false, error };
-    }
+  /**
+   * Envia convite de entrevista para candidato
+   */
+  async sendInterviewInvite(
+    candidateName: string,
+    candidatePhone: string,
+    jobTitle: string,
+    dateFormatted: string,
+    locationOrLink: string
+  ) {
+    return suriService.sendInterviewInvite(
+      candidateName,
+      candidatePhone,
+      jobTitle,
+      dateFormatted,
+      locationOrLink
+    );
+  },
+
+  /**
+   * Envia atualização de status de vaga para candidato
+   */
+  async sendCandidateNotification(
+    candidateName: string,
+    candidatePhone: string,
+    jobTitle: string,
+    statusText: string
+  ) {
+    return suriService.sendCandidateNotification(
+      candidateName,
+      candidatePhone,
+      jobTitle,
+      statusText
+    );
   },
 };

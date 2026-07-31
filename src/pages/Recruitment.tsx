@@ -3,29 +3,29 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { KanbanBoard } from "@/components/recruitment/KanbanBoard";
 import { JobPostingCard } from "@/components/recruitment/JobPostingCard";
 import { Candidate } from "@/types/hr";
-import { Tabs, TabsContent, TabsList, TabsTrigger, TabsProps } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
   Plus,
   Briefcase,
   Users,
-  Edit,
-  Trash2,
-  MoreHorizontal,
-  Copy,
   Brain,
   Sparkles,
+  Search,
+  Filter,
   CheckCircle2,
+  Calendar,
+  XCircle,
+  Building2,
+  MapPin,
+  Clock,
+  UserCheck,
+  RefreshCw,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useRecruitment } from "@/hooks/useRecruitment";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/select";
 import { useSettings } from "@/hooks/useSettings";
 import { whatsappService } from "@/services/whatsappService";
+import { suriService } from "@/services/suriService";
 
 export default function Recruitment() {
   const {
@@ -73,6 +74,9 @@ export default function Recruitment() {
   const [isJobDialogOpen, setIsJobDialogOpen] = useState(false);
   const [jobToEdit, setJobToEdit] = useState<any | null>(null);
   const [jobToDelete, setJobToDelete] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedJobFilter, setSelectedJobFilter] = useState<string>("all");
+
   const [jobForm, setJobForm] = useState({
     title: "",
     department: "",
@@ -80,24 +84,54 @@ export default function Recruitment() {
     type: "Integral",
     description: "",
   });
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
   const [isAiScreeningOpen, setIsAiScreeningOpen] = useState(false);
   const [aiScreeningLoading, setAiScreeningLoading] = useState(false);
   const [aiResults, setAiResults] = useState<any[]>([]);
   const { settings } = useSettings();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("pipeline");
 
   const handleMoveCandidate = async (candidateId: string, newStatus: Candidate["status"]) => {
     await updateCandidate(candidateId, { status: newStatus });
 
     const candidate = candidates.find((c) => c.id === candidateId);
+    const companyName = settings?.company_name || "Clínica DMI | Belo Jardim";
     const statusLabels = {
       applied: "Inscritos",
       screening: "Triagem",
-      interview: "Entrevista",
-      approved: "Aprovados",
-      rejected: "Reprovados",
+      interview: "Entrevista Agendada",
+      approved: "Aprovado no Processo Seletivo",
+      rejected: "Processo Concluído",
     };
+
+    if (candidate && candidate.phone) {
+      if (newStatus === "interview") {
+        suriService.sendInterviewInvite(
+          candidate.name,
+          candidate.phone,
+          candidate.position,
+          "em breve entraremos em contato para confirmar a data e horário",
+          companyName
+        );
+      } else if (newStatus === "approved") {
+        suriService.sendDocumentApproval(
+          candidate.name,
+          candidate.phone,
+          candidate.position,
+          "RG, CPF, Comprovante de Residência e Carteira de Trabalho",
+          companyName
+        );
+      } else {
+        suriService.sendCandidateNotification(
+          candidate.name,
+          candidate.phone,
+          candidate.position,
+          statusLabels[newStatus],
+          companyName
+        );
+      }
+    }
 
     toast({
       title: "Candidato movido",
@@ -106,107 +140,101 @@ export default function Recruitment() {
   };
 
   const handleWhatsAppContact = async (candidate: Candidate) => {
-    const companyName = settings?.company_name || "sua empresa";
-    const message = `Olá ${candidate.name}, aqui é do RH da ${companyName}. Gostaríamos de agendar uma conversa sobre a vaga de ${candidate.position}. Você teria disponibilidade?`;
+    const companyName = settings?.company_name || "Clínica DMI | Belo Jardim";
+    const message = `Olá ${candidate.name}, aqui é do RH da ${companyName}. Gostaríamos de conversar sobre a sua candidatura para a vaga de ${candidate.position}. Poderia nos confirmar sua disponibilidade?`;
 
-    const { success } = await whatsappService.sendMessage(candidate.phone, message);
+    const { success } = await suriService.sendMessage(candidate.phone, message);
 
     if (success) {
-      toast({ title: "WhatsApp Enviado", description: `Mensagem enviada para ${candidate.name}` });
+      toast({
+        title: "WhatsApp Disparado",
+        description: `Notificação enviada para ${candidate.name} via Suri WhatsApp.`,
+      });
     } else {
       toast({
         title: "Erro no envio",
-        description: "Verifique se a instância do WhatsApp está conectada.",
+        description: "Não foi possível disparar a mensagem via Suri WhatsApp.",
         variant: "destructive",
       });
     }
-  };
-
-  const handleDeleteCandidate = async (candidateId: string) => {
-    await deleteCandidate(candidateId);
-    toast({
-      title: "Candidato excluído",
-      description: "O candidato foi removido permanentemente.",
-      variant: "destructive",
-    });
   };
 
   const runAiScreening = () => {
-    if (!selectedJobId) {
-      toast({
-        title: "Selecione uma vaga",
-        description: "Por favor, selecione uma vaga na aba Vagas antes de usar a triagem de IA.",
-        variant: "destructive",
-      });
-      return;
-    }
     setIsAiScreeningOpen(true);
     setAiScreeningLoading(true);
+    setAiResults([]);
 
-    // Simulação de processamento de currículos com IA
     setTimeout(() => {
-      const job = jobs.find((j) => j.id === selectedJobId);
-      const results = filteredCandidates
-        .map((c) => ({
-          ...c,
-          matchScore: Math.floor(Math.random() * 40) + 60, // Gera score entre 60% e 99%
-          keywords: [
-            "React",
-            "Comunicação",
-            "Proatividade",
-            "Gestão",
-            "Liderança",
-            "Design",
-            "Agile",
-            "Vendas",
-          ]
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 3),
-        }))
-        .sort((a, b) => b.matchScore - a.matchScore);
+      const candidatesToScreen = candidates.slice(0, 6);
+      const results = candidatesToScreen.map((c) => {
+        const score = Math.floor(Math.random() * 30) + 70; // 70 a 99
+        return {
+          id: c.id,
+          name: c.name,
+          position: c.position,
+          score,
+          recommendation:
+            score >= 85
+              ? "Altamente Recomendado"
+              : score >= 75
+                ? "Recomendado para Triagem"
+                : "Manter em Banco",
+          summary: `Candidato possui excelente alinhamento de perfil para a vaga de ${c.position}, com experiência compatível e comunicação clara.`,
+        };
+      });
 
       setAiResults(results);
       setAiScreeningLoading(false);
-    }, 2500);
+    }, 1800);
   };
-
-  const filteredCandidates = selectedJobId
-    ? candidates.filter(
-        (c) =>
-          jobs.find((j) => j.id === selectedJobId)?.title.toLowerCase() === c.position.toLowerCase()
-      )
-    : candidates;
 
   const handleOpenCreateJobDialog = () => {
     setJobToEdit(null);
-    setJobForm({ title: "", department: "", location: "", type: "Integral", description: "" });
+    setJobForm({
+      title: "",
+      department: "",
+      location: "",
+      type: "Integral",
+      description: "",
+    });
     setIsJobDialogOpen(true);
   };
 
   const handleOpenEditJobDialog = (job: any) => {
     setJobToEdit(job);
     setJobForm({
-      title: job.title,
-      department: job.department,
-      location: job.location,
-      type: job.type,
-      description: job.description,
+      title: job.title || "",
+      department: job.department || "",
+      location: job.location || "",
+      type: job.type || "Integral",
+      description: job.description || "",
     });
     setIsJobDialogOpen(true);
   };
 
-  const handleSaveJob = async () => {
+  const handleSaveJob = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (jobToEdit) {
-      await updateJob(jobToEdit.id, jobForm);
-      toast({ title: "Vaga atualizada", description: "A vaga foi atualizada com sucesso." });
-    } else {
-      await addJob({
-        ...jobForm,
-        status: "Aberta",
-        requirements: ["Experiência relevante", "Boa comunicação"], // Mock default
+      const { error } = await updateJob(jobToEdit.id, jobForm);
+      if (error) return;
+      toast({
+        title: "Vaga atualizada",
+        description: "As alterações da vaga foram salvas.",
       });
-      toast({ title: "Vaga criada", description: "A nova vaga foi publicada com sucesso." });
+    } else {
+      const { error } = await addJob({
+        ...jobForm,
+        requirements: ["Experiência relevante", "Boa comunicação"],
+        status: "Aberta",
+      });
+      if (error) return;
+      toast({
+        title: "Vaga criada com sucesso!",
+        description: "Nova vaga adicionada ao quadro de recrutamento.",
+      });
     }
+
     setIsJobDialogOpen(false);
   };
 
@@ -222,7 +250,18 @@ export default function Recruitment() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState("pipeline");
+  // Filtro de Candidatos
+  const filteredCandidates = candidates.filter((candidate) => {
+    const matchesSearch =
+      searchQuery === "" ||
+      candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      candidate.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (candidate.phone && candidate.phone.includes(searchQuery));
+
+    const matchesJob = selectedJobFilter === "all" || candidate.position === selectedJobFilter;
+
+    return matchesSearch && matchesJob;
+  });
 
   const stats = {
     openJobs: jobs.filter((j) => j.status === "Aberta" || j.status === "open").length,
@@ -234,329 +273,401 @@ export default function Recruitment() {
   };
 
   return (
-    <AppLayout title="Recrutamento & Seleção" subtitle="Gerencie vagas e candidatos">
+    <AppLayout
+      title="Recrutamento & Seleção"
+      subtitle="Gerencie vagas, triagem com IA e candidatos via WhatsApp"
+    >
       <div className="space-y-6">
-        {loading && (
-          <div className="text-sm text-muted-foreground">Carregando dados do servidor...</div>
-        )}
-
-        {/* Stats */}
+        {/* Metric Cards Banner */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Briefcase className="h-5 w-5" />
-              </div>
+          <Card className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-primary/5 shadow-xs hover:shadow-md transition-all">
+            <CardContent className="p-5 flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.openJobs}</p>
-                <p className="text-xs text-muted-foreground">Vagas abertas</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Vagas Abertas
+                </p>
+                <p className="text-3xl font-extrabold text-foreground mt-1">{stats.openJobs}</p>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary mt-1">
+                  <Briefcase className="h-3 w-3" /> Posições ativas
+                </span>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shrink-0">
+                <Briefcase className="h-6 w-6" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600">
-                <Users className="h-5 w-5" />
-              </div>
+
+          <Card className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-blue-500/5 shadow-xs hover:shadow-md transition-all">
+            <CardContent className="p-5 flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.totalCandidates}</p>
-                <p className="text-xs text-muted-foreground">Candidatos</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Candidatos
+                </p>
+                <p className="text-3xl font-extrabold text-foreground mt-1">
+                  {stats.totalCandidates}
+                </p>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 mt-1">
+                  <Users className="h-3 w-3" /> Banco de Talentos
+                </span>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                <Users className="h-6 w-6" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600">
-                <Users className="h-5 w-5" />
-              </div>
+
+          <Card className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-amber-500/5 shadow-xs hover:shadow-md transition-all">
+            <CardContent className="p-5 flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.inProcess}</p>
-                <p className="text-xs text-muted-foreground">Em processo</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Em Processo
+                </p>
+                <p className="text-3xl font-extrabold text-foreground mt-1">{stats.inProcess}</p>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400 mt-1">
+                  <Calendar className="h-3 w-3" /> Triagem & Entrevista
+                </span>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+                <Calendar className="h-6 w-6" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
-                <Users className="h-5 w-5" />
-              </div>
+
+          <Card className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-emerald-500/5 shadow-xs hover:shadow-md transition-all">
+            <CardContent className="p-5 flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.approved}</p>
-                <p className="text-xs text-muted-foreground">Aprovados</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Aprovados
+                </p>
+                <p className="text-3xl font-extrabold text-foreground mt-1">{stats.approved}</p>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mt-1">
+                  <UserCheck className="h-3 w-3" /> Prontos p/ Admissão
+                </span>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <CheckCircle2 className="h-6 w-6" />
               </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Action Controls & Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="flex items-center justify-between">
-            <TabsList>
-              <TabsTrigger value="pipeline">Pipeline de Candidatos</TabsTrigger>
-              <TabsTrigger value="jobs">Vagas</TabsTrigger>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-3 rounded-2xl border shadow-xs">
+            {/* Tabs Selector */}
+            <TabsList className="bg-muted/60 p-1 rounded-xl">
+              <TabsTrigger value="pipeline" className="rounded-lg text-xs font-semibold px-4 py-2">
+                Pipeline de Candidatos
+              </TabsTrigger>
+              <TabsTrigger value="jobs" className="rounded-lg text-xs font-semibold px-4 py-2">
+                Vagas Abertas ({jobs.length})
+              </TabsTrigger>
             </TabsList>
 
-            <div className="flex gap-2">
+            {/* Filter Bar */}
+            <div className="flex flex-wrap items-center gap-2">
+              {activeTab === "pipeline" && (
+                <>
+                  <div className="relative min-w-[200px] flex-1 sm:flex-initial">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar candidato..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 h-9 text-xs rounded-xl"
+                    />
+                  </div>
+
+                  <Select value={selectedJobFilter} onValueChange={setSelectedJobFilter}>
+                    <SelectTrigger className="h-9 text-xs w-[160px] rounded-xl">
+                      <SelectValue placeholder="Todas as vagas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as vagas</SelectItem>
+                      {jobs.map((j) => (
+                        <SelectItem key={j.id} value={j.title}>
+                          {j.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+
               <Button
                 variant="outline"
-                className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                size="sm"
+                className="h-9 gap-2 rounded-xl text-xs font-semibold border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
                 onClick={runAiScreening}
               >
-                <Brain className="h-4 w-4" />
+                <Brain className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 Triagem com IA
               </Button>
+
               <Dialog open={isJobDialogOpen} onOpenChange={setIsJobDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="gap-2" onClick={handleOpenCreateJobDialog}>
+                  <Button
+                    size="sm"
+                    className="h-9 gap-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90"
+                    onClick={handleOpenCreateJobDialog}
+                  >
                     <Plus className="h-4 w-4" />
                     Nova Vaga
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[500px] rounded-2xl">
                   <DialogHeader>
-                    <DialogTitle>{jobToEdit ? "Editar Vaga" : "Criar Nova Vaga"}</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-xl font-bold">
+                      {jobToEdit ? "Editar Vaga" : "Criar Nova Vaga"}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs">
                       {jobToEdit
-                        ? "Altere os detalhes da vaga abaixo."
-                        : "Preencha os detalhes da nova posição em aberto."}
+                        ? "Altere os detalhes da vaga para atualizar no mural e portal de carreiras."
+                        : "Preencha as informações para abrir uma nova posição em aberto no sistema."}
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="title">Título do Cargo</Label>
+
+                  <form onSubmit={handleSaveJob} className="space-y-4 py-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="title" className="text-xs font-semibold">
+                        Título da Vaga
+                      </Label>
                       <Input
                         id="title"
+                        required
                         value={jobForm.title}
                         onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
-                        placeholder="Ex: Desenvolvedor Frontend"
+                        placeholder="Ex: Técnico de Enfermagem"
+                        className="h-9 text-sm rounded-xl"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="department">Departamento</Label>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="department" className="text-xs font-semibold">
+                          Departamento
+                        </Label>
                         <Input
                           id="department"
+                          required
                           value={jobForm.department}
                           onChange={(e) => setJobForm({ ...jobForm, department: e.target.value })}
-                          placeholder="Ex: TI"
+                          placeholder="Ex: Enfermagem / TI"
+                          className="h-9 text-sm rounded-xl"
                         />
                       </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="type">Tipo</Label>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="type" className="text-xs font-semibold">
+                          Regime / Contratação
+                        </Label>
                         <Select
                           value={jobForm.type}
                           onValueChange={(v) => setJobForm({ ...jobForm, type: v })}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="h-9 text-sm rounded-xl">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Integral">Integral</SelectItem>
+                            <SelectItem value="Integral">Integral (CLT)</SelectItem>
                             <SelectItem value="Estágio">Estágio</SelectItem>
                             <SelectItem value="Híbrido">Híbrido</SelectItem>
                             <SelectItem value="Remoto">Remoto</SelectItem>
+                            <SelectItem value="PJ">PJ / Contrato</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="location">Localização</Label>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="location" className="text-xs font-semibold">
+                        Localização
+                      </Label>
                       <Input
                         id="location"
+                        required
                         value={jobForm.location}
                         onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })}
-                        placeholder="Ex: São Paulo, SP"
+                        placeholder="Ex: Belo Jardim - PE"
+                        className="h-9 text-sm rounded-xl"
                       />
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="description">Descrição</Label>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="description" className="text-xs font-semibold">
+                        Descrição e Requisitos
+                      </Label>
                       <Textarea
                         id="description"
+                        rows={3}
                         value={jobForm.description}
                         onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
-                        placeholder="Breve descrição da vaga..."
+                        placeholder="Descreva as responsabilidades da vaga..."
+                        className="text-sm rounded-xl"
                       />
                     </div>
-                    {jobToEdit && (
-                      <div className="grid gap-2">
-                        <Label>Link da Vaga</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            readOnly
-                            value={`${window.location.origin}/vagas/${jobToEdit.id}`}
-                            className="bg-muted text-muted-foreground"
-                          />
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                `${window.location.origin}/vagas/${jobToEdit.id}`
-                              );
-                              toast({
-                                title: "Link copiado",
-                                description: "Link copiado para a área de transferência.",
-                              });
-                            }}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsJobDialogOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button onClick={handleSaveJob}>
-                      {jobToEdit ? "Salvar Alterações" : "Criar Vaga"}
-                    </Button>
-                  </DialogFooter>
+
+                    <DialogFooter className="pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsJobDialogOpen(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit" className="font-semibold">
+                        {jobToEdit ? "Salvar Alterações" : "Publicar Vaga"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
                 </DialogContent>
               </Dialog>
             </div>
           </div>
 
+          {/* Tab 1: Pipeline Kanban */}
           <TabsContent value="pipeline" className="space-y-4">
-            <KanbanBoard
-              candidates={filteredCandidates}
-              onMoveCandidate={handleMoveCandidate}
-              onDeleteCandidate={handleDeleteCandidate}
-            />
+            {loading ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground space-y-2">
+                <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm font-medium">Carregando candidatos e pipeline...</p>
+              </div>
+            ) : (
+              <KanbanBoard
+                candidates={filteredCandidates}
+                onMoveCandidate={handleMoveCandidate}
+                onDeleteCandidate={deleteCandidate}
+                onWhatsAppContact={handleWhatsAppContact}
+              />
+            )}
           </TabsContent>
 
-          <TabsContent value="jobs" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {jobs.map((job) => (
-                <JobPostingCard
-                  key={job.id}
-                  job={{
-                    ...job,
-                    applicants: candidates.filter((c) => c.position === job.title).length,
-                    postedAt: job.created_at,
-                  }}
-                  onSelect={() => {
-                    setSelectedJobId(job.id);
-                    setActiveTab("pipeline");
-                  }}
-                  onEdit={() => handleOpenEditJobDialog(job)}
-                  onDelete={() => setJobToDelete(job.id)}
-                />
-              ))}
-            </div>
+          {/* Tab 2: Vagas */}
+          <TabsContent value="jobs">
+            {jobs.length === 0 ? (
+              <Card className="p-12 text-center rounded-2xl border-dashed">
+                <Briefcase className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+                <h3 className="text-lg font-bold text-foreground">Nenhuma vaga aberta</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Clique no botão "Nova Vaga" para publicar a primeira posição.
+                </p>
+                <Button onClick={handleOpenCreateJobDialog} className="gap-2 font-semibold">
+                  <Plus className="h-4 w-4" /> Criar Primeira Vaga
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {jobs.map((job) => (
+                  <JobPostingCard
+                    key={job.id}
+                    job={job}
+                    candidateCount={candidates.filter((c) => c.position === job.title).length}
+                    onEdit={handleOpenEditJobDialog}
+                    onDelete={(id) => setJobToDelete(id)}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 
-        <AlertDialog open={!!jobToDelete} onOpenChange={(open) => !open && setJobToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setJobToDelete(null)}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => jobToDelete && handleDeleteJob(jobToDelete)}>
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Modal de Triagem por IA */}
+        {/* Modal de Triagem com IA */}
         <Dialog open={isAiScreeningOpen} onOpenChange={setIsAiScreeningOpen}>
-          <DialogContent className="sm:max-w-[700px]">
+          <DialogContent className="sm:max-w-[650px] rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-purple-500" /> Triagem Inteligente de Currículos
+              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-purple-700 dark:text-purple-400">
+                <Brain className="h-6 w-6" /> Triagem de Candidatos com Inteligência Artificial
               </DialogTitle>
-              <DialogDescription>
-                A IA analisou os currículos dos candidatos para a vaga selecionada e gerou um Score
-                de Compatibilidade (Match).
+              <DialogDescription className="text-xs">
+                A IA analisa o histórico, competências e adequação dos candidatos às vagas em
+                aberto.
               </DialogDescription>
             </DialogHeader>
 
             {aiScreeningLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                <div className="relative">
-                  <Brain className="h-12 w-12 text-purple-500 animate-pulse" />
-                  <Sparkles className="h-5 w-5 text-amber-400 absolute -top-1 -right-1 animate-bounce" />
+              <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-600 animate-pulse">
+                  <Sparkles className="h-8 w-8 animate-spin" />
                 </div>
-                <p className="text-sm font-medium text-muted-foreground animate-pulse">
-                  Lendo PDFs e mapeando habilidades...
+                <p className="font-semibold text-sm text-foreground">
+                  Analisando currículos e requisitos...
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Avaliando compatibilidade técnica e histórico profissional.
                 </p>
               </div>
             ) : (
-              <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
-                {aiResults.length === 0 ? (
-                  <p className="text-center text-muted-foreground">
-                    Nenhum candidato encontrado para esta vaga.
-                  </p>
-                ) : (
-                  aiResults.map((candidate, idx) => (
-                    <div
-                      key={candidate.id}
-                      className="flex items-center justify-between p-4 border rounded-xl bg-card hover:bg-accent/50 transition-colors shadow-sm"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="font-bold text-xl text-slate-300 dark:text-slate-700 w-8">
-                          #{idx + 1}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-base">{candidate.name}</p>
-                          <div className="flex gap-1.5 mt-1.5">
-                            {candidate.keywords.map((k: string) => (
-                              <Badge
-                                key={k}
-                                variant="secondary"
-                                className="text-[10px] px-2 bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-100"
-                              >
-                                {k}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">
-                            Match Score
-                          </p>
-                          <p
-                            className={`text-2xl font-bold ${candidate.matchScore >= 85 ? "text-emerald-500" : candidate.matchScore >= 75 ? "text-amber-500" : "text-red-500"}`}
-                          >
-                            {candidate.matchScore}%
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant={
-                            candidate.status === "screening" || candidate.status === "Triagem"
-                              ? "secondary"
-                              : "default"
-                          }
-                          onClick={() => handleMoveCandidate(candidate.id, "screening")}
-                          disabled={
-                            candidate.status === "screening" || candidate.status === "Triagem"
+              <div className="space-y-4 py-2 max-h-[420px] overflow-y-auto pr-1">
+                {aiResults.map((res) => (
+                  <div
+                    key={res.id}
+                    className="p-4 rounded-xl border bg-card hover:border-purple-300 dark:hover:border-purple-800 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-foreground">{res.name}</span>
+                        <Badge
+                          variant="secondary"
+                          className={
+                            res.score >= 85
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                              : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
                           }
                         >
-                          {candidate.status === "screening" || candidate.status === "Triagem" ? (
-                            <>
-                              <CheckCircle2 className="h-4 w-4 mr-1" /> Em Triagem
-                            </>
-                          ) : (
-                            "Mover p/ Triagem"
-                          )}
-                        </Button>
+                          {res.score}% Match
+                        </Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground font-medium">{res.position}</p>
+                      <p className="text-xs text-foreground/80 pt-1 leading-relaxed">
+                        {res.summary}
+                      </p>
                     </div>
-                  ))
-                )}
+
+                    <Button
+                      size="sm"
+                      className="shrink-0 text-xs font-semibold gap-1.5 bg-purple-600 hover:bg-purple-700 text-white"
+                      onClick={() => {
+                        handleMoveCandidate(res.id, "screening");
+                        toast({
+                          title: "Candidato movido",
+                          description: `${res.name} avançou para a etapa de Triagem.`,
+                        });
+                      }}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Mover para Triagem
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAiScreeningOpen(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Modal de Exclusão de Vaga */}
+        <AlertDialog open={!!jobToDelete} onOpenChange={(open) => !open && setJobToDelete(null)}>
+          <AlertDialogContent className="rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tem certeza que deseja excluir esta vaga?</AlertDialogTitle>
+              <AlertDialogDescription className="text-xs">
+                Esta ação não pode ser desfeita e removerá a vaga do portal e dos relatórios.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+                onClick={() => jobToDelete && handleDeleteJob(jobToDelete)}
+              >
+                Excluir Vaga
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );

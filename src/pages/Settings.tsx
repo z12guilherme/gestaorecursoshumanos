@@ -43,6 +43,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { MfaSetup } from "@/components/settings/MfaSetup";
 import { ChangePassword } from "@/components/settings/ChangePassword";
 import { ActiveSessionsManager } from "@/components/ActiveSessionsManager";
+import { SuriIntegrationCard } from "@/components/settings/SuriIntegrationCard";
 import { mockDatabase, USE_MOCK } from "@/lib/mockDatabase";
 
 export default function Settings() {
@@ -963,6 +964,8 @@ export default function Settings() {
               </CardContent>
             </Card>
           )}
+
+          {activeTab === "integrations" && <SuriIntegrationCard />}
 
           {activeTab === "notifications" && (
             <Card>

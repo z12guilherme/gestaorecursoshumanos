@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Employee, TimeOffRequest } from '@/types/hr';
+import { useState } from "react";
+import { Employee, TimeOffRequest } from "@/types/hr";
 import {
   Sheet,
   SheetContent,
@@ -13,11 +13,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, Calendar, Briefcase, Clock, Edit, User, Undo2, KeyRound } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Briefcase,
+  Clock,
+  Edit,
+  User,
+  Undo2,
+  KeyRound,
+  MessageSquare,
+} from "lucide-react";
+import { suriService } from "@/services/suriService";
 import { format, differenceInDays, addDays, differenceInYears, addYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useToast } from '@/hooks/use-toast';
-import { useSettings } from '@/hooks/useSettings';
+import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/hooks/useSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmployeeDocuments } from "./EmployeeDocuments";
 
@@ -31,21 +44,41 @@ interface EmployeeDetailSheetProps {
   onChangePassword: () => void;
 }
 
-export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenChange, onEdit, onEndVacation, onChangePassword }: EmployeeDetailSheetProps) {
+export function EmployeeDetailSheet({
+  employee,
+  timeOffRequests,
+  open,
+  onOpenChange,
+  onEdit,
+  onEndVacation,
+  onChangePassword,
+}: EmployeeDetailSheetProps) {
   const { settings } = useSettings();
   const { toast } = useToast();
 
   if (!employee) return null;
 
   const statusConfig: Record<string, { label: string; className: string }> = {
-    active: { label: 'Ativo', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
-    inactive: { label: 'Inativo', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
-    vacation: { label: 'Em Férias', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-    leave: { label: 'Afastado', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+    active: {
+      label: "Ativo",
+      className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    },
+    inactive: {
+      label: "Inativo",
+      className: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    },
+    vacation: {
+      label: "Em Férias",
+      className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    },
+    leave: {
+      label: "Afastado",
+      className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    },
   };
 
   // Cálculo dinâmico do saldo de férias
-  const hireDate = employee.hireDate ? new Date(employee.hireDate + 'T00:00:00') : new Date();
+  const hireDate = employee.hireDate ? new Date(employee.hireDate + "T00:00:00") : new Date();
   const today = new Date();
   const yearsOfService = differenceInYears(today, hireDate);
 
@@ -55,13 +88,23 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
 
   // Calcula dias tirados no período atual
   const takenDays = timeOffRequests
-    .filter(r =>
-      r.employee_id === employee.id &&
-      r.status === 'approved' &&
-      r.type === 'vacation' &&
-      new Date(r.start_date + 'T00:00:00') >= currentPeriodStart
+    .filter(
+      (r) =>
+        r.employee_id === employee.id &&
+        r.status === "approved" &&
+        r.type === "vacation" &&
+        new Date(r.start_date + "T00:00:00") >= currentPeriodStart
     )
-    .reduce((acc, r) => acc + (differenceInDays(new Date(r.end_date + 'T00:00:00'), new Date(r.start_date + 'T00:00:00')) + 1), 0);
+    .reduce(
+      (acc, r) =>
+        acc +
+        (differenceInDays(
+          new Date(r.end_date + "T00:00:00"),
+          new Date(r.start_date + "T00:00:00")
+        ) +
+          1),
+      0
+    );
 
   const vacationBalance = Math.max(0, 30 - takenDays);
 
@@ -69,14 +112,16 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
   let returnDate: Date | null = null;
   let daysLeft = 0;
 
-  if (employee.status === 'vacation') {
+  if (employee.status === "vacation") {
     // Find the latest approved vacation request for this employee from props
     const activeRequest = timeOffRequests
-      .filter((r) => r.employee_id === employee.id && r.status === 'approved' && r.type === 'vacation')
+      .filter(
+        (r) => r.employee_id === employee.id && r.status === "approved" && r.type === "vacation"
+      )
       .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0];
 
     if (activeRequest) {
-      const end = new Date(activeRequest.end_date + 'T00:00:00');
+      const end = new Date(activeRequest.end_date + "T00:00:00");
       const todayForDiff = new Date();
       todayForDiff.setHours(0, 0, 0, 0);
       if (end >= todayForDiff) {
@@ -87,7 +132,13 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
   }
 
   // Função segura para gerar iniciais
-  const getInitials = (name: string) => (name || '').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  const getInitials = (name: string) =>
+    (name || "")
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -110,7 +161,10 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
                 <SheetDescription className="text-foreground font-medium">
                   {employee.position}
                 </SheetDescription>
-                <Badge variant="secondary" className={statusConfig[employee.status]?.className || ''}>
+                <Badge
+                  variant="secondary"
+                  className={statusConfig[employee.status]?.className || ""}
+                >
                   {statusConfig[employee.status]?.label || employee.status}
                 </Badge>
               </div>
@@ -130,7 +184,7 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
 
           <TabsContent value="details" className="space-y-6">
             {/* Vacation Status Card */}
-            {employee.status === 'vacation' && (
+            {employee.status === "vacation" && (
               <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold">
@@ -145,11 +199,17 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
                 {returnDate && (
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Retorno</p>
-                      <p className="font-medium text-lg">{format(returnDate, "dd 'de' MMM", { locale: ptBR })}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                        Retorno
+                      </p>
+                      <p className="font-medium text-lg">
+                        {format(returnDate, "dd 'de' MMM", { locale: ptBR })}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Restante</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                        Restante
+                      </p>
                       <p className="font-medium text-lg">{daysLeft} dias</p>
                     </div>
                   </div>
@@ -158,7 +218,7 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
             )}
 
             {/* Grant Vacation Action */}
-            {employee.status === 'active' && (
+            {employee.status === "active" && (
               <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold">
@@ -166,7 +226,12 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
                     <span>Ações Rápidas</span>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={onChangePassword} className="bg-white dark:bg-slate-950">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={onChangePassword}
+                      className="bg-white dark:bg-slate-950"
+                    >
                       <KeyRound className="h-4 w-4 mr-2" />
                       Senha
                     </Button>
@@ -182,33 +247,61 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span>Saldo de Férias</span>
                 </div>
-                <Badge variant="outline" className="bg-background">{today.getFullYear()}</Badge>
+                <Badge variant="outline" className="bg-background">
+                  {today.getFullYear()}
+                </Badge>
               </div>
               <div className="flex items-end gap-2">
                 <span className="text-3xl font-bold">{vacationBalance}</span>
                 <span className="text-sm text-muted-foreground mb-1">dias disponíveis</span>
               </div>
               <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                <div className="bg-primary h-full rounded-full" style={{ width: '70%' }} />
+                <div className="bg-primary h-full rounded-full" style={{ width: "70%" }} />
               </div>
               <p className="text-xs text-muted-foreground">
-                Período aquisitivo: {format(currentPeriodStart, 'dd/MM/yyyy')} - {format(currentPeriodEnd, 'dd/MM/yyyy')}
+                Período aquisitivo: {format(currentPeriodStart, "dd/MM/yyyy")} -{" "}
+                {format(currentPeriodEnd, "dd/MM/yyyy")}
               </p>
             </div>
 
             <Separator />
 
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Informações de Contato</h4>
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Informações de Contato
+              </h4>
 
               <div className="grid gap-3">
                 <div className="flex items-center gap-3 text-sm">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <span>{employee.email}</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{employee.phone || 'Não informado'}</span>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{employee.phone || "Não informado"}</span>
+                  </div>
+                  {employee.phone && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1.5 text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400"
+                      onClick={async () => {
+                        const { success } = await suriService.sendMessage(
+                          employee.phone,
+                          `Olá ${employee.name}, mensagem da equipe de RH DMI.`
+                        );
+                        if (success) {
+                          toast({
+                            title: "WhatsApp Enviado!",
+                            description: `Enviado para ${employee.name} via SURI`,
+                          });
+                        }
+                      }}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" /> WhatsApp SURI
+                    </Button>
+                  )}
                 </div>
                 {(employee as any).unit && (
                   <div className="flex items-center gap-3 text-sm">
@@ -222,7 +315,9 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
             <Separator />
 
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dados Corporativos</h4>
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Dados Corporativos
+              </h4>
 
               <div className="grid gap-3">
                 <div className="flex items-center gap-3 text-sm">
@@ -236,39 +331,47 @@ export function EmployeeDetailSheet({ employee, timeOffRequests, open, onOpenCha
                   <User className="h-4 w-4 text-muted-foreground" />
                   <div className="flex flex-col">
                     <span className="text-muted-foreground text-xs">Gestor</span>
-                    <span>{employee.manager || 'Não definido'}</span>
+                    <span>{employee.manager || "Não definido"}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div className="flex flex-col">
                     <span className="text-muted-foreground text-xs">Data de Admissão</span>
-                    <span>{employee.hireDate ? format(new Date(employee.hireDate + 'T00:00:00'), 'dd/MM/yyyy') : 'Não informado'}</span>
+                    <span>
+                      {employee.hireDate
+                        ? format(new Date(employee.hireDate + "T00:00:00"), "dd/MM/yyyy")
+                        : "Não informado"}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {settings?.employee_custom_fields_config?.length > 0 && (employee as any).custom_fields && Object.keys((employee as any).custom_fields).length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Informações Adicionais</h4>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    {settings.employee_custom_fields_config.map((field: any) => {
-                      const value = (employee as any).custom_fields?.[field.id];
-                      if (!value) return null; // Não mostra campos vazios
-                      return (
-                        <div key={field.id} className="text-sm">
-                          <p className="text-muted-foreground text-xs">{field.name}</p>
-                          <p className="font-medium">{value}</p>
-                        </div>
-                      );
-                    })}
+            {settings?.employee_custom_fields_config?.length > 0 &&
+              (employee as any).custom_fields &&
+              Object.keys((employee as any).custom_fields).length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Informações Adicionais
+                    </h4>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                      {settings.employee_custom_fields_config.map((field: any) => {
+                        const value = (employee as any).custom_fields?.[field.id];
+                        if (!value) return null; // Não mostra campos vazios
+                        return (
+                          <div key={field.id} className="text-sm">
+                            <p className="text-muted-foreground text-xs">{field.name}</p>
+                            <p className="font-medium">{value}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
           </TabsContent>
 
           <TabsContent value="documents">

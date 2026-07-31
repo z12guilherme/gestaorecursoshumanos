@@ -392,7 +392,7 @@ export default function AuditLogs() {
     const userName = resolveUserName(log.changed_by);
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 pr-1">
         {/* Meta info */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
@@ -432,101 +432,97 @@ export default function AuditLogs() {
           <code className="text-xs font-mono break-all">{log.record_id}</code>
         </div>
 
-        <ScrollArea className="max-h-[400px] rounded-xl border bg-muted/10 p-1">
-          <div className="space-y-3 p-2">
-            {/* Structured diff */}
-            {hasStructuredDiff && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Campos Alterados ({changedFields.length})
-                  </span>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
-                {changedFields.map((field) => {
-                  const before = oldData?.[field];
-                  const after = newData?.[field];
-                  const isAdded = before === undefined && after !== undefined;
-                  const isRemoved = before !== undefined && after === undefined;
-
-                  return (
-                    <div key={field} className="rounded-xl border bg-background p-3 shadow-sm">
-                      <div className="mb-2 flex items-center gap-2">
-                        <span className="font-semibold text-sm">{field}</span>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] uppercase tracking-wide ${
-                            isAdded
-                              ? "border-emerald-500/30 text-emerald-600"
-                              : isRemoved
-                                ? "border-rose-500/30 text-rose-600"
-                                : "border-blue-500/30 text-blue-600"
-                          }`}
-                        >
-                          {isAdded ? "adicionado" : isRemoved ? "removido" : "alterado"}
-                        </Badge>
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <div className="rounded-lg bg-rose-50 p-2 dark:bg-rose-950/40">
-                          <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-rose-500 opacity-80">
-                            Antes
-                          </p>
-                          <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-rose-900 dark:text-rose-200">
-                            {formatAuditValue(before)}
-                          </pre>
-                        </div>
-                        <div className="rounded-lg bg-emerald-50 p-2 dark:bg-emerald-950/40">
-                          <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-emerald-600 opacity-80">
-                            Depois
-                          </p>
-                          <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-emerald-900 dark:text-emerald-200">
-                            {formatAuditValue(after)}
-                          </pre>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Full JSON */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 px-1">
-                <div className="h-px flex-1 bg-border" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  JSON Completo
-                </span>
-                <div className="h-px flex-1 bg-border" />
-              </div>
-              {log.old_data != null && (
-                <div className="rounded-xl border bg-background p-3">
-                  <p className="mb-2 text-xs font-bold text-rose-500">ANTES</p>
-                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/50 p-2 font-mono text-[11px] leading-relaxed">
-                    {formatPrettyJson(log.old_data)}
-                  </pre>
-                </div>
-              )}
-              {log.new_data != null && (
-                <div className="rounded-xl border bg-background p-3">
-                  <p className="mb-2 text-xs font-bold text-emerald-500">DEPOIS</p>
-                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/50 p-2 font-mono text-[11px] leading-relaxed">
-                    {formatPrettyJson(log.new_data)}
-                  </pre>
-                </div>
-              )}
-              {log.old_data == null && log.new_data == null && (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  Nenhum dado detalhado disponível.
-                </p>
-              )}
+        {/* Structured diff */}
+        {hasStructuredDiff && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 px-1">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Campos Alterados ({changedFields.length})
+              </span>
+              <div className="h-px flex-1 bg-border" />
             </div>
+            {changedFields.map((field) => {
+              const before = oldData?.[field];
+              const after = newData?.[field];
+              const isAdded = before === undefined && after !== undefined;
+              const isRemoved = before !== undefined && after === undefined;
+
+              return (
+                <div key={field} className="rounded-xl border bg-background p-3 shadow-sm">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="font-semibold text-sm">{field}</span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] uppercase tracking-wide ${
+                        isAdded
+                          ? "border-emerald-500/30 text-emerald-600"
+                          : isRemoved
+                            ? "border-rose-500/30 text-rose-600"
+                            : "border-blue-500/30 text-blue-600"
+                      }`}
+                    >
+                      {isAdded ? "adicionado" : isRemoved ? "removido" : "alterado"}
+                    </Badge>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-lg bg-rose-50 p-2 dark:bg-rose-950/40">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-rose-500 opacity-80">
+                        Antes
+                      </p>
+                      <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-rose-900 dark:text-rose-200">
+                        {formatAuditValue(before)}
+                      </pre>
+                    </div>
+                    <div className="rounded-lg bg-emerald-50 p-2 dark:bg-emerald-950/40">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-emerald-600 opacity-80">
+                        Depois
+                      </p>
+                      <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-emerald-900 dark:text-emerald-200">
+                        {formatAuditValue(after)}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </ScrollArea>
+        )}
+
+        {/* Full JSON */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              JSON Completo
+            </span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          {log.old_data != null && (
+            <div className="rounded-xl border bg-background p-3">
+              <p className="mb-2 text-xs font-bold text-rose-500">ANTES</p>
+              <pre className="max-h-60 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/50 p-2 font-mono text-[11px] leading-relaxed">
+                {formatPrettyJson(log.old_data)}
+              </pre>
+            </div>
+          )}
+          {log.new_data != null && (
+            <div className="rounded-xl border bg-background p-3">
+              <p className="mb-2 text-xs font-bold text-emerald-500">DEPOIS</p>
+              <pre className="max-h-60 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/50 p-2 font-mono text-[11px] leading-relaxed">
+                {formatPrettyJson(log.new_data)}
+              </pre>
+            </div>
+          )}
+          {log.old_data == null && log.new_data == null && (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              Nenhum dado detalhado disponível.
+            </p>
+          )}
+        </div>
 
         {/* Copy button */}
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2 pb-1">
           <Button
             variant="outline"
             size="sm"
@@ -922,8 +918,8 @@ export default function AuditLogs() {
 
       {/* ── Detail Dialog ──────────────────────────────────────────────────────── */}
       <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden p-6">
+          <DialogHeader className="shrink-0 pb-2">
             <DialogTitle className="flex items-center gap-2 text-base">
               <ShieldAlert className="h-4 w-4 text-primary" />
               Diff Visual do Log
@@ -932,7 +928,11 @@ export default function AuditLogs() {
               Comparativo detalhado dos dados antes e depois da operação.
             </DialogDescription>
           </DialogHeader>
-          {selectedLog && renderAuditDetails(selectedLog)}
+          {selectedLog && (
+            <ScrollArea className="flex-1 max-h-[calc(85vh-120px)] pr-3">
+              {renderAuditDetails(selectedLog)}
+            </ScrollArea>
+          )}
         </DialogContent>
       </Dialog>
 

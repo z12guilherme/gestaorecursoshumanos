@@ -1,14 +1,42 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { MapPin, Briefcase, Building2, ArrowLeft, UploadCloud, FileText, X, CheckCircle2, Globe, Linkedin, Instagram } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  MapPin,
+  Briefcase,
+  Building2,
+  ArrowLeft,
+  UploadCloud,
+  FileText,
+  X,
+  CheckCircle2,
+  Globe,
+  Linkedin,
+  Instagram,
+  Share2,
+  Clock,
+  Send,
+  User,
+  Mail,
+  Phone,
+  Sparkles,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Job {
   id: string;
@@ -31,20 +59,25 @@ export default function JobDetails() {
   const { toast } = useToast();
   const [isApplyOpen, setIsApplyOpen] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
+    name: "",
+    email: "",
+    phone: "",
   });
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [consentWhatsApp, setConsentWhatsApp] = useState(true);
+  const [submittedPhone, setSubmittedPhone] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       if (!jobId) return;
       try {
         const [jobRes, settingsRes] = await Promise.all([
-          supabase.from('jobs').select('*').eq('id', jobId).single(),
-          supabase.from('settings').select('career_page_banner, career_page_description, social_links, company_name').maybeSingle()
+          supabase.from("jobs").select("*").eq("id", jobId).single(),
+          supabase
+            .from("settings")
+            .select("career_page_banner, career_page_description, social_links, company_name")
+            .maybeSingle(),
         ]);
 
         if (jobRes.error) throw jobRes.error;
@@ -54,7 +87,7 @@ export default function JobDetails() {
           setSettings(settingsRes.data);
         }
       } catch (error) {
-        console.error('Error fetching job:', error);
+        console.error("Error fetching job:", error);
       } finally {
         setLoading(false);
       }
@@ -66,15 +99,32 @@ export default function JobDetails() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (file.type === 'application/pdf') {
+      if (file.type === "application/pdf") {
         setResumeFile(file);
       } else {
         toast({
           title: "Formato inválido",
-          description: "Por favor, envie apenas arquivos PDF.",
-          variant: "destructive"
+          description: "Por favor, envie apenas arquivos em formato PDF.",
+          variant: "destructive",
         });
       }
+    }
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: job?.title || "Vaga de Emprego",
+          url: window.location.href,
+        })
+        .catch(() => {});
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link copiado!",
+        description: "O link desta vaga foi copiado para a área de transferência.",
+      });
     }
   };
 
@@ -86,282 +136,540 @@ export default function JobDetails() {
     try {
       let resumeUrl = null;
 
-      // Upload do arquivo se existir
       if (resumeFile) {
-        const fileExt = resumeFile.name.split('.').pop();
+        const fileExt = resumeFile.name.split(".").pop();
         const fileName = `${job.id}/${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('resumes')
+          .from("resumes")
           .upload(fileName, resumeFile);
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('resumes')
-          .getPublicUrl(fileName);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("resumes").getPublicUrl(fileName);
 
         resumeUrl = publicUrl;
       }
 
-      const { error } = await supabase
-        .from('candidates')
-        .insert([{
+      const { error } = await supabase.from("candidates").insert([
+        {
           job_id: job.id,
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
           position: job.title,
           resume_url: resumeUrl,
-          status: 'applied',
-          notes: ''
-        }]);
+          status: "applied",
+          notes: "",
+        },
+      ]);
 
       if (error) throw error;
 
+      setSubmittedPhone(formData.phone);
       toast({
-        title: "Candidatura enviada!",
-        description: "Boa sorte! Entraremos em contato em breve.",
+        title: "Candidatura enviada com sucesso!",
+        description: `Notificações do processo seletivo serão enviadas para ${formData.phone} via WhatsApp.`,
       });
       setIsApplyOpen(false);
-      setFormData({ name: '', email: '', phone: '' });
+      setFormData({ name: "", email: "", phone: "" });
       setResumeFile(null);
     } catch (error: any) {
-      console.error('Error applying:', error);
-      toast({ title: "Erro ao enviar", description: "Ocorreu um erro ao enviar sua candidatura.", variant: "destructive" });
+      console.error("Error applying:", error);
+      toast({
+        title: "Erro ao enviar candidatura",
+        description: "Ocorreu um erro ao enviar sua candidatura. Tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center">Carregando...</div>;
-  }
-
-  if (!job) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <h1 className="text-2xl font-bold">Vaga não encontrada</h1>
-        <Button onClick={() => navigate('/')}>Voltar para Home</Button>
+      <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm font-medium">Carregando detalhes da vaga…</p>
+        </div>
       </div>
     );
   }
 
+  if (!job) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-4 text-foreground">
+        <div className="rounded-2xl border bg-muted/30 p-4">
+          <Briefcase className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <h1 className="text-2xl font-bold">Vaga não encontrada</h1>
+        <p className="text-sm text-muted-foreground text-center max-w-sm">
+          Esta oportunidade pode ter sido removida ou o link é inválido.
+        </p>
+        <Button onClick={() => navigate("/")} variant="default" className="mt-2">
+          Voltar para o Início
+        </Button>
+      </div>
+    );
+  }
+
+  const companyName = settings?.company_name || "Hospital DMI";
+  const isOpen = job.status === "Aberta" || job.status === "open";
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-12">
-      {/* Hero Section Institucional (Banner) */}
+    <div className="min-h-screen bg-background text-foreground pb-12 animate-in fade-in duration-500">
+      {/* ── Banner Institucional Opcional ───────────────────────────────────── */}
       {settings?.career_page_banner && (
         <div
-          className="w-full h-48 md:h-64 bg-cover bg-center"
+          className="w-full h-40 md:h-52 bg-cover bg-center border-b"
           style={{ backgroundImage: `url(${settings.career_page_banner})` }}
         />
       )}
 
-      {/* Hero Section da Vaga */}
-      <div className="bg-white dark:bg-slate-900 border-b shadow-sm mb-8">
-        <div className="mx-auto max-w-5xl px-4 py-8 md:py-12">
-          <Button variant="ghost" onClick={() => navigate("/")} className="mb-6 -ml-4 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-          </Button>
+      <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
+        {/* ── Hero Header (Mesmo padrão de AuditLogs/Dashboard) ─────────────── */}
+        <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 shadow-sm">
+          <div className="absolute right-4 top-4 opacity-5 pointer-events-none">
+            <Briefcase className="h-36 w-36 text-primary" />
+          </div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 shadow-inner">
+                <Briefcase className="h-6 w-6 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                    {job.title}
+                  </h1>
+                  <Badge
+                    variant="outline"
+                    className={`gap-1 px-2.5 py-0.5 font-semibold text-xs border ${
+                      isOpen
+                        ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+                        : "bg-muted text-muted-foreground border-border"
+                    }`}
+                  >
+                    {isOpen && (
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    )}
+                    {job.status}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                  <span>{companyName}</span> •{" "}
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {job.created_at
+                      ? `Publicada em ${format(new Date(job.created_at), "dd/MM/yyyy", { locale: ptBR })}`
+                      : "Vaga ativa"}
+                  </span>
+                </p>
+              </div>
+            </div>
 
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+            <div className="flex shrink-0 gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="gap-2">
+                <ArrowLeft className="h-3.5 w-3.5" /> Voltar
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
+                <Share2 className="h-3.5 w-3.5" /> Compartilhar
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Summary Stats Grid (Mesmo padrão do Dashboard) ───────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-2xl border bg-card p-4 shadow-sm flex items-center gap-3 transition-all hover:shadow-md">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <MapPin className="h-5 w-5" />
+            </div>
             <div>
-              <div className="flex items-center gap-3 mb-3">
-                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">{job.title}</h1>
-                <Badge variant={job.status === "Aberta" ? "default" : "secondary"} className="text-sm">
-                  {job.status}
-                </Badge>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Localização
+              </p>
+              <p className="text-sm font-bold text-foreground">{job.location}</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border bg-card p-4 shadow-sm flex items-center gap-3 transition-all hover:shadow-md">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Modalidade
+              </p>
+              <p className="text-sm font-bold text-foreground">{job.type}</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border bg-card p-4 shadow-sm flex items-center gap-3 transition-all hover:shadow-md">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Departamento
+              </p>
+              <p className="text-sm font-bold text-foreground">{job.department}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Corpo com 2 colunas (Padrão da App) ──────────────────────────── */}
+        <div className="grid lg:grid-cols-3 gap-6 items-start">
+          {/* Coluna Esquerda: Detalhes */}
+          <div className="lg:col-span-2 space-y-5">
+            {/* Card Sobre a Vaga */}
+            <Card className="rounded-2xl border bg-card shadow-sm">
+              <CardContent className="p-6 space-y-6">
+                <div>
+                  <div className="flex items-center gap-2 font-semibold text-base text-foreground mb-3 pb-2 border-b">
+                    <Briefcase className="h-4 w-4 text-primary" />
+                    Sobre a Vaga
+                  </div>
+                  <div className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                    {job.description || "Nenhuma descrição fornecida."}
+                  </div>
+                </div>
+
+                {/* Requisitos */}
+                {job.requirements && job.requirements.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 font-semibold text-base text-foreground mb-3 pb-2 border-b">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      Requisitos e Qualificações
+                    </div>
+                    <div className="grid gap-2">
+                      {job.requirements.map((req: string, idx: number) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-2.5 rounded-xl border bg-muted/20 p-3 text-sm font-medium text-foreground"
+                        >
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>{req}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sobre a Empresa */}
+                <div>
+                  <div className="flex items-center gap-2 font-semibold text-base text-foreground mb-3 pb-2 border-b">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    Sobre o {companyName}
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                    {settings?.career_page_description ||
+                      `${companyName} é referência em qualidade, atendimento humanizado e constante desenvolvimento profissional de sua equipe.`}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Redes Sociais */}
+            {settings?.social_links &&
+              (settings.social_links.website ||
+                settings.social_links.linkedin ||
+                settings.social_links.instagram) && (
+                <Card className="rounded-2xl border bg-card shadow-sm">
+                  <CardContent className="p-5">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                      Conheça mais sobre a empresa
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {settings.social_links.website && (
+                        <Button variant="outline" size="sm" asChild className="gap-2 text-xs">
+                          <a
+                            href={settings.social_links.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Globe className="h-3.5 w-3.5 text-primary" /> Site Oficial
+                          </a>
+                        </Button>
+                      )}
+                      {settings.social_links.linkedin && (
+                        <Button variant="outline" size="sm" asChild className="gap-2 text-xs">
+                          <a
+                            href={settings.social_links.linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Linkedin className="h-3.5 w-3.5 text-blue-500" /> LinkedIn
+                          </a>
+                        </Button>
+                      )}
+                      {settings.social_links.instagram && (
+                        <Button variant="outline" size="sm" asChild className="gap-2 text-xs">
+                          <a
+                            href={settings.social_links.instagram}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Instagram className="h-3.5 w-3.5 text-pink-500" /> Instagram
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+          </div>
+
+          {/* Coluna Direita: Card Resumo Sticky */}
+          <div className="space-y-4 lg:sticky lg:top-6">
+            <Card className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between border-b bg-muted/20 px-5 py-3 font-semibold text-sm">
+                <div className="flex items-center gap-2">
+                  <Send className="h-4 w-4 text-primary" />
+                  Resumo da Vaga
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-4 text-slate-600 dark:text-slate-400 mt-4">
-                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full text-sm font-medium">
-                  <Building2 className="h-4 w-4 text-primary" /> {job.department}
+              <CardContent className="p-5 space-y-4">
+                <div className="space-y-3 text-sm">
+                  <div className="rounded-xl border bg-muted/10 p-3 space-y-0.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Localização
+                    </p>
+                    <p className="font-semibold">{job.location}</p>
+                  </div>
+
+                  <div className="rounded-xl border bg-muted/10 p-3 space-y-0.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Modalidade
+                    </p>
+                    <p className="font-semibold">{job.type}</p>
+                  </div>
+
+                  <div className="rounded-xl border bg-muted/10 p-3 space-y-0.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Departamento
+                    </p>
+                    <p className="font-semibold">{job.department}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full text-sm font-medium">
-                  <MapPin className="h-4 w-4 text-primary" /> {job.location}
-                </div>
-                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full text-sm font-medium">
-                  <Briefcase className="h-4 w-4 text-primary" /> {job.type}
-                </div>
-              </div>
+
+                <Button
+                  size="lg"
+                  onClick={() => setIsApplyOpen(true)}
+                  disabled={!isOpen}
+                  className="w-full gap-2 font-bold shadow-sm"
+                >
+                  {isOpen ? (
+                    <>
+                      <Send className="h-4 w-4" /> Candidatar-se Agora
+                    </>
+                  ) : (
+                    "Vaga Encerrada"
+                  )}
+                </Button>
+
+                <p className="text-[11px] text-center text-muted-foreground">
+                  Envio seguro de dados e currículo em PDF.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Dica Card */}
+            <div className="rounded-2xl border bg-primary/5 p-4 text-center space-y-1">
+              <p className="text-xs font-bold text-foreground flex items-center justify-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Dica de Candidatura
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Anexe seu currículo atualizado em PDF com telefone e e-mail válidos.
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Corpo / Detalhes da Vaga */}
-      <div className="mx-auto max-w-5xl px-4">
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <Card className="border-none shadow-md">
-              <CardContent className="p-6 md:p-8 space-y-8 mt-4">
-                {/* Seção Descrição */}
-                <div>
-                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2 border-b pb-2">
-                    <Briefcase className="h-5 w-5 text-primary" /> Sobre a Vaga
-                  </h2>
-                  <div className="text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                    {job.description || "Nenhuma descrição fornecida."}
-                  </div>
+      {/* ── Dialog Candidatura (Standard Shadcn Dialog) ────────────────────── */}
+      <Dialog open={isApplyOpen} onOpenChange={setIsApplyOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Briefcase className="h-4 w-4 text-primary" />
+              Candidatura: {job.title}
+            </DialogTitle>
+            <DialogDescription>
+              Preencha seus dados de contato e anexe seu currículo em PDF.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4 py-2">
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="name"
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1"
+                >
+                  <User className="h-3.5 w-3.5" /> Nome Completo
+                </Label>
+                <Input
+                  id="name"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: Maria Silva"
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="email"
+                    className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1"
+                  >
+                    <Mail className="h-3.5 w-3.5" /> E-mail
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="seu@email.com"
+                    className="h-9 text-sm"
+                  />
                 </div>
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="phone"
+                    className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1"
+                  >
+                    <Phone className="h-3.5 w-3.5" /> Celular / WhatsApp
+                  </Label>
+                  <Input
+                    id="phone"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="(81) 99999-8888"
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
 
-                {/* Seção Requisitos */}
-                {job.requirements && job.requirements.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 border-b pb-2">
-                      <CheckCircle2 className="h-5 w-5 text-primary" /> Requisitos e Qualificações
-                    </h2>
-                    <ul className="grid gap-3">
-                      {job.requirements.map((req: string, idx: number) => (
-                        <li key={idx} className="flex items-start gap-3 text-slate-600 dark:text-slate-300">
-                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                          <span className="leading-relaxed">{req}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Seção Sobre a Empresa */}
-                {settings?.career_page_description && (
-                  <div className="mt-8 pt-8 border-t">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 pb-2">
-                      <Building2 className="h-5 w-5 text-primary" />
-                      Sobre a Empresa {settings?.company_name ? `(${settings.company_name})` : ''}
-                    </h2>
-                    <div className="text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                      {settings.career_page_description}
+              <div className="space-y-1 pt-1">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Currículo (PDF)
+                </Label>
+                <div className="border-2 border-dashed rounded-xl p-5 flex flex-col items-center justify-center text-center bg-muted/10 hover:bg-muted/30 transition-all cursor-pointer relative group">
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                    onChange={handleFileChange}
+                  />
+                  {resumeFile ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <span className="font-semibold text-xs text-foreground">
+                        {resumeFile.name}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 z-20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setResumeFile(null);
+                        }}
+                      >
+                        <X className="h-3 w-3 mr-1" /> Remover
+                      </Button>
                     </div>
-                  </div>
-                )}
-
-              </CardContent>
-            </Card>
-
-            {/* Social Links */}
-            {settings?.social_links && (settings.social_links.linkedin || settings.social_links.instagram || settings.social_links.website) && (
-              <Card className="border-none shadow-md mt-6">
-                <CardContent className="p-6 mt-2">
-                  <h3 className="font-bold text-lg mb-4 border-b pb-2">Conheça mais</h3>
-                  <div className="flex flex-col gap-3">
-                    {settings.social_links.website && (
-                      <a href={settings.social_links.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
-                        <Globe className="h-4 w-4" /> Site Oficial
-                      </a>
-                    )}
-                    {settings.social_links.linkedin && (
-                      <a href={settings.social_links.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
-                        <Linkedin className="h-4 w-4" /> LinkedIn
-                      </a>
-                    )}
-                    {settings.social_links.instagram && (
-                      <a href={settings.social_links.instagram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
-                        <Instagram className="h-4 w-4" /> Instagram
-                      </a>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Card Lateral de Resumo */}
-          <div className="space-y-6">
-            <Card className="bg-primary/5 border-none shadow-md sticky top-6">
-              <CardContent className="p-6 mt-2">
-                <h3 className="font-bold text-lg mb-6 border-b pb-2">Resumo da Vaga</h3>
-                <div className="space-y-5 text-sm">
-                  <div>
-                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Localização</p>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">{job.location}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Modalidade</p>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">{job.type}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Departamento</p>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">{job.department}</p>
-                  </div>
-
-                  <div className="pt-4">
-                    <Dialog open={isApplyOpen} onOpenChange={setIsApplyOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          size="lg"
-                          className="w-full h-12 text-base shadow-lg hover:shadow-xl transition-all"
-                          disabled={job.status !== "Aberta"}
-                        >
-                          {job.status === "Aberta" ? "Candidatar-se Agora" : "Vaga Fechada"}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[550px]">
-                        <DialogHeader>
-                          <DialogTitle className="text-2xl">Candidatura: {job.title}</DialogTitle>
-                          <DialogDescription>
-                            Preencha seus dados abaixo e anexe seu currículo atualizado para participar do processo.
-                          </DialogDescription>
-                        </DialogHeader>
-
-                        <form onSubmit={handleSubmit} className="space-y-6 py-2">
-                          <div className="space-y-4">
-                            <div className="grid gap-2">
-                              <Label htmlFor="name">Nome Completo</Label>
-                              <Input id="name" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: João da Silva" className="h-11" />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="grid gap-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input id="email" type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="seu@email.com" className="h-11" />
-                              </div>
-                              <div className="grid gap-2">
-                                <Label htmlFor="phone">Celular</Label>
-                                <Input id="phone" required value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="(00) 00000-0000" className="h-11" />
-                              </div>
-                            </div>
-
-                            <div className="grid gap-2 pt-2">
-                              <Label>Currículo (Apenas formato PDF)</Label>
-                              <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors cursor-pointer relative group">
-                                <input type="file" accept=".pdf" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={handleFileChange} />
-                                {resumeFile ? (
-                                  <div className="flex flex-col items-center gap-2">
-                                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                      <FileText className="h-6 w-6 text-primary" />
-                                    </div>
-                                    <span className="font-medium text-slate-900 dark:text-slate-100">{resumeFile.name}</span>
-                                    <Button type="button" variant="ghost" size="sm" className="h-8 mt-2 text-destructive hover:bg-destructive/10 z-20" onClick={(e) => { e.stopPropagation(); setResumeFile(null); }}>
-                                      <X className="h-4 w-4 mr-1" /> Remover
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                      <UploadCloud className="h-6 w-6 text-slate-400" />
-                                    </div>
-                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Clique ou arraste seu currículo aqui</p>
-                                    <p className="text-xs text-slate-500 mt-1">Tamanho máximo recomendado: 5MB</p>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <DialogFooter>
-                            <Button type="submit" disabled={isSubmitting || !resumeFile} className="w-full h-11 text-base">
-                              {isSubmitting ? "Enviando candidatura..." : "Enviar Candidatura"}
-                            </Button>
-                          </DialogFooter>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary mb-1">
+                        <UploadCloud className="h-5 w-5" />
+                      </div>
+                      <p className="text-xs font-semibold text-foreground">
+                        Clique para selecionar o PDF
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Tamanho máximo: 5MB</p>
+                    </>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex items-start gap-2.5 pt-2 pb-1 text-xs text-muted-foreground bg-muted/20 p-3 rounded-xl border">
+                <input
+                  type="checkbox"
+                  id="consentWhatsApp"
+                  checked={consentWhatsApp}
+                  onChange={(e) => setConsentWhatsApp(e.target.checked)}
+                  className="mt-0.5 rounded border-slate-300 text-primary focus:ring-primary h-4 w-4 shrink-0 cursor-pointer"
+                />
+                <label
+                  htmlFor="consentWhatsApp"
+                  className="cursor-pointer leading-relaxed text-[11px] text-foreground font-medium"
+                >
+                  Autorizo o <strong>RH da {companyName}</strong> a enviar atualizações do processo
+                  seletivo e convites de entrevista via <strong>WhatsApp</strong> para este número.
+                </label>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2 gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsApplyOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || !resumeFile || !consentWhatsApp}
+                className="gap-2 font-semibold"
+              >
+                {isSubmitting ? (
+                  "Enviando…"
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" /> Confirmar Candidatura
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Modal de Confirmação de Envio com WhatsApp ───────────────────── */}
+      <Dialog open={!!submittedPhone} onOpenChange={(open) => !open && setSubmittedPhone(null)}>
+        <DialogContent className="max-w-md text-center">
+          <div className="flex flex-col items-center gap-3 py-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600">
+              <CheckCircle2 className="h-8 w-8" />
+            </div>
+            <DialogTitle className="text-2xl font-bold">Candidatura Enviada! 🎉</DialogTitle>
+            <DialogDescription className="text-sm text-foreground/80 space-y-3 pt-2">
+              <p>
+                Sua candidatura para a vaga de <strong>{job.title}</strong> foi registrada com
+                sucesso.
+              </p>
+              <div className="rounded-xl border bg-emerald-500/10 border-emerald-500/20 p-3 text-xs text-emerald-900 dark:text-emerald-300 font-medium">
+                📲 As notificações e convites para entrevista serão enviados via WhatsApp para:
+                <div className="text-base font-extrabold mt-1 font-mono">{submittedPhone}</div>
+              </div>
+            </DialogDescription>
           </div>
-        </div>
-      </div>
+          <DialogFooter>
+            <Button className="w-full font-bold" onClick={() => setSubmittedPhone(null)}>
+              Entendido!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
