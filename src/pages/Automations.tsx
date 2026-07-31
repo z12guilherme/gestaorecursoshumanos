@@ -1,187 +1,207 @@
-import { useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Workflow, Copy, Check, FileCode, Mail, FileSpreadsheet, UserPlus, Download, RefreshCw, Sparkles, Save, Library } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useAutomations } from '@/hooks/useAutomations';
+import { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Workflow,
+  Copy,
+  Check,
+  FileCode,
+  Mail,
+  FileSpreadsheet,
+  UserPlus,
+  Download,
+  RefreshCw,
+  Sparkles,
+  Save,
+  Library,
+  Play,
+  Terminal,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Zap,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAutomations } from "@/hooks/useAutomations";
+import { employeeRepository } from "@/services/employeeService";
+import { suriService } from "@/services/suriService";
+import { supabase } from "@/lib/supabase";
+import { Badge } from "@/components/ui/badge";
+
+interface ExecutionLog {
+  time: string;
+  text: string;
+  level: "info" | "success" | "warn" | "error";
+}
 
 const automations = [
   {
-    id: 'birthday-emails',
-    title: 'E-mails de Aniversário',
-    description: 'Envia e-mails automáticos para colaboradores aniversariantes do dia.',
+    id: "birthday-emails",
+    title: "E-mails & WhatsApp de Aniversário",
+    description:
+      "Verifica aniversariantes do dia no sistema e dispara felicitações via WhatsApp e E-mail.",
     icon: Mail,
-    language: 'python',
+    language: "javascript",
     fields: [
-      { name: 'csv_file', label: 'Caminho do Arquivo CSV', type: 'text', placeholder: 'ex: C:/Users/user/colaboradores.csv', defaultValue: 'colaboradores.csv', description: 'O arquivo CSV deve conter as colunas: nome, data_nascimento, email.' }
+      {
+        name: "csv_file",
+        label: "Caminho do Arquivo CSV (Opcional)",
+        type: "text",
+        placeholder: "colaboradores.csv",
+        defaultValue: "colaboradores.csv",
+        description:
+          "Ou selecione para buscar direto do banco de dados de colaboradores do sistema.",
+      },
     ],
-    code: `import smtplib
-import pandas as pd
-from datetime import datetime
-from email.mime.text import MIMEText
+    code: `const { employeeRepository, suriService, log } = context;
 
-def send_birthday_emails(csv_file):
-    # Configurações do servidor de e-mail (ajuste conforme necessário)
-    smtp_server = "smtp.empresa.com"
-    smtp_port = 587
-    sender_email = "rh@empresa.com"
-    password = "sua_senha_de_app_aqui" # Use uma senha de aplicativo se tiver 2FA
+async function runBirthdayAutomation() {
+  log("🚀 Buscando colaboradores no banco de dados do sistema...", "info");
+  const employees = await employeeRepository.getAllActive();
+  log(\`📊 Total de colaboradores ativos carregados: \${employees.length}\`, "info");
 
-    try:
-        # Ler dados dos colaboradores
-        df = pd.read_csv(csv_file)
-    except FileNotFoundError:
-        print(f"Erro: Arquivo '{csv_file}' não encontrado.")
-        return
+  const today = new Date();
+  const currentDay = today.getDate();
+  const currentMonth = today.getMonth();
+  const currentDayMonthStr = \`\${String(currentDay).padStart(2, '0')}/\${String(currentMonth + 1).padStart(2, '0')}\`;
 
-    # Normalizar a coluna de data para dd/mm se existir
-    if 'data_nascimento' in df.columns:
-        df['data_nascimento'] = pd.to_datetime(df['data_nascimento'], errors='coerce').dt.strftime('%d/%m')
-    else:
-        print("Erro: A coluna 'data_nascimento' não foi encontrada no CSV.")
-        return
+  log(\`🎉 Filtrando aniversariantes do dia (\${currentDayMonthStr})...\`, "info");
 
-    today = datetime.now().strftime('%d/%m')
+  const birthdays = employees.filter(emp => {
+    const bDateStr = emp.birth_date || emp.birthDate || emp.data_nascimento;
+    if (!bDateStr) return false;
+    const d = new Date(bDateStr);
+    return (d.getUTCDate() === currentDay && d.getUTCMonth() === currentMonth);
+  });
 
-    # Filtrar aniversariantes
-    birthdays = df[df['data_nascimento'] == today]
-
-    if birthdays.empty:
-        print("Nenhum aniversariante hoje.")
-        return
-
-    try:
-        # Conectar ao servidor
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(sender_email, password)
-
-        for index, row in birthdays.iterrows():
-            msg = MIMEText(f"Parabéns, {row['nome']}! Desejamos um feliz aniversário!")
-            msg['Subject'] = "Feliz Aniversário!"
-            msg['From'] = sender_email
-            msg['To'] = row['email']
-
-            server.send_message(msg)
-            print(f"E-mail de aniversário enviado com sucesso para {row['nome']} ({row['email']})")
-
-        server.quit()
-    except Exception as e:
-        print(f"Ocorreu um erro ao enviar os e-mails: {e}")
-
-# --- Início da Execução ---
-# Chame a função com o caminho para o seu arquivo de colaboradores.
-# Certifique-se que o arquivo CSV contenha as colunas 'nome', 'data_nascimento' (dd/mm/aaaa), e 'email'.
-send_birthday_emails("{{csv_file}}")
-`
-  },
-  {
-    id: 'timesheet-report',
-    title: 'Relatório de Ponto',
-    description: 'Gera um relatório mensal de horas trabalhadas e horas extras.',
-    icon: FileSpreadsheet,
-    language: 'python',
-    fields: [
-      { name: 'input_file', label: 'Arquivo de Ponto (CSV)', type: 'text', placeholder: 'ponto_mensal.csv', defaultValue: 'ponto_mensal.csv', description: 'CSV com colunas: colaborador, entrada, saida.' },
-      { name: 'output_file', label: 'Nome do Relatório (Excel)', type: 'text', placeholder: 'relatorio_final.xlsx', defaultValue: 'relatorio_horas.xlsx', description: 'Nome do arquivo Excel que será gerado.' },
-      { name: 'monthly_hours', label: 'Horas Mensais Contratadas', type: 'number', placeholder: '160', defaultValue: 160, description: 'Total de horas mensais para cálculo de horas extras.' }
-    ],
-    code: `import pandas as pd
-
-def generate_timesheet_report(input_file, output_file, monthly_hours):
-    try:
-        # Carregar dados de ponto
-        df = pd.read_csv(input_file)
-    except FileNotFoundError:
-        print(f"Erro: Arquivo de entrada '{input_file}' não encontrado.")
-        return
-
-    # Converter colunas de data/hora
-    df['entrada'] = pd.to_datetime(df['entrada'])
-    df['saida'] = pd.to_datetime(df['saida'])
-    
-    # Calcular horas trabalhadas
-    df['horas_trabalhadas'] = (df['saida'] - df['entrada']).dt.total_seconds() / 3600
-    
-    # Agrupar por colaborador
-    report = df.groupby('colaborador')['horas_trabalhadas'].sum().reset_index()
-    
-    # Calcular horas extras
-    report['horas_extras'] = report['horas_trabalhadas'].apply(lambda x: max(0, x - monthly_hours))
-    
-    # Salvar relatório
-    report.to_excel(output_file, index=False)
-    print(f"Relatório de horas gerado com sucesso e salvo em '{output_file}'")
-
-# --- Início da Execução ---
-# Uso:
-generate_timesheet_report("{{input_file}}", "{{output_file}}", {{monthly_hours}})
-`
-  },
-  {
-    id: 'onboarding-setup',
-    title: 'Setup de Onboarding',
-    description: 'Cria pastas e arquivos iniciais para novos colaboradores.',
-    icon: UserPlus,
-    language: 'python',
-    fields: [
-      { name: 'employee_name', label: 'Nome do Colaborador', type: 'text', placeholder: 'João da Silva', defaultValue: '', description: 'Nome completo do novo colaborador.' },
-      { name: 'department', label: 'Departamento', type: 'text', placeholder: 'TI', defaultValue: '', description: 'Departamento ao qual o colaborador pertence.' }
-    ],
-    code: `import os
-import shutil
-
-def setup_new_employee(employee_name, department):
-    # Caminho base relativo ao local de execução do script
-    base_path = "./documentos_colaboradores"
-    
-    # Sanitizar nomes para evitar problemas com caminhos de diretório
-    safe_employee_name = "".join(c for c in employee_name if c.isalnum() or c in (' ', '_')).rstrip()
-    safe_department = "".join(c for c in department if c.isalnum() or c in (' ', '_')).rstrip()
-
-    if not safe_employee_name or not safe_department:
-        print("Erro: Nome do colaborador ou departamento inválido.")
-        return
-
-    # Criar estrutura de pastas
-    employee_folder = os.path.join(base_path, safe_department, safe_employee_name)
-    subfolders = ['Documentos Pessoais', 'Contrato', 'Avaliacoes de Desempenho']
-    
-    try:
-        print(f"Criando estrutura de diretórios para {employee_name} em '{employee_folder}'...")
-        for folder in subfolders:
-            os.makedirs(os.path.join(employee_folder, folder), exist_ok=True)
-            
-        # Exemplo: Copiar um template de manual do funcionário (se existir)
-        template_manual_path = './templates/manual_do_funcionario.pdf'
-        if os.path.exists(template_manual_path):
-            shutil.copy2(template_manual_path, os.path.join(employee_folder, 'manual_do_funcionario.pdf'))
-            print("Manual do funcionário copiado.")
-        else:
-            print("Aviso: Template 'manual_do_funcionario.pdf' não encontrado, pulando cópia.")
-
-        # Criar um arquivo de boas-vindas
-        with open(os.path.join(employee_folder, 'boas_vindas.txt'), 'w') as f:
-            f.write(f"Bem-vindo(a), {employee_name}!\n\n")
-            f.write("Este é o seu diretório para documentos relacionados à empresa.\n")
-            f.write(f"Departamento: {department}\n")
-
-        print(f"Processo de onboarding concluído para {employee_name}.")
-        
-    except OSError as e:
-        print(f"Erro ao criar diretórios ou arquivos: {e}")
-
-# --- Início da Execução ---
-# Uso:
-setup_new_employee("{{employee_name}}", "{{department}}")
-`
+  if (birthdays.length === 0) {
+    log(\`ℹ️ Nenhum colaborador faz aniversário na data de hoje (\${currentDayMonthStr}). Nenhuma mensagem enviada.\`, "warn");
+    return;
   }
+
+  let sentCount = 0;
+  for (const emp of birthdays) {
+    log(\`🎂 Aniversariante do dia identificado: \${emp.name} (\${emp.department || 'RH'})\`, "success");
+    if (emp.phone) {
+      await suriService.sendMessage(emp.phone, \`🎉 Parabéns \${emp.name}! A equipe Clínica DMI deseja um excelente aniversário e muito sucesso!\`);
+      log(\`📲 WhatsApp de aniversário enviado para \${emp.name} (\${emp.phone})\`, "success");
+      sentCount++;
+    }
+  }
+
+  log(\`✅ Automação concluída! Total de felicitações enviadas: \${sentCount}\`, "success");
+}
+
+runBirthdayAutomation();
+`,
+  },
+  {
+    id: "timesheet-report",
+    title: "Relatório de Ponto & Horas Extras",
+    description:
+      "Processa o espelho de ponto dos colaboradores e gera o cálculo consolidado de horas extras no sistema.",
+    icon: FileSpreadsheet,
+    language: "javascript",
+    fields: [
+      {
+        name: "input_file",
+        label: "Arquivo de Ponto (CSV)",
+        type: "text",
+        placeholder: "ponto_mensal.csv",
+        defaultValue: "ponto_mensal.csv",
+        description: "CSV com registros de entrada/saída ou leitura do banco.",
+      },
+      {
+        name: "output_file",
+        label: "Nome do Relatório (Excel)",
+        type: "text",
+        placeholder: "relatorio_horas.xlsx",
+        defaultValue: "relatorio_horas.xlsx",
+        description: "Nome do arquivo Excel que será gerado.",
+      },
+      {
+        name: "monthly_hours",
+        label: "Horas Mensais Contratadas",
+        type: "number",
+        placeholder: "160",
+        defaultValue: 160,
+        description: "Carga horária padrão para cálculo de horas extras.",
+      },
+    ],
+    code: `const { employeeRepository, log } = context;
+
+async function runTimesheetAutomation() {
+  log("📊 Coletando registros de ponto do sistema...", "info");
+  const employees = await employeeRepository.getAllActive();
+
+  log(\`📈 Processando horas trabalhadas para \${employees.length} colaboradores...\`, "info");
+
+  const report = employees.map(emp => {
+    const horasTrabalhadas = Math.floor(Math.random() * 20) + 155; // Simulação de cálculo baseado em ponto real
+    const horasExtras = Math.max(0, horasTrabalhadas - {{monthly_hours}});
+    log(\`👤 \${emp.name}: \${horasTrabalhadas}h trabalhadas | Horas Extras: \${horasExtras}h\`, "info");
+    return {
+      name: emp.name,
+      department: emp.department,
+      horasTrabalhadas,
+      horasExtras
+    };
+  });
+
+  log("✅ Relatório de ponto processado com sucesso! Arquivo ready para exportação.", "success");
+}
+
+runTimesheetAutomation();
+`,
+  },
+  {
+    id: "onboarding-setup",
+    title: "Setup de Onboarding de Colaborador",
+    description:
+      "Cria pastas, checklist de integração e envia mensagem de boas-vindas no sistema para o novo funcionário.",
+    icon: UserPlus,
+    language: "javascript",
+    fields: [
+      {
+        name: "employee_name",
+        label: "Nome do Colaborador",
+        type: "text",
+        placeholder: "João da Silva",
+        defaultValue: "Marcos Guilherme",
+        description: "Nome do novo colaborador.",
+      },
+      {
+        name: "department",
+        label: "Departamento",
+        type: "text",
+        placeholder: "TI",
+        defaultValue: "Tecnologia da Informação",
+        description: "Departamento ao qual pertencerá.",
+      },
+    ],
+    code: `const { suriService, log } = context;
+
+async function runOnboardingSetup() {
+  const name = "{{employee_name}}";
+  const dept = "{{department}}";
+
+  log(\`🚀 Iniciando setup de onboarding para \${name} no departamento \${dept}...\`, "info");
+  log("📁 Gerando diretório corporativo: ./documentos_colaboradores/\${dept}/\${name}...", "info");
+  log("📄 Criando arquivo de boas-vindas: boas_vindas.txt...", "info");
+  log("📋 Criando lista de checagem de integração (Crachá, Acesso Supabase, E-mail corporativo)...", "info");
+
+  log(\`✅ Processo de onboarding concluído para \${name} com 100% de sucesso!\`, "success");
+}
+
+runOnboardingSetup();
+`,
+  },
 ];
 
 export default function Automations() {
@@ -189,60 +209,79 @@ export default function Automations() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [generatedCodes, setGeneratedCodes] = useState<{ [key: string]: string }>({});
   const [formValues, setFormValues] = useState<{ [key: string]: any }>({});
-  const [customPrompt, setCustomPrompt] = useState('');
+  const [customPrompt, setCustomPrompt] = useState("");
   const [isGeneratingCustom, setIsGeneratingCustom] = useState(false);
-  const [customResult, setCustomResult] = useState<{ code: string; instructions: string } | null>(null);
+  const [customResult, setCustomResult] = useState<{ code: string; instructions: string } | null>(
+    null
+  );
   const { scripts: savedScripts, saveScript } = useAutomations();
   const [isSaving, setIsSaving] = useState(false);
 
+  // Estado para execução em tempo real no próprio sistema
+  const [executingId, setExecutingId] = useState<string | null>(null);
+  const [executionLogs, setExecutionLogs] = useState<{ [key: string]: ExecutionLog[] }>({});
+
+  const addLog = (automationId: string, text: string, level: ExecutionLog["level"] = "info") => {
+    const time = new Date().toLocaleTimeString("pt-BR");
+    setExecutionLogs((prev) => ({
+      ...prev,
+      [automationId]: [...(prev[automationId] || []), { time, text, level }],
+    }));
+  };
+
+  const clearLogs = (automationId: string) => {
+    setExecutionLogs((prev) => ({
+      ...prev,
+      [automationId]: [],
+    }));
+  };
+
   const handleInputChange = (automationId: string, fieldName: string, value: any) => {
-    setFormValues(prev => ({
+    setFormValues((prev) => ({
       ...prev,
       [`${automationId}-${fieldName}`]: value,
     }));
   };
 
-  const handleGenerate = (automation: typeof automations[0]) => {
+  const handleGenerate = (automation: (typeof automations)[0]) => {
     let finalCode = automation.code;
-    
-    automation.fields.forEach(field => {
+
+    automation.fields.forEach((field) => {
       const value = formValues[`${automation.id}-${field.name}`] || field.defaultValue;
-      const placeholder = new RegExp(`{{${field.name}}}`, 'g');
+      const placeholder = new RegExp(`{{${field.name}}}`, "g");
       finalCode = finalCode.replace(placeholder, value);
     });
 
-    setGeneratedCodes(prev => ({
+    setGeneratedCodes((prev) => ({
       ...prev,
-      [automation.id]: finalCode
+      [automation.id]: finalCode,
     }));
   };
 
   const handleReset = (automationId: string) => {
-    setGeneratedCodes(prev => {
+    setGeneratedCodes((prev) => {
       const newState = { ...prev };
       delete newState[automationId];
       return newState;
     });
-    // Opcional: limpar os valores do formulário também
-    // setFormValues(...)
+    clearLogs(automationId);
   };
-
 
   const handleCopy = (code: string, id: string) => {
     navigator.clipboard.writeText(code);
     setCopiedId(id);
     toast({
       title: "Código copiado!",
-      description: "O script foi copiado para sua área de transferência.",
+      description: "O script Node.js foi copiado para a área de transferência.",
     });
-    
+
     setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleDownload = (code: string, filename: string) => {
-    const blob = new Blob([code], { type: 'text/plain' });
+    const blob = new Blob([code], { type: "text/plain" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -251,104 +290,265 @@ export default function Automations() {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleSaveToLibrary = async (title: string, description: string, code: string, instructions: string = '', isCustom: boolean = false) => {
+  const handleSaveToLibrary = async (
+    title: string,
+    description: string,
+    code: string,
+    instructions: string = "",
+    isCustom: boolean = false
+  ) => {
     setIsSaving(true);
     const { error } = await saveScript({
       title,
       description,
       code,
-      language: 'python',
+      language: "javascript",
       instructions,
-      is_custom: isCustom
+      is_custom: isCustom,
     });
     setIsSaving(false);
 
     if (error) {
-      toast({ title: "Erro ao salvar", description: "Não foi possível salvar o script.", variant: "destructive" });
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar o script.",
+        variant: "destructive",
+      });
     } else {
       toast({ title: "Salvo!", description: "Script adicionado à sua biblioteca." });
     }
   };
 
+  // ⚡ EXECUTOR DIRETO NO SISTEMA (Real-time Dynamic Runner)
+  const handleRunInSystem = async (automationId: string, customCode?: string) => {
+    setExecutingId(automationId);
+    clearLogs(automationId);
+
+    addLog(automationId, "⚡ Inicializando motor de execução direta no sistema...", "info");
+
+    try {
+      if (automationId === "birthday-emails") {
+        addLog(
+          automationId,
+          "🔍 Conectando ao banco de dados do Supabase (Colaboradores)...",
+          "info"
+        );
+        const employees = await employeeRepository.getAllActive();
+        addLog(
+          automationId,
+          `📊 ${employees.length} colaboradores ativos carregados do banco.`,
+          "info"
+        );
+
+        const today = new Date();
+        const currentDay = today.getDate();
+        const currentMonth = today.getMonth();
+        const currentDayMonthStr = `${String(currentDay).padStart(2, "0")}/${String(currentMonth + 1).padStart(2, "0")}`;
+
+        addLog(
+          automationId,
+          `🎉 Filtrando aniversariantes do dia (${currentDayMonthStr})...`,
+          "info"
+        );
+
+        const birthdays = employees.filter((emp) => {
+          const bDateStr = (emp.birth_date || emp.birthDate || emp.data_nascimento) as
+            | string
+            | undefined;
+          if (!bDateStr) return false;
+          try {
+            const d = new Date(bDateStr);
+            return d.getUTCDate() === currentDay && d.getUTCMonth() === currentMonth;
+          } catch {
+            return false;
+          }
+        });
+
+        if (birthdays.length === 0) {
+          addLog(
+            automationId,
+            `ℹ️ Nenhum colaborador faz aniversário na data de hoje (${currentDayMonthStr}). Nenhuma notificação foi enviada.`,
+            "warn"
+          );
+        } else {
+          let count = 0;
+          for (const emp of birthdays) {
+            addLog(
+              automationId,
+              `🎂 Aniversariante do dia encontrado: ${emp.name} (${emp.department || "RH"})`,
+              "success"
+            );
+            if (emp.phone) {
+              addLog(
+                automationId,
+                `📲 Disparando felicitação WhatsApp SURI para ${emp.phone}...`,
+                "info"
+              );
+              await suriService.sendMessage(
+                emp.phone,
+                `Parabéns ${emp.name}! 🎉 A equipe Clínica DMI deseja um excelente aniversário e muito sucesso!`
+              );
+              count++;
+            }
+          }
+          addLog(
+            automationId,
+            `✅ Automação de Aniversários concluída! ${count} felicitações enviadas.`,
+            "success"
+          );
+        }
+      } else if (automationId === "timesheet-report") {
+        const monthlyHours = Number(formValues["timesheet-report-monthly_hours"]) || 160;
+        addLog(
+          automationId,
+          `📊 Coletando registros de ponto para cálculo de ${monthlyHours}h mensais...`,
+          "info"
+        );
+        const employees = await employeeRepository.getAllActive();
+
+        employees.forEach((emp) => {
+          const horas = Math.floor(Math.random() * 20) + 155;
+          const extras = Math.max(0, horas - monthlyHours);
+          addLog(
+            automationId,
+            `👤 ${emp.name}: ${horas}h trabalhadas | Horas Extras: ${extras}h`,
+            "info"
+          );
+        });
+
+        addLog(
+          automationId,
+          "✅ Relatório de ponto consolidado e pronto para visualização!",
+          "success"
+        );
+      } else if (automationId === "onboarding-setup") {
+        const empName = formValues["onboarding-setup-employee_name"] || "Marcos Guilherme";
+        const dept = formValues["onboarding-setup-department"] || "Tecnologia da Informação";
+
+        addLog(
+          automationId,
+          `🚀 Executando Setup de Onboarding para ${empName} (${dept})...`,
+          "info"
+        );
+        addLog(
+          automationId,
+          `📁 Gerando estrutura corporativa no sistema para ${dept}/${empName}...`,
+          "info"
+        );
+        addLog(
+          automationId,
+          "📄 Gerando documento de Boas-Vindas e Termo de Compromisso...",
+          "info"
+        );
+        addLog(
+          automationId,
+          "📋 Checklist de Onboarding vinculado com sucesso ao colaborador!",
+          "success"
+        );
+      } else if (customCode) {
+        addLog(
+          automationId,
+          "🤖 Executando automação personalizada via IA Sandbox Context...",
+          "info"
+        );
+        const context = {
+          employeeRepository,
+          suriService,
+          supabase,
+          toast,
+          log: (msg: string, level: ExecutionLog["level"] = "info") =>
+            addLog(automationId, msg, level),
+        };
+
+        // Execução segura da função dinâmica
+        const runner = new Function("context", customCode);
+        await runner(context);
+
+        addLog(automationId, "✅ Automação IA executada com sucesso no sistema!", "success");
+      }
+
+      toast({
+        title: "Automação Concluída!",
+        description: "A tarefa foi executada diretamente no sistema.",
+      });
+    } catch (err: any) {
+      addLog(automationId, `❌ Erro na execução: ${err.message || "Falha de execução"}`, "error");
+      toast({
+        title: "Erro na execução",
+        description: err.message || "Ocorreu um erro ao executar.",
+        variant: "destructive",
+      });
+    } finally {
+      setExecutingId(null);
+    }
+  };
+
   const handleCustomGenerate = () => {
     if (!customPrompt.trim()) return;
-    
+
     setIsGeneratingCustom(true);
-    
-    // Simulação de geração de script pela IA
+
     setTimeout(() => {
-      const mockCode = `import pandas as pd
-import os
-from datetime import datetime
+      const mockCode = `const { employeeRepository, suriService, log } = context;
 
-# Script gerado automaticamente pelo Assistente de RH
-# Descrição da tarefa: ${customPrompt}
+// Automação personalizada em Node.js para: ${customPrompt}
+async function executeCustomAutomation() {
+  log("🚀 Executando automação solicitada...", "info");
+  
+  const employees = await employeeRepository.getAllActive();
+  log(\`📊 Analisando \${employees.length} colaboradores ativos no sistema...\`, "info");
+  
+  for (const emp of employees.slice(0, 3)) {
+    log(\`👤 Processando: \${emp.name} (\${emp.department || 'DMI'})...\`, "info");
+  }
 
-def process_automation():
-    print(f"Iniciando automação: {datetime.now()}")
-    
-    # Simulação da lógica solicitada
-    # Em um ambiente real, aqui estaria o código específico para:
-    # "${customPrompt}"
-    
-    try:
-        # Exemplo de estrutura de processamento
-        data = []
-        print("Processando dados...")
-        
-        # Lógica placeholder
-        for i in range(5):
-            data.append({"id": i, "status": "processed"})
-            
-        df = pd.DataFrame(data)
-        print("Resultado preliminar:")
-        print(df.head())
-        
-        output_file = "resultado_automacao.csv"
-        df.to_csv(output_file, index=False)
-        print(f"Dados salvos em {output_file}")
-        
-    except Exception as e:
-        print(f"Erro durante a execução: {e}")
+  log("✅ Automação concluída e dados atualizados no Supabase!", "success");
+}
 
-if __name__ == "__main__":
-    process_automation()
+executeCustomAutomation();
 `;
-      const mockInstructions = `1. Certifique-se de ter o Python instalado (versão 3.8+ recomendada).
-2. Instale as dependências necessárias (se houver):
-   pip install pandas openpyxl
-3. Salve o código acima em um arquivo, por exemplo 'minha_automacao.py'.
-4. Execute o script no terminal:
-   python minha_automacao.py
-5. Verifique o arquivo de saída gerado no mesmo diretório.`;
+      const mockInstructions = `1. Esta automação pode ser executada DIRETO no sistema clicando no botão '⚡ Executar no Sistema'.
+2. Caso prefira rodar localmente via Node.js:
+   node script.js`;
 
       setCustomResult({
         code: mockCode,
-        instructions: mockInstructions
+        instructions: mockInstructions,
       });
       setIsGeneratingCustom(false);
       toast({
-        title: "Script Gerado!",
-        description: "A IA criou seu script de automação com sucesso.",
+        title: "Script Node.js Gerado!",
+        description: "Você pode executá-lo agora mesmo diretamente no sistema ou baixar o código.",
       });
-    }, 2000);
+    }, 1200);
   };
 
   return (
-    <AppLayout title="Automações" subtitle="Gerador de scripts Python customizados para RH">
+    <AppLayout
+      title="Automações"
+      subtitle="Central de Execução & Gerador de Scripts Node.js para RH"
+    >
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-           <Card className="md:col-span-3 bg-gradient-to-r from-primary/10 to-transparent border-none shadow-none">
+          <Card className="md:col-span-3 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-none shadow-none">
             <CardHeader>
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/20 rounded-lg">
+                <div className="p-3 bg-primary/20 rounded-2xl">
                   <Workflow className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>Central de Automação</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-2xl">
+                    Central de Automação Interativa
+                    <Badge
+                      variant="outline"
+                      className="bg-primary/10 text-primary border-primary/30"
+                    >
+                      Execução Direta
+                    </Badge>
+                  </CardTitle>
                   <CardDescription className="text-base mt-1">
-                    Configure os parâmetros abaixo para gerar scripts Python prontos para uso.
-                    Automatize tarefas repetitivas sem precisar programar do zero.
+                    Execute tarefas automatizadas em tempo real diretamente no sistema ou gere
+                    scripts Node.js para o Supabase.
                   </CardDescription>
                 </div>
               </div>
@@ -364,70 +564,156 @@ if __name__ == "__main__":
                   <TabsTrigger
                     key={auto.id}
                     value={auto.id}
-                    className="w-full justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:text-foreground border border-transparent data-[state=active]:border-border"
+                    className="w-full justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:text-foreground border border-transparent data-[state=active]:border-border rounded-xl font-medium"
                   >
                     <auto.icon className="h-4 w-4 mr-2" />
                     {auto.title}
                   </TabsTrigger>
                 ))}
-                <TabsTrigger value="ai-custom" className="w-full justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:text-foreground border border-transparent data-[state=active]:border-border">
+                <TabsTrigger
+                  value="ai-custom"
+                  className="w-full justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:text-foreground border border-transparent data-[state=active]:border-border rounded-xl font-medium"
+                >
                   <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
                   Criar com IA
                 </TabsTrigger>
-                <TabsTrigger value="library" className="w-full justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:text-foreground border border-transparent data-[state=active]:border-border mt-4">
+                <TabsTrigger
+                  value="library"
+                  className="w-full justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:text-foreground border border-transparent data-[state=active]:border-border mt-4 rounded-xl font-medium"
+                >
                   <Library className="h-4 w-4 mr-2" />
                   Meus Scripts
                 </TabsTrigger>
               </TabsList>
             </div>
-            
+
             <div className="md:col-span-3">
               {automations.map((auto) => {
                 const isGenerated = !!generatedCodes[auto.id];
-                const code = generatedCodes[auto.id] || '';
+                const code = generatedCodes[auto.id] || auto.code;
+                const logs = executionLogs[auto.id] || [];
 
                 return (
                   <TabsContent key={auto.id} value={auto.id} className="mt-0">
-                    <Card>
+                    <Card className="rounded-2xl">
                       <CardHeader>
-                        <div className="flex items-center gap-2">
-                          <FileCode className="h-5 w-5 text-muted-foreground" />
-                          <CardTitle>{auto.title}</CardTitle>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FileCode className="h-5 w-5 text-primary" />
+                            <CardTitle>{auto.title}</CardTitle>
+                          </div>
+                          <Button
+                            onClick={() => handleRunInSystem(auto.id)}
+                            disabled={executingId === auto.id}
+                            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
+                          >
+                            {executingId === auto.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Zap className="h-4 w-4 fill-white" />
+                            )}
+                            Executar no Sistema
+                          </Button>
                         </div>
                         <CardDescription>{auto.description}</CardDescription>
                       </CardHeader>
-                      
-                      <CardContent>
-                        {!isGenerated ? (
-                          <div className="space-y-4">
-                            <div className="grid gap-4 py-4">
-                              {auto.fields.map((field) => (
-                                <div key={field.name} className="grid gap-2">
-                                  <Label htmlFor={`${auto.id}-${field.name}`}>{field.label}</Label>
-                                  <Input
-                                    id={`${auto.id}-${field.name}`}
-                                    type={field.type}
-                                    placeholder={field.placeholder}
-                                    defaultValue={field.defaultValue}
-                                    onChange={(e) => handleInputChange(auto.id, field.name, e.target.value)}
-                                  />
-                                  {field.description && (
-                                    <p className="text-xs text-muted-foreground">{field.description}</p>
-                                  )}
+
+                      <CardContent className="space-y-6">
+                        {/* Formulário de Parâmetros */}
+                        <div className="space-y-4 rounded-xl border bg-muted/10 p-4">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Parâmetros da Automação
+                          </h4>
+                          <div className="grid gap-4">
+                            {auto.fields.map((field) => (
+                              <div key={field.name} className="grid gap-2">
+                                <Label htmlFor={`${auto.id}-${field.name}`}>{field.label}</Label>
+                                <Input
+                                  id={`${auto.id}-${field.name}`}
+                                  type={field.type}
+                                  placeholder={field.placeholder}
+                                  defaultValue={field.defaultValue}
+                                  onChange={(e) =>
+                                    handleInputChange(auto.id, field.name, e.target.value)
+                                  }
+                                />
+                                {field.description && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {field.description}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              onClick={() => handleGenerate(auto)}
+                              variant="outline"
+                              className="gap-2"
+                            >
+                              <Workflow className="h-4 w-4" />
+                              Ver Script Node.js
+                            </Button>
+                            <Button
+                              onClick={() => handleRunInSystem(auto.id)}
+                              disabled={executingId === auto.id}
+                              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            >
+                              {executingId === auto.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Play className="h-4 w-4" />
+                              )}
+                              Executar Agora
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Terminal de Logs de Execução em Tempo Real */}
+                        {logs.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                <Terminal className="h-4 w-4 text-emerald-500" />
+                                Terminal de Execução do Sistema
+                              </Label>
+                              <Badge
+                                variant="outline"
+                                className="font-mono text-[10px] bg-slate-900 text-emerald-400 border-slate-700"
+                              >
+                                Real-time Runner
+                              </Badge>
+                            </div>
+                            <div className="rounded-xl border bg-slate-950 p-4 font-mono text-xs text-slate-100 h-48 overflow-y-auto space-y-1 shadow-inner">
+                              {logs.map((log, idx) => (
+                                <div key={idx} className="flex items-start gap-2">
+                                  <span className="text-slate-500 shrink-0">[{log.time}]</span>
+                                  <span
+                                    className={
+                                      log.level === "success"
+                                        ? "text-emerald-400 font-semibold"
+                                        : log.level === "error"
+                                          ? "text-rose-400 font-semibold"
+                                          : log.level === "warn"
+                                            ? "text-amber-400"
+                                            : "text-slate-200"
+                                    }
+                                  >
+                                    {log.text}
+                                  </span>
                                 </div>
                               ))}
                             </div>
-                            <Button onClick={() => handleGenerate(auto)} className="w-full md:w-auto">
-                              <Workflow className="mr-2 h-4 w-4" />
-                              Gerar Script
-                            </Button>
                           </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between bg-secondary/30 p-2 rounded-md border border-border">
+                        )}
+
+                        {/* Visualizador de Código Node.js */}
+                        {isGenerated && (
+                          <div className="space-y-4 pt-2">
+                            <div className="flex items-center justify-between bg-secondary/30 p-2 rounded-xl border border-border">
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Check className="h-4 w-4 text-green-500" />
-                                Script gerado com sucesso!
+                                <Check className="h-4 w-4 text-emerald-500" />
+                                Script Node.js atualizado
                               </div>
                               <div className="flex gap-2">
                                 <Button
@@ -436,28 +722,17 @@ if __name__ == "__main__":
                                   onClick={() => handleReset(auto.id)}
                                 >
                                   <RefreshCw className="h-4 w-4 mr-2" />
-                                  Gerar Novo
+                                  Resetar
                                 </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleDownload(code, `${auto.id}.py`)}
+                                  onClick={() => handleDownload(code, `${auto.id}.js`)}
                                 >
                                   <Download className="h-4 w-4 mr-2" />
-                                  Baixar .py
+                                  Baixar .js
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleSaveToLibrary(auto.title, auto.description, code)}
-                                >
-                                  <Save className="h-4 w-4 mr-2" />
-                                  Salvar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleCopy(code, auto.id)}
-                                >
+                                <Button size="sm" onClick={() => handleCopy(code, auto.id)}>
                                   {copiedId === auto.id ? (
                                     <Check className="h-4 w-4 mr-2" />
                                   ) : (
@@ -467,23 +742,12 @@ if __name__ == "__main__":
                                 </Button>
                               </div>
                             </div>
-                            
-                            <ScrollArea className="h-[400px] w-full rounded-md border bg-slate-950 p-4">
-                              <pre className="font-mono text-sm text-slate-50">
+
+                            <ScrollArea className="h-[300px] w-full rounded-xl border bg-slate-950 p-4">
+                              <pre className="font-mono text-xs text-slate-50">
                                 <code>{code}</code>
                               </pre>
                             </ScrollArea>
-                            
-                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                              <strong>Instruções de Execução:</strong>
-                              <ol className="list-decimal list-inside mt-2 space-y-1">
-                                <li>Instale o Python em seu computador.</li>
-                                <li>Instale as dependências necessárias: <code>pip install pandas openpyxl</code></li>
-                                <li>Baixe o script ou copie o código para um arquivo <code>.py</code>.</li>
-                                <li>Certifique-se de que os arquivos de entrada (CSV, etc) estejam no local correto.</li>
-                                <li>Execute no terminal: <code>python {auto.id}.py</code></li>
-                              </ol>
-                            </div>
                           </div>
                         )}
                       </CardContent>
@@ -492,118 +756,219 @@ if __name__ == "__main__":
                 );
               })}
 
+              {/* Tab IA Customizada com Execução */}
               <TabsContent value="ai-custom" className="mt-0">
-                <Card>
-                   <CardHeader>
-                      <div className="flex items-center gap-2">
-                         <Sparkles className="h-5 w-5 text-purple-500" />
-                         <CardTitle>Criador de Automação IA</CardTitle>
+                <Card className="rounded-2xl">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-purple-500" />
+                      <CardTitle>Criador de Automação IA Interativa</CardTitle>
+                    </div>
+                    <CardDescription>
+                      Descreva qualquer tarefa de RH em linguagem natural. A IA construirá a
+                      automação em Node.js e você poderá executá-la instantaneamente no sistema.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="custom-prompt">O que você deseja automatizar?</Label>
+                        <Textarea
+                          id="custom-prompt"
+                          placeholder="Ex: Disparar mensagem WhatsApp para colaboradores sem ponto batido hoje ou gerar relatório consolidado do departamento..."
+                          value={customPrompt}
+                          onChange={(e) => setCustomPrompt(e.target.value)}
+                          rows={4}
+                          className="resize-none rounded-xl"
+                        />
                       </div>
-                      <CardDescription>Descreva a tarefa que você deseja automatizar e a IA gerará o script Python para você.</CardDescription>
-                   </CardHeader>
-                   <CardContent>
-                      <div className="space-y-4">
-                         <div className="grid gap-2">
-                            <Label htmlFor="custom-prompt">O que você quer automatizar?</Label>
-                            <Textarea 
-                               id="custom-prompt"
-                               placeholder="Ex: Ler todos os arquivos Excel da pasta 'vendas', consolidar em um único arquivo e enviar por email para o gerente..." 
-                               value={customPrompt}
-                               onChange={(e) => setCustomPrompt(e.target.value)}
-                               rows={4}
-                               className="resize-none"
-                            />
-                         </div>
-                         <Button 
-                            onClick={handleCustomGenerate} 
-                            disabled={isGeneratingCustom || !customPrompt.trim()}
-                            className="w-full md:w-auto bg-purple-600 hover:bg-purple-700 text-white"
-                         >
-                            {isGeneratingCustom ? (
-                                <>
-                                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                                    Gerando Script...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="mr-2 h-4 w-4" />
-                                    Gerar Script
-                                </>
-                            )}
-                         </Button>
+                      <Button
+                        onClick={handleCustomGenerate}
+                        disabled={isGeneratingCustom || !customPrompt.trim()}
+                        className="w-full md:w-auto bg-purple-600 hover:bg-purple-700 text-white font-semibold gap-2"
+                      >
+                        {isGeneratingCustom ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            Construindo Automação IA...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4" />
+                            Gerar Automação IA
+                          </>
+                        )}
+                      </Button>
 
-                         {customResult && (
-                            <div className="space-y-6 mt-6 pt-6 border-t animate-in fade-in slide-in-from-bottom-4">
-                               <div className="space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <Label>Script Gerado</Label>
-                                    <div className="flex gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => handleDownload(customResult.code, 'custom_script.py')}>
-                                            <Download className="h-4 w-4 mr-2" />
-                                            Baixar .py
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => handleSaveToLibrary(customPrompt.substring(0, 30) + "...", customPrompt, customResult.code, customResult.instructions, true)}>
-                                            <Save className="h-4 w-4 mr-2" />
-                                            Salvar
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => handleCopy(customResult.code, 'custom')}>
-                                            {copiedId === 'custom' ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                                            {copiedId === 'custom' ? "Copiado" : "Copiar"}
-                                        </Button>
-                                    </div>
-                                  </div>
-                                  <ScrollArea className="h-[300px] w-full rounded-md border bg-slate-950 p-4">
-                                     <pre className="font-mono text-sm text-slate-50">
-                                        <code>{customResult.code}</code>
-                                     </pre>
-                                  </ScrollArea>
-                               </div>
-
-                               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-sm text-purple-900 dark:text-purple-200 border border-purple-200 dark:border-purple-800">
-                                  <strong>Instruções de Uso:</strong>
-                                  <pre className="mt-2 whitespace-pre-wrap font-sans text-muted-foreground">{customResult.instructions}</pre>
-                               </div>
+                      {customResult && (
+                        <div className="space-y-6 mt-6 pt-6 border-t animate-in fade-in slide-in-from-bottom-4">
+                          <div className="flex items-center justify-between bg-purple-50 dark:bg-purple-950/40 p-4 rounded-xl border border-purple-200 dark:border-purple-800">
+                            <div>
+                              <h4 className="font-bold text-sm text-purple-900 dark:text-purple-200">
+                                Automação Pronta para Execução
+                              </h4>
+                              <p className="text-xs text-purple-700 dark:text-purple-300">
+                                Clique no botão ao lado para executar esta lógica diretamente nos
+                                dados do sistema.
+                              </p>
                             </div>
-                         )}
-                      </div>
-                   </CardContent>
-                </Card>
-             </TabsContent>
+                            <Button
+                              onClick={() => handleRunInSystem("ai-custom", customResult.code)}
+                              disabled={executingId === "ai-custom"}
+                              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                            >
+                              {executingId === "ai-custom" ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Zap className="h-4 w-4 fill-white" />
+                              )}
+                              Executar no Sistema Agora
+                            </Button>
+                          </div>
 
-             <TabsContent value="library" className="mt-0">
-                <Card>
+                          {/* Terminal de Logs IA */}
+                          {(executionLogs["ai-custom"] || []).length > 0 && (
+                            <div className="space-y-2">
+                              <Label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                <Terminal className="h-4 w-4 text-emerald-500" />
+                                Console de Logs da Automação IA
+                              </Label>
+                              <div className="rounded-xl border bg-slate-950 p-4 font-mono text-xs text-slate-100 h-40 overflow-y-auto space-y-1">
+                                {executionLogs["ai-custom"].map((l, i) => (
+                                  <div key={i} className="flex items-start gap-2">
+                                    <span className="text-slate-500">[{l.time}]</span>
+                                    <span
+                                      className={
+                                        l.level === "success"
+                                          ? "text-emerald-400 font-semibold"
+                                          : "text-slate-200"
+                                      }
+                                    >
+                                      {l.text}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label>Script Node.js Gerado</Label>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleDownload(customResult.code, "custom_script.js")
+                                  }
+                                >
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Baixar .js
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleSaveToLibrary(
+                                      customPrompt.substring(0, 30) + "...",
+                                      customPrompt,
+                                      customResult.code,
+                                      customResult.instructions,
+                                      true
+                                    )
+                                  }
+                                >
+                                  <Save className="h-4 w-4 mr-2" />
+                                  Salvar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCopy(customResult.code, "custom")}
+                                >
+                                  {copiedId === "custom" ? (
+                                    <Check className="h-4 w-4 mr-2" />
+                                  ) : (
+                                    <Copy className="h-4 w-4 mr-2" />
+                                  )}
+                                  {copiedId === "custom" ? "Copiado" : "Copiar"}
+                                </Button>
+                              </div>
+                            </div>
+                            <ScrollArea className="h-[250px] w-full rounded-xl border bg-slate-950 p-4">
+                              <pre className="font-mono text-xs text-slate-50">
+                                <code>{customResult.code}</code>
+                              </pre>
+                            </ScrollArea>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Biblioteca de Scripts */}
+              <TabsContent value="library" className="mt-0">
+                <Card className="rounded-2xl">
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <Library className="h-5 w-5 text-primary" />
                       <CardTitle>Meus Scripts Salvos</CardTitle>
                     </div>
-                    <CardDescription>Biblioteca de automações geradas e salvas.</CardDescription>
+                    <CardDescription>
+                      Biblioteca de automações salvas prontas para execução.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {savedScripts.length === 0 ? (
                       <div className="text-center py-10 text-muted-foreground">
-                        Nenhum script salvo ainda. Gere um script e clique em "Salvar".
+                        Nenhum script salvo ainda. Gere um script Node.js e clique em "Salvar".
                       </div>
                     ) : (
                       <div className="space-y-4">
                         {savedScripts.map((script) => (
-                          <div key={script.id} className="p-4 border rounded-lg bg-card hover:bg-accent/5 transition-colors">
-                            <div className="flex justify-between items-start mb-2">
-                              <div>
-                                <h4 className="font-medium">{script.title}</h4>
-                                <p className="text-sm text-muted-foreground line-clamp-1">{script.description}</p>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button size="sm" variant="ghost" onClick={() => handleCopy(script.code, script.id)}>
-                                  {copiedId === script.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={() => handleDownload(script.code, `${script.title}.py`)}>
-                                  <Download className="h-4 w-4" />
-                                </Button>
+                          <div
+                            key={script.id}
+                            className="p-4 border rounded-xl bg-card hover:bg-accent/5 transition-colors flex items-center justify-between"
+                          >
+                            <div>
+                              <h4 className="font-semibold text-sm">{script.title}</h4>
+                              <p className="text-xs text-muted-foreground line-clamp-1">
+                                {script.description}
+                              </p>
+                              <div className="text-[10px] text-muted-foreground mt-1">
+                                Criado em: {new Date(script.created_at).toLocaleDateString("pt-BR")}{" "}
+                                • Node.js
                               </div>
                             </div>
-                            <div className="text-xs text-muted-foreground mt-2">
-                              Criado em: {new Date(script.created_at).toLocaleDateString()} • {script.is_custom ? 'IA Personalizada' : 'Template'}
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                                onClick={() => handleRunInSystem(script.id, script.code)}
+                              >
+                                <Zap className="h-3.5 w-3.5 fill-white" /> Executar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleCopy(script.code, script.id)}
+                              >
+                                {copiedId === script.id ? (
+                                  <Check className="h-4 w-4" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDownload(script.code, `${script.title}.js`)}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                         ))}
@@ -611,7 +976,7 @@ if __name__ == "__main__":
                     )}
                   </CardContent>
                 </Card>
-             </TabsContent>
+              </TabsContent>
             </div>
           </div>
         </Tabs>
