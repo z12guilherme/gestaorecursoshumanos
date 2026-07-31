@@ -175,19 +175,7 @@ serve(async (req: Request) => {
     // ESTRATÉGIA 3: Disparo de Template via POST /api/messages/send
     const targetUrl = `${baseUrl}/messages/send`;
     const officialPayloads = [
-      // 1. Se o contato foi importado com sucesso, usa o userId retornado da Suri
-      ...(importedUserId
-        ? [
-            {
-              userId: importedUserId,
-              message: {
-                templateId: templateId,
-                bodyParameters: safeBodyParameters,
-              },
-            },
-          ]
-        : []),
-      // 2. Import inline com o canal descoberto e telefone principal com 9º dígito
+      // 1. Prioridade Máxima: Envios explícitos com o telefone principal normalizado (13 dígitos com 9º dígito)
       {
         user: {
           name: candidateName,
@@ -201,7 +189,27 @@ serve(async (req: Request) => {
           bodyParameters: safeBodyParameters,
         },
       },
-      // 3. Import inline com variante alternativa do número (caso a conta no WhatsApp Meta seja 12 dígitos)
+      // 2. Se o userId importado na Suri contiver exatamente o número de 13 dígitos atualizado
+      ...(importedUserId && String(importedUserId).includes(phone)
+        ? [
+            {
+              userId: importedUserId,
+              message: {
+                templateId: templateId,
+                bodyParameters: safeBodyParameters,
+              },
+            },
+          ]
+        : []),
+      // 3. Fallback com userId = telefone de 13 dígitos
+      {
+        userId: phone,
+        message: {
+          templateId: templateId,
+          bodyParameters: safeBodyParameters,
+        },
+      },
+      // 4. Se falhar, tenta a variante alternativa sem o 9º dígito (caso o WhatsApp Meta tenha registrado a conta sem o 9)
       ...(altPhone !== phone
         ? [
             {
@@ -219,14 +227,6 @@ serve(async (req: Request) => {
             },
           ]
         : []),
-      // 4. Fallback com userId = telefone principal
-      {
-        userId: phone,
-        message: {
-          templateId: templateId,
-          bodyParameters: safeBodyParameters,
-        },
-      },
     ];
 
     let successResponse = null;
