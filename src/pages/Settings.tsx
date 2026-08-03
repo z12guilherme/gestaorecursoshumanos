@@ -44,6 +44,7 @@ import { MfaSetup } from "@/components/settings/MfaSetup";
 import { ChangePassword } from "@/components/settings/ChangePassword";
 import { ActiveSessionsManager } from "@/components/ActiveSessionsManager";
 import { SuriIntegrationCard } from "@/components/settings/SuriIntegrationCard";
+import { ProfileSettings } from "@/components/settings/ProfileSettings"; // Componente a ser criado
 import { mockDatabase, USE_MOCK } from "@/lib/mockDatabase";
 
 export default function Settings() {
@@ -52,22 +53,6 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState("profile");
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const companyLogoRef = useRef<HTMLInputElement>(null);
-  const { refreshProfile } = useAuth();
-
-  // Estado para gerenciamento de usuários
-  const [userProfiles, setUserProfiles] = useState<any[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [savingRole, setSavingRole] = useState<string | null>(null);
-
-  // Estado para o perfil do usuário
-  const [profileData, setProfileData] = useState({
-    id: "",
-    full_name: "",
-    avatar_url: "",
-    email: "",
-    display_role: "",
-  });
 
   // Estado para as configurações da empresa
   const [companySettings, setCompanySettings] = useState({
@@ -86,6 +71,12 @@ export default function Settings() {
     social_links: { linkedin: "", instagram: "", website: "" },
     webhook_url: "", // URL do ERP/sistema contábil para integração via webhook
   });
+  const companyLogoRef = useRef<HTMLInputElement>(null);
+
+  // Estado para gerenciamento de usuários
+  const [userProfiles, setUserProfiles] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [savingRole, setSavingRole] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -93,14 +84,6 @@ export default function Settings() {
       try {
         // 🔀 Desvio Offline (Mock)
         if (USE_MOCK) {
-          setProfileData({
-            id: "mock-admin-1",
-            full_name: "Administrador Demo",
-            avatar_url: "",
-            email: "admin@demo.com",
-            display_role: "Gerente de RH",
-          });
-
           const settings = mockDatabase.get("settings");
           if (settings) {
             setCompanySettings({
@@ -128,30 +111,6 @@ export default function Settings() {
           setLoading(false);
           return;
         }
-
-        // 1. Get current user
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-        if (userError || !user) throw userError || new Error("User not found.");
-
-        // 2. Fetch user profile from 'profiles' table
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("full_name, avatar_url, display_role")
-          .eq("id", user.id)
-          .single();
-
-        if (profileError) throw profileError;
-
-        setProfileData({
-          id: user.id,
-          full_name: profile.full_name || "",
-          avatar_url: profile.avatar_url || "",
-          email: user.email || "",
-          display_role: profile.display_role || "",
-        });
 
         // 3. Fetch company settings from 'settings' table
         const { data: settings, error: settingsError } = await supabase
@@ -196,59 +155,6 @@ export default function Settings() {
     }
     fetchData();
   }, [toast]);
-
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
-
-    const file = event.target.files[0];
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${profileData.id}/${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    try {
-      setSaving(true);
-
-      if (USE_MOCK) {
-        const fakeUrl = URL.createObjectURL(file);
-        setProfileData((prev) => ({ ...prev, avatar_url: fakeUrl }));
-        toast({ title: "Imagem carregada", description: "Modo Demo: Imagem aplicada localmente." });
-        return;
-      }
-
-      // 1. Upload para o bucket 'avatars'
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file, {
-        cacheControl: "3600", // 1 hour cache
-        upsert: true, // Overwrite existing file with same name
-      });
-
-      if (uploadError) throw uploadError;
-
-      // 2. Obter URL pública
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(filePath);
-
-      // 3. Atualizar estado local
-      // Adiciona timestamp para evitar cache do navegador
-      const publicUrlWithTimestamp = `${publicUrl}?t=${Date.now()}`;
-      setProfileData((prev) => ({ ...prev, avatar_url: publicUrlWithTimestamp }));
-
-      toast({
-        title: "Imagem carregada",
-        description: "Clique em Salvar para confirmar a alteração.",
-      });
-    } catch (error: any) {
-      console.error("Error uploading avatar:", error);
-      toast({
-        title: "Erro no upload",
-        description: "Verifique se o bucket 'avatars' é público no Supabase.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-      if (fileInputRef.current) fileInputRef.current.value = ""; // Limpa o input para permitir re-upload do mesmo arquivo
-    }
-  };
 
   const handleCompanyLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) return;
@@ -445,24 +351,7 @@ export default function Settings() {
         return;
       }
 
-      if (activeTab === "profile") {
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            full_name: profileData.full_name,
-            avatar_url: profileData.avatar_url,
-            display_role: profileData.display_role,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", profileData.id);
-
-        if (error) throw error;
-        await refreshProfile(); // Atualiza o contexto global (Sidebar)
-        toast({
-          title: "Perfil salvo",
-          description: "Suas informações de perfil foram atualizadas.",
-        });
-      } else if (
+      if (
         [
           "company",
           "notifications",
@@ -632,86 +521,7 @@ export default function Settings() {
 
         {/* Content Area */}
         <div className="flex-1 space-y-6">
-          {activeTab === "profile" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Perfil do Administrador</CardTitle>
-                <CardDescription>
-                  Informações exibidas na barra lateral e relatórios.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex flex-col items-center sm:flex-row gap-6">
-                  <div
-                    className="relative group cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Avatar className="h-24 w-24 border-2 border-border">
-                      <AvatarImage
-                        key={profileData.avatar_url} // Força re-render quando a URL muda
-                        src={profileData.avatar_url || "/placeholder.svg"}
-                        className="object-cover"
-                      />
-                      <AvatarFallback className="text-2xl">AD</AvatarFallback>
-                    </Avatar>
-                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Camera className="h-8 w-8 text-white" />
-                    </div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleAvatarUpload}
-                    />
-                  </div>
-                  <div className="space-y-1 text-center sm:text-left">
-                    <h3 className="font-medium">Foto de Perfil</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Clique na imagem para alterar. Recomendado: 400x400px.
-                    </p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="devName">Nome de Exibição</Label>
-                    <Input
-                      id="devName"
-                      value={profileData.full_name}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, full_name: e.target.value })
-                      }
-                      placeholder="Ex: [DEV] Marcos Guilherme"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="displayRole">Cargo de Exibição</Label>
-                    <Input
-                      id="displayRole"
-                      value={profileData.display_role}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, display_role: e.target.value })
-                      }
-                      placeholder="Ex: Administrador, Gerente de RH"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">E-mail de Login</Label>
-                    <Input
-                      id="email"
-                      value={profileData.email}
-                      readOnly
-                      disabled
-                      placeholder="admin@empresa.com"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {activeTab === "profile" && <ProfileSettings />}
 
           {activeTab === "company" && (
             <Card>

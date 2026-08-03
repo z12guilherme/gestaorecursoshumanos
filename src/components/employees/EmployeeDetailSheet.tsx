@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/hooks/useSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmployeeDocuments } from "./EmployeeDocuments";
+import { calculateVacationBalance } from "@/services/payrollService"; // Exemplo de serviço
 
 interface EmployeeDetailSheetProps {
   employee: Employee | null;
@@ -77,36 +78,12 @@ export function EmployeeDetailSheet({
     },
   };
 
-  // Cálculo dinâmico do saldo de férias
-  const hireDate = employee.hireDate ? new Date(employee.hireDate + "T00:00:00") : new Date();
   const today = new Date();
-  const yearsOfService = differenceInYears(today, hireDate);
-
-  // Período aquisitivo atual (aniversário de admissão deste ano até o próximo)
-  const currentPeriodStart = addYears(hireDate, yearsOfService);
-  const currentPeriodEnd = addYears(hireDate, yearsOfService + 1);
-
-  // Calcula dias tirados no período atual
-  const takenDays = timeOffRequests
-    .filter(
-      (r) =>
-        r.employee_id === employee.id &&
-        r.status === "approved" &&
-        r.type === "vacation" &&
-        new Date(r.start_date + "T00:00:00") >= currentPeriodStart
-    )
-    .reduce(
-      (acc, r) =>
-        acc +
-        (differenceInDays(
-          new Date(r.end_date + "T00:00:00"),
-          new Date(r.start_date + "T00:00:00")
-        ) +
-          1),
-      0
-    );
-
-  const vacationBalance = Math.max(0, 30 - takenDays);
+  const {
+    balance: vacationBalance,
+    periodStart: currentPeriodStart,
+    periodEnd: currentPeriodEnd,
+  } = calculateVacationBalance(employee, timeOffRequests);
 
   // Logic to find return date if on vacation
   let returnDate: Date | null = null;
@@ -252,15 +229,15 @@ export function EmployeeDetailSheet({
                 </Badge>
               </div>
               <div className="flex items-end gap-2">
-                <span className="text-3xl font-bold">{vacationBalance}</span>
+                <span className="text-3xl font-bold">{balance}</span>
                 <span className="text-sm text-muted-foreground mb-1">dias disponíveis</span>
               </div>
               <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
                 <div className="bg-primary h-full rounded-full" style={{ width: "70%" }} />
               </div>
               <p className="text-xs text-muted-foreground">
-                Período aquisitivo: {format(currentPeriodStart, "dd/MM/yyyy")} -{" "}
-                {format(currentPeriodEnd, "dd/MM/yyyy")}
+                Período aquisitivo: {format(periodStart, "dd/MM/yyyy")} -{" "}
+                {format(periodEnd, "dd/MM/yyyy")}
               </p>
             </div>
 
