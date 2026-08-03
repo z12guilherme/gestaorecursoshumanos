@@ -1,0 +1,15 @@
+# Valida que a mensagem de commit segue o padrão Conventional Commits
+# Ex: feat: adiciona módulo de férias
+#     fix(payroll): corrige cálculo de INSS
+#     docs: atualiza README
+commit_regex='^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .{1,100}'
+msg=$(cat "$1")
+if ! echo "$msg" | grep -qE "$commit_regex"; then
+  echo ""
+  echo "  ✗ Mensagem de commit inválida!"
+  echo "  Use o padrão Conventional Commits:"
+  echo "  feat|fix|docs|style|refactor|test|chore: descrição"
+  echo "  Exemplo: feat: adiciona módulo de avaliação de desempenho"
+  echo ""
+  exit 1
+fi
